@@ -3,9 +3,10 @@ import { Student, LearningRecord, ContactBook } from '../types';
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
 
+export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1';
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
-export const DEFAULT_WEB_APP_URL = DEFAULT_LEARNING_WEB_APP_URL;
+export const DEFAULT_WEB_APP_URL = DEFAULT_STUDENT_WEB_APP_URL;
 
 export interface SyncedData {
   students: Student[];
@@ -365,6 +366,88 @@ function doPost(e) {
 }
 `;
 
+export const STUDENT_ROSTER_APPS_SCRIPT_CODE = `/**
+ * 愛愛幼兒園 - 學生名冊專用 Google Sheets Apps Script 程式碼
+ * 
+ * 步驟說明：
+ * 1. 開啟您的學生名冊 Google 試算表 ➔ 點選選單「擴充功能」 ➔ 「Apps Script」
+ * 2. 清空現有程式碼，全選貼上下方 JavaScript 腳本
+ * 3. 點選右上角「部署」 ➔ 「新增部署」 
+ * 4. 種類選「網頁應用程式 (Web App)」
+ * 5. 執行身分選「我 (Me)」，存取權限設為「所有人 (Anyone)」
+ * 6. 點擊「部署」並完成帳號授權，複製「網頁應用程式 URL」貼回幼兒園系統設定頁面！
+ */
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Students") || ss.getSheetByName("學生名冊");
+  
+  if (!sheet) {
+    sheet = ss.insertSheet("Students");
+    sheet.appendRow([
+      "ID", "Name", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"
+    ]);
+  }
+  
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", students: [] }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var headers = data[0];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = data[i][j];
+    }
+    rows.push(obj);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    students: rows,
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var contents = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Students") || ss.getSheetByName("學生名冊");
+    
+    if (!sheet) {
+      sheet = ss.insertSheet("Students");
+    }
+    
+    sheet.clear();
+    sheet.appendRow([
+      "ID", "Name", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"
+    ]);
+    
+    var students = contents.students || [];
+    students.forEach(function(s) {
+      sheet.appendRow([
+        s.id, s.name, s.seatNumber, s.className, s.gender,
+        s.avatarUrl || "", s.parentName || "", s.parentContact || "", s.notes || ""
+      ]);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "學生名冊資料已成功更新至 Google Sheet！"
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+`;
+
 export const CONTACT_BOOK_APPS_SCRIPT_CODE = `/**
  * 愛愛幼兒園 - 家長聯絡簿專用 Google Sheets Apps Script 程式碼
  * 
@@ -577,25 +660,58 @@ function updateContactSheet(ss, contactBooks) {
 }
 `;
 
+export function normalizeWebAppUrl(url: string): string {
+  if (!url) return '';
+  let trimmed = url.trim();
+  // Transform library URLs: /macros/library/d/{id}/1 -> /macros/s/{id}/exec
+  const libraryMatch = trimmed.match(/\/macros\/library\/d\/([^\/]+)/);
+  if (libraryMatch && libraryMatch[1]) {
+    return `https://script.google.com/macros/s/${libraryMatch[1]}/exec`;
+  }
+  // If macro URL doesn't end with /exec, append it if needed
+  if (trimmed.includes('/macros/s/') && !trimmed.endsWith('/exec')) {
+    trimmed = trimmed.replace(/\/+$/, '') + '/exec';
+  }
+  return trimmed;
+}
+
 /**
  * Fetch data using Web App URL
  */
 export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
-  const res = await fetch(webAppUrl);
-  if (!res.ok) {
-    throw new Error(`Web App 請求失敗 (${res.status}): ${res.statusText}`);
-  }
-  const data = await res.json();
-  if (data.status !== 'success') {
-    throw new Error(data.message || 'Web App 回傳錯誤');
+  const normalizedUrl = normalizeWebAppUrl(webAppUrl);
+  if (!normalizedUrl) {
+    throw new Error('請輸入或選擇有效的 Google Apps Script Web App URL');
   }
 
-  const rawStudents = data.students || [];
-  const rawLearning = data.learningRecords || [];
-  const rawContact = data.contactBooks || [];
+  let res: Response;
+  try {
+    res = await fetch(normalizedUrl, { redirect: 'follow' });
+  } catch (err: any) {
+    throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。`);
+  }
+
+  if (!res.ok) {
+    throw new Error(`Web App 請求失敗 (${res.status}): ${res.statusText || '網址無法存取'}`);
+  }
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch (jsonErr) {
+    throw new Error('Web App 回傳內容非 JSON 格式。請確認 Apps Script 程式碼已複製貼上最新版並儲存部署。');
+  }
+
+  if (data.status !== 'success' && data.status !== 'ok') {
+    throw new Error(data.message || 'Web App 執行結果異常');
+  }
+
+  const rawStudents = Array.isArray(data.students) ? data.students : [];
+  const rawLearning = Array.isArray(data.learningRecords) ? data.learningRecords : [];
+  const rawContact = Array.isArray(data.contactBooks) ? data.contactBooks : [];
 
   const students: Student[] = rawStudents.map((s: any) => ({
-    id: s.ID || s.id || String(Math.random()),
+    id: String(s.ID || s.id || Math.random()),
     name: s.Name || s.name || '',
     seatNumber: String(s.SeatNumber || s.seatNumber || ''),
     className: s.ClassName || s.className || '大班 (櫻桃班)',
@@ -607,10 +723,10 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   }));
 
   const learningRecords: LearningRecord[] = rawLearning.map((r: any) => ({
-    id: r.ID || r.id || String(Math.random()),
+    id: String(r.ID || r.id || Math.random()),
     dateStart: r.DateStart || r.dateStart || '',
     dateEnd: r.DateEnd || r.dateEnd || '',
-    studentId: r.StudentId || r.studentId || '',
+    studentId: String(r.StudentId || r.studentId || ''),
     studentName: r.StudentName || r.studentName || '',
     className: r.ClassName || r.className || '大班 (櫻桃班)',
     seatNumber: String(r.SeatNumber || r.seatNumber || ''),
@@ -625,9 +741,9 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   }));
 
   const contactBooks: ContactBook[] = rawContact.map((c: any) => ({
-    id: c.ID || c.id || String(Math.random()),
+    id: String(c.ID || c.id || Math.random()),
     date: c.Date || c.date || '',
-    studentId: c.StudentId || c.studentId || '',
+    studentId: String(c.StudentId || c.studentId || ''),
     studentName: c.StudentName || c.studentName || '',
     className: c.ClassName || c.className || '大班 (櫻桃班)',
     seatNumber: String(c.SeatNumber || c.seatNumber || ''),
@@ -656,6 +772,11 @@ export async function syncToWebApp(
   learningRecords: LearningRecord[],
   contactBooks: ContactBook[]
 ): Promise<void> {
+  const normalizedUrl = normalizeWebAppUrl(webAppUrl);
+  if (!normalizedUrl) {
+    throw new Error('未設定有效的 Google Sheet Web App URL');
+  }
+
   const payload = {
     action: 'syncAll',
     students,
@@ -663,16 +784,47 @@ export async function syncToWebApp(
     contactBooks,
   };
 
-  const res = await fetch(webAppUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8', // Avoid preflight CORS issue in Apps Script
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(normalizedUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    });
 
-  if (!res.ok) {
-    throw new Error(`Web App 寫入失敗 (${res.status}): ${res.statusText}`);
+    if (res.type !== 'opaque' && !res.ok) {
+      throw new Error(`Web App 寫入失敗 (HTTP ${res.status}): ${res.statusText}`);
+    }
+
+    if (res.type !== 'opaque') {
+      try {
+        const text = await res.text();
+        if (text) {
+          const json = JSON.parse(text);
+          if (json.status === 'error') {
+            throw new Error(`Apps Script 寫入錯誤: ${json.message}`);
+          }
+        }
+      } catch (e: any) {
+        if (e.message && e.message.includes('Apps Script 寫入錯誤')) throw e;
+      }
+    }
+  } catch (err: any) {
+    // Retry with no-cors if CORS restriction triggered a fetch failure
+    try {
+      await fetch(normalizedUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (fallbackErr: any) {
+      throw new Error(`Web App 同步失敗: ${err.message || fallbackErr.message || '無法寫入至 Google Sheet'}`);
+    }
   }
 }
 

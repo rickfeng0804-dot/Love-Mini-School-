@@ -82,6 +82,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           setSheetConfig((prev) => ({ ...prev, isConnected: true }));
           setStatusMsg('授權完成！請點擊下方「建立全新 Google Sheet 資料庫」或「搜尋連結」。');
         }
+      } else {
+        setStatusMsg('已取消登入授權 (登入視窗已關閉)。');
       }
     } catch (err: any) {
       console.error(err);

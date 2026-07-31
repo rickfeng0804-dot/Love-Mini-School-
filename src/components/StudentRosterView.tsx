@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
-import { syncAllToSheet } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -112,6 +112,15 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     } catch {}
 
+    // Auto sync Web App URL
+    if (sheetConfig.webAppUrl) {
+      try {
+        await syncToWebApp(sheetConfig.webAppUrl, updated, learningRecords, contactBooks);
+      } catch (err) {
+        console.error('Student roster Web App sync failed:', err);
+      }
+    }
+
     // Auto sync sheet
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {
@@ -129,6 +138,14 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     if (!window.confirm('確認要刪除該學生的名冊資料嗎？')) return;
     const updated = students.filter((s) => s.id !== stuId);
     setStudents(updated);
+
+    if (sheetConfig.webAppUrl) {
+      try {
+        await syncToWebApp(sheetConfig.webAppUrl, updated, learningRecords, contactBooks);
+      } catch (err) {
+        console.error('Student roster Web App sync failed:', err);
+      }
+    }
 
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {

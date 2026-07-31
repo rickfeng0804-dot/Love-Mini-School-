@@ -4,11 +4,14 @@ import {
   APPS_SCRIPT_CODE, 
   CONTACT_BOOK_APPS_SCRIPT_CODE, 
   LEARNING_CORNER_APPS_SCRIPT_CODE, 
+  STUDENT_ROSTER_APPS_SCRIPT_CODE,
   DEFAULT_WEB_APP_URL,
+  DEFAULT_STUDENT_WEB_APP_URL,
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
   fetchFromWebApp, 
-  syncToWebApp 
+  syncToWebApp,
+  normalizeWebAppUrl
 } from '../lib/googleSheets';
 import { 
   FileSpreadsheet, 
@@ -55,7 +58,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   setContactBooks,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [activeCodeTab, setActiveCodeTab] = useState<'learningCorner' | 'contactBook' | 'fullSystem'>('learningCorner');
+  const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
   const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || '');
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
     sheetConfig.refreshIntervalMinutes ?? 5
@@ -84,16 +87,22 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Test / Connect to Web App URL
   const handleTestConnection = async () => {
-    if (!webAppInput.trim()) {
+    const rawInput = webAppInput.trim();
+    if (!rawInput) {
       setStatusMessage({ type: 'error', text: '請輸入有效的 Google Apps Script Web App URL 網址' });
       return;
+    }
+
+    const normalized = normalizeWebAppUrl(rawInput);
+    if (normalized !== rawInput) {
+      setWebAppInput(normalized);
     }
 
     setIsSyncing(true);
     setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App...' });
 
     try {
-      const data = await fetchFromWebApp(webAppInput.trim());
+      const data = await fetchFromWebApp(normalized);
       
       // Update local state if spreadsheet returns data
       if (data.students && data.students.length > 0) {
@@ -110,7 +119,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
       setSheetConfig((prev) => ({
         ...prev,
-        webAppUrl: webAppInput.trim(),
+        webAppUrl: normalized,
         isConnected: true,
         lastSyncedAt: nowStr,
         refreshIntervalMinutes: intervalMinutes,
@@ -134,20 +143,26 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Save Settings
   const handleSaveSettings = () => {
+    const rawInput = webAppInput.trim();
+    const normalized = normalizeWebAppUrl(rawInput);
+    if (normalized !== rawInput) {
+      setWebAppInput(normalized);
+    }
+
     setSheetConfig((prev) => ({
       ...prev,
-      webAppUrl: webAppInput.trim(),
+      webAppUrl: normalized,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
-      isConnected: Boolean(webAppInput.trim()),
+      isConnected: Boolean(normalized),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定已儲存！' });
-    setTimeout(() => setStatusMessage(null), 3000);
+    setStatusMessage({ type: 'success', text: '系統設定已儲存並生效！' });
+    setTimeout(() => setStatusMessage(null), 3500);
   };
 
   // Trigger manual push sync to Web App
   const handlePushSync = async () => {
-    const url = sheetConfig.webAppUrl || webAppInput.trim();
+    const url = normalizeWebAppUrl(sheetConfig.webAppUrl || webAppInput.trim());
     if (!url) {
       setStatusMessage({ type: 'error', text: '請先設定並輸入 Google Apps Script Web App URL' });
       return;
@@ -162,11 +177,12 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
       setSheetConfig((prev) => ({
         ...prev,
+        webAppUrl: url,
         isConnected: true,
         lastSyncedAt: nowStr,
       }));
 
-      setStatusMessage({ type: 'success', text: `同步完成！已成功將 ${students.length} 位學生資料寫入 Google Sheet。` });
+      setStatusMessage({ type: 'success', text: `同步完成！已成功將 ${students.length} 位學生、${learningRecords.length} 筆角落紀錄與 ${contactBooks.length} 筆聯絡簿同步至 Google Sheet。` });
     } catch (err: any) {
       console.error(err);
       setStatusMessage({ type: 'error', text: `寫入失敗：${err.message || '無法連線至 Web App'}` });
@@ -362,7 +378,17 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             <div>
               <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
                 <label className="text-[11px] font-black text-[#5D4037]">Google Sheet Web App URL：</label>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已自動帶入學生名冊預設 Web App URL！請點選儲存設定或測試連線。' });
+                    }}
+                    className="bg-[#AB47BC] hover:bg-[#8E24AA] text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
+                  >
+                    帶入學生名冊預設 URL
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -389,16 +415,36 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 type="url"
                 value={webAppInput}
                 onChange={(e) => setWebAppInput(e.target.value)}
-                placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                placeholder="https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1"
                 className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
               />
 
               <div className="mt-2.5 p-2.5 bg-white/90 rounded-xl border border-[#5D4037]/30 text-[10px] text-[#5D4037] font-bold space-y-1.5">
                 <div className="flex items-center justify-between">
+                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊」URL:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Web App URL！' });
+                    }}
+                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
+                  >
+                    點此帶入
+                  </button>
+                </div>
+                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
+                  {DEFAULT_STUDENT_WEB_APP_URL}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
                   <span className="text-[#00838F] font-black">📌 系統預設「角落學習紀錄」URL:</span>
                   <button
                     type="button"
-                    onClick={() => setWebAppInput(DEFAULT_LEARNING_WEB_APP_URL)}
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_LEARNING_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已帶入角落學習紀錄預設 Web App URL！' });
+                    }}
                     className="text-[9px] text-[#00838F] hover:underline cursor-pointer font-black"
                   >
                     點此帶入
@@ -412,7 +458,10 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                   <span className="text-[#E65100] font-black">📌 系統預設「家長聯絡簿」URL:</span>
                   <button
                     type="button"
-                    onClick={() => setWebAppInput(DEFAULT_CONTACT_WEB_APP_URL)}
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_CONTACT_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已帶入家長聯絡簿預設 Web App URL！' });
+                    }}
                     className="text-[9px] text-[#E65100] hover:underline cursor-pointer font-black"
                   >
                     點此帶入
@@ -684,7 +733,18 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             </h3>
 
             {/* Code Tab Selector */}
-            <div className="flex bg-[#F5F5F5] p-1 rounded-xl border-2 border-[#5D4037] gap-1">
+            <div className="flex flex-wrap bg-[#F5F5F5] p-1 rounded-xl border-2 border-[#5D4037] gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveCodeTab('studentRoster')}
+                className={`px-3 py-1 rounded-lg font-black text-xs transition-all cursor-pointer ${
+                  activeCodeTab === 'studentRoster'
+                    ? 'bg-[#AB47BC] text-white shadow-[1px_1px_0px_#5D4037]'
+                    : 'text-[#5D4037] hover:bg-gray-200'
+                }`}
+              >
+                學生名冊專用
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveCodeTab('learningCorner')}
@@ -724,7 +784,9 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
           <button
             onClick={() =>
               handleCopyCode(
-                activeCodeTab === 'learningCorner'
+                activeCodeTab === 'studentRoster'
+                  ? STUDENT_ROSTER_APPS_SCRIPT_CODE
+                  : activeCodeTab === 'learningCorner'
                   ? LEARNING_CORNER_APPS_SCRIPT_CODE
                   : activeCodeTab === 'contactBook'
                   ? CONTACT_BOOK_APPS_SCRIPT_CODE
@@ -740,7 +802,9 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             ) : (
               <>
                 <Copy className="w-4 h-4" /> 複製{
-                  activeCodeTab === 'learningCorner'
+                  activeCodeTab === 'studentRoster'
+                    ? '學生名冊'
+                    : activeCodeTab === 'learningCorner'
                     ? '角落學習區'
                     : activeCodeTab === 'contactBook'
                     ? '家長聯絡簿'
@@ -753,7 +817,9 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
         <div className="bg-[#212121] text-[#E0E0E0] p-4 rounded-2xl border-2 border-[#5D4037] font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[420px] overflow-y-auto">
           <pre>{
-            activeCodeTab === 'learningCorner'
+            activeCodeTab === 'studentRoster'
+              ? STUDENT_ROSTER_APPS_SCRIPT_CODE
+              : activeCodeTab === 'learningCorner'
               ? LEARNING_CORNER_APPS_SCRIPT_CODE
               : activeCodeTab === 'contactBook'
               ? CONTACT_BOOK_APPS_SCRIPT_CODE
