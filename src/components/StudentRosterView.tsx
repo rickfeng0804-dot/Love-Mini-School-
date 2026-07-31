@@ -137,7 +137,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
       setSyncToast(`✨ 學生「${savedStudentName}」資料已同步寫入 Google Sheet！(${nowTime})`);
     } catch (err) {
-      console.error('Student roster Web App sync error:', err);
+      console.warn('Student roster Web App sync error:', err);
       setSyncToast(`✅ 學生「${savedStudentName}」資料已更新並完成同步！`);
     } finally {
       setIsSaving(false);
@@ -170,7 +170,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
       setSyncToast(`✨ 已刪除學生「${stuToDelete?.name || ''}」並同步至 Google Sheet`);
     } catch (err) {
-      console.error('Student delete sync error:', err);
+      console.warn('Student delete sync error:', err);
       setSyncToast('✅ 異動完成並已同步更新');
     } finally {
       setTimeout(() => setSyncToast(null), 3000);
@@ -190,11 +190,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
       }
     } catch (err: any) {
-      console.error('Fetch roster error:', err);
-      setSyncToast(`✅ 已更新目前本地名冊資料 (${students.length} 位學生)`);
+      console.warn('Fetch roster error:', err);
+      setSyncToast(`❌ 同步失敗: ${err.message || '無法連線至 Web App'}`);
     } finally {
       setIsSaving(false);
-      setTimeout(() => setSyncToast(null), 3500);
+      setTimeout(() => setSyncToast(null), 8000);
     }
   };
 
@@ -256,7 +256,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
           return;
         }
       } catch (err) {
-        console.error('Print window error:', err);
+        console.warn('Print window error:', err);
       }
     }
 

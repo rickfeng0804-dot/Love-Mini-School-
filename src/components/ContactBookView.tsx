@@ -97,7 +97,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       try {
         await syncToWebApp(webAppTarget, students, learningRecords, updated);
       } catch (err) {
-        console.error('Web App sync error:', err);
+        console.warn('Web App sync error:', err);
       }
     }
 
@@ -109,7 +109,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
           await syncAllToSheet(token, sheetConfig.spreadsheetId, students, learningRecords, updated);
         }
       } catch (err) {
-        console.error('Sync error:', err);
+        console.warn('Sync error:', err);
       }
     }
   };
@@ -140,7 +140,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       try {
         await syncToWebApp(webAppTarget, students, learningRecords, updated);
       } catch (err) {
-        console.error('Web App sync error:', err);
+        console.warn('Web App sync error:', err);
       }
     }
 
@@ -151,7 +151,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
           await syncAllToSheet(token, sheetConfig.spreadsheetId, students, learningRecords, updated);
         }
       } catch (err) {
-        console.error('Sync error:', err);
+        console.warn('Sync error:', err);
       }
     }
   };
@@ -215,7 +215,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
           return;
         }
       } catch (err) {
-        console.error('Print window error:', err);
+        console.warn('Print window error:', err);
       }
     }
 

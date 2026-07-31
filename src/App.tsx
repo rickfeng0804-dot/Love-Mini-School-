@@ -54,7 +54,7 @@ export default function App() {
     const saved = localStorage.getItem('kindergarten_sheet_config');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/')) {
+      if (!parsed.webAppUrl) {
         parsed.webAppUrl = DEFAULT_WEB_APP_URL;
         parsed.isConnected = true;
       }
@@ -117,9 +117,6 @@ export default function App() {
         })
         .catch((err) => {
           console.warn('Global background Web App auto-sync warning:', err?.message || err);
-          if (sheetConfig.webAppUrl && sheetConfig.webAppUrl !== DEFAULT_WEB_APP_URL) {
-            setSheetConfig((prev) => ({ ...prev, webAppUrl: DEFAULT_WEB_APP_URL }));
-          }
         });
     };
 
@@ -170,7 +167,7 @@ export default function App() {
               if (data.learningRecords.length > 0) setLearningRecords(data.learningRecords);
               if (data.contactBooks.length > 0) setContactBooks(data.contactBooks);
             } catch (e) {
-              console.error('Auto load error:', e);
+              console.warn('Auto load error:', e);
             }
           }
         }
@@ -207,15 +204,13 @@ export default function App() {
       setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
       setSyncToast(`✨ 成功！最新數據已同步完成 (${nowStr})`);
     } catch (err: any) {
-      console.error('Instant sync error:', err);
-      const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
-      setSyncToast(`✨ 已完成最新狀態重整 (${nowStr})`);
+      console.warn('Instant sync error:', err?.message || err);
+      setSyncToast(`❌ 同步失敗: ${err?.message || '未知錯誤'}`);
     } finally {
       setIsSyncing(false);
       setTimeout(() => {
         setSyncToast(null);
-      }, 3500);
+      }, 8000);
     }
   };
 
