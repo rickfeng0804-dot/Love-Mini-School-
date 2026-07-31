@@ -88,7 +88,16 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     blocks: '',
   });
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
 
   const [photoImages, setPhotoImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',

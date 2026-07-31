@@ -41,7 +41,16 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
   sheetConfig,
   learningRecords,
 }) => {
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
   const studentContactBooks = contactBooks.filter((c) => c.studentId === selectedStudentId);
 
   // New Contact Book Form State (Teacher)

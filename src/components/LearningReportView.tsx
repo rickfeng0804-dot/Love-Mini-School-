@@ -46,6 +46,7 @@ interface SingleReportCardProps {
 }
 
 const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = false }) => {
+  if (!record) return null;
   return (
     <div className={`bg-[#FFFBF0] border-4 border-[#5D4037] p-6 md:p-8 rounded-[2rem] shadow-[10px_10px_0px_#5D4037] max-w-[1000px] mx-auto text-[#5D4037] font-sans print:shadow-none print:border-4 print:border-[#5D4037] print:p-6 print:bg-white ${isBatch ? 'a4-page-break' : ''}`}>
       {/* Header Row */}
@@ -243,7 +244,16 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     studentRecords[0]?.id || learningRecords[0]?.id || ''
   );
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
   const activeRecord =
     learningRecords.find((r) => r.id === activeRecordId) || studentRecords[0] || learningRecords[0];
 
