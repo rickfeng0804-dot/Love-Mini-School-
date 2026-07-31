@@ -86,7 +86,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         setStatusMsg('已取消登入授權 (登入視窗已關閉)。');
       }
     } catch (err: any) {
-      console.warn(err);
+      console.error(err);
       setStatusMsg(`登入授權失敗: ${err.message || '請確認網路與視窗權限'}`);
     } finally {
       setLoading(false);
@@ -118,7 +118,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           await syncAllToSheet(token, res.spreadsheetId, students, learningRecords, contactBooks);
           setStatusMsg('現有資料已全部同步至您的 Google Sheet 資料庫！');
         } catch (err: any) {
-          console.warn(err);
+          console.error(err);
           setStatusMsg(`建立失敗: ${err.message}`);
         } finally {
           setLoading(false);
@@ -146,7 +146,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           }));
           setStatusMsg('資料成功同步寫入至 Google Sheet！');
         } catch (err: any) {
-          console.warn(err);
+          console.error(err);
           setStatusMsg(`同步失敗: ${err.message}`);
         } finally {
           setLoading(false);
@@ -178,7 +178,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           }));
           setStatusMsg('已成功從 Google Sheet 載入最新資料！');
         } catch (err: any) {
-          console.warn(err);
+          console.error(err);
           setStatusMsg(`載入失敗: ${err.message}`);
         } finally {
           setLoading(false);

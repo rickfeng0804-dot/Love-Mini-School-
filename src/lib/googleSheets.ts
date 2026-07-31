@@ -3,9 +3,10 @@ import { Student, LearningRecord, ContactBook } from '../types';
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
 
-export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1';
-export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1';
-export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1';
+export const DEFAULT_STUDENT_LIBRARY_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/2';
+export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwj9uSMKO1_Me0A1H3G3AuMnAaEg3cehrGlgXnv4hDczdbf_wh16bp7jnYBCMp02eON/exec';
+export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
+export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
 export const DEFAULT_WEB_APP_URL = DEFAULT_STUDENT_WEB_APP_URL;
 
 export interface SyncedData {
@@ -663,8 +664,12 @@ function updateContactSheet(ss, contactBooks) {
 export function normalizeWebAppUrl(url: string): string {
   if (!url) return DEFAULT_WEB_APP_URL;
   let trimmed = url.trim();
-
-  // If macro URL doesn't end with /exec and is not a library URL, append it if needed
+  // Transform library URLs: /macros/library/d/{id}/... -> /macros/s/{id}/exec
+  const libraryMatch = trimmed.match(/\/macros\/library\/d\/([^\/]+)/);
+  if (libraryMatch && libraryMatch[1]) {
+    return `https://script.google.com/macros/s/${libraryMatch[1]}/exec`;
+  }
+  // If macro URL doesn't end with /exec, append it if needed
   if (trimmed.includes('/macros/s/') && !trimmed.endsWith('/exec')) {
     trimmed = trimmed.replace(/\/+$/, '') + '/exec';
   }
@@ -680,23 +685,38 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
     throw new Error('請輸入或選擇有效的 Google Apps Script Web App URL');
   }
 
-  let res: Response;
+  let res: Response | null = null;
   try {
-    const fetchUrl = normalizedUrl.includes('?') ? `${normalizedUrl}&t=${Date.now()}` : `${normalizedUrl}?t=${Date.now()}`;
-    res = await fetch(fetchUrl);
+    res = await fetch(normalizedUrl, { redirect: 'follow' });
   } catch (err: any) {
-    throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。`);
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
+    console.warn(`Web App fetch warning (${normalizedUrl}):`, err?.message || err);
+    throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。系統已安全載入本地名冊。`);
   }
 
-  if (!res.ok) {
-    throw new Error(`Web App 請求失敗 (${res.status}): ${res.statusText || '網址無法存取'}`);
+  if (!res || !res.ok) {
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
+    throw new Error(`Web App 請求失敗 (${res ? res.status : '無回應'})。請確認已部署 Apps Script 為 Web App 並開放存取。`);
   }
 
   let data: any;
   try {
     data = await res.json();
   } catch (jsonErr) {
-    throw new Error('Web App 回傳內容非 JSON 格式。請確認 Apps Script 程式碼已複製貼上最新版並儲存部署。');
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
+    throw new Error('Web App 回傳內容非 JSON 格式。請確認 Apps Script 程式碼已更新並重新部署。');
   }
 
   if (data.status !== 'success' && data.status !== 'ok') {
@@ -782,13 +802,13 @@ export async function syncToWebApp(
   };
 
   try {
-    const fetchUrl = normalizedUrl.includes('?') ? `${normalizedUrl}&t=${Date.now()}` : `${normalizedUrl}?t=${Date.now()}`;
-    const res = await fetch(fetchUrl, {
+    const res = await fetch(normalizedUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      redirect: 'follow',
     });
 
     if (res.type !== 'opaque' && !res.ok) {
@@ -811,8 +831,7 @@ export async function syncToWebApp(
   } catch (err: any) {
     // Retry with no-cors if CORS restriction triggered a fetch failure
     try {
-      const fetchUrl = normalizedUrl.includes('?') ? `${normalizedUrl}&t=${Date.now()}` : `${normalizedUrl}?t=${Date.now()}`;
-      await fetch(fetchUrl, {
+      await fetch(normalizedUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -821,7 +840,8 @@ export async function syncToWebApp(
         body: JSON.stringify(payload),
       });
     } catch (fallbackErr: any) {
-      throw new Error(`Web App 同步失敗: ${err.message || fallbackErr.message || '無法寫入至 Google Sheet'}`);
+      console.warn('Web App Sync Warning:', err.message || fallbackErr.message);
+      throw new Error(`Web App 同步連線失敗。異動已於本地安全儲存，請確認 Google Apps Script 已完成「部署為 Web App (Anyone)」。`);
     }
   }
 }

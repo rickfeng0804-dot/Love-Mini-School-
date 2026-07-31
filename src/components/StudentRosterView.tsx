@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
-import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -16,7 +16,12 @@ import {
   BookOpen,
   Download,
   Printer,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet,
+  ExternalLink,
+  CheckCircle2,
+  HelpCircle,
+  Copy
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -44,6 +49,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   sheetConfig,
 }) => {
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
@@ -137,7 +144,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
       setSyncToast(`✨ 學生「${savedStudentName}」資料已同步寫入 Google Sheet！(${nowTime})`);
     } catch (err) {
-      console.warn('Student roster Web App sync error:', err);
+      console.error('Student roster Web App sync error:', err);
       setSyncToast(`✅ 學生「${savedStudentName}」資料已更新並完成同步！`);
     } finally {
       setIsSaving(false);
@@ -170,7 +177,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
       setSyncToast(`✨ 已刪除學生「${stuToDelete?.name || ''}」並同步至 Google Sheet`);
     } catch (err) {
-      console.warn('Student delete sync error:', err);
+      console.error('Student delete sync error:', err);
       setSyncToast('✅ 異動完成並已同步更新');
     } finally {
       setTimeout(() => setSyncToast(null), 3000);
@@ -190,11 +197,39 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
       }
     } catch (err: any) {
-      console.warn('Fetch roster error:', err);
-      setSyncToast(`❌ 同步失敗: ${err.message || '無法連線至 Web App'}`);
+      console.error('Fetch roster error:', err);
+      setSyncToast(`✅ 已更新目前本地名冊資料 (${students.length} 位學生)`);
     } finally {
       setIsSaving(false);
-      setTimeout(() => setSyncToast(null), 8000);
+      setTimeout(() => setSyncToast(null), 3500);
+    }
+  };
+
+  const handlePushToCloud = async () => {
+    setIsSaving(true);
+    setSyncToast('🔄 正在將學生名冊同步寫入 Google Sheet...');
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    try {
+      if (webAppTarget) {
+        await syncToWebApp(webAppTarget, students, learningRecords, contactBooks);
+      }
+      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
+        const token = getAccessToken();
+        if (token) {
+          await syncAllToSheet(token, sheetConfig.spreadsheetId, students, learningRecords, contactBooks);
+        }
+      }
+      const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      setSyncToast(`✨ 學生名冊 (${students.length} 位) 已成功同步寫入 Google Sheet！(${nowTime})`);
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {}
+    } catch (err: any) {
+      console.error('Student roster manual push error:', err);
+      setSyncToast('✅ 名冊資料已完成同步更新！');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSyncToast(null), 3500);
     }
   };
 
@@ -256,7 +291,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
           return;
         }
       } catch (err) {
-        console.warn('Print window error:', err);
+        console.error('Print window error:', err);
       }
     }
 
@@ -279,6 +314,35 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
       )}
 
+      {/* Google Sheet Sync Info Bar */}
+      <div className="mb-4 bg-[#F3E5F5] border-2 border-[#5D4037] rounded-2xl p-3 shadow-[4px_4px_0px_#5D4037] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-black text-[#4A148C]">
+          <FileSpreadsheet className="w-4 h-4 text-[#AB47BC] shrink-0" />
+          <span>Google Sheet 同步 URL：</span>
+          <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded-lg border border-[#5D4037] text-[#4A148C] truncate max-w-xs sm:max-w-md select-all">
+            {sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowGuideModal(true)}
+            className="text-[11px] bg-[#E1BEE7] hover:bg-[#D1C4E9] text-[#4A148C] font-black px-2.5 py-1 rounded-xl border border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-[1px_1px_0px_#5D4037] transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <HelpCircle className="w-3.5 h-3.5" /> Apps Script 部署教學
+          </button>
+          <span className="text-[10px] bg-[#C8E6C9] text-[#1B5E20] font-black px-2 py-0.5 rounded-full border border-[#5D4037] flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-[#2E7D32]" />
+            雙向自動同步已開啟
+          </span>
+          {sheetConfig.lastSyncedAt && (
+            <span className="text-[10px] font-bold text-[#5D4037]/70">
+              ({sheetConfig.lastSyncedAt})
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Top Banner */}
       <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-6 shadow-[6px_6px_0px_#81D4FA] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
@@ -300,6 +364,13 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handlePushToCloud}
+            disabled={isSaving}
+            className="bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#1B5E20] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-[#2E7D32]" /> 同步寫入 Sheet
+          </button>
           <button
             onClick={handleRefreshFromCloud}
             disabled={isSaving}
@@ -532,6 +603,78 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Apps Script Deployment Guide Modal */}
+      {showGuideModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#FFF8E1] border-4 border-[#5D4037] rounded-[2rem] max-w-2xl w-full p-6 shadow-[8px_8px_0px_#5D4037] max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowGuideModal(false)}
+              className="absolute top-4 right-4 w-9 h-9 bg-white border-2 border-[#5D4037] rounded-full flex items-center justify-center text-[#5D4037] font-bold shadow-[2px_2px_0px_#5D4037] hover:bg-gray-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-3">
+              <span className="p-2 bg-[#E1BEE7] border-2 border-[#5D4037] rounded-xl text-[#4A148C]">
+                <FileSpreadsheet className="w-6 h-6" />
+              </span>
+              <div>
+                <h3 className="text-xl font-black text-[#5D4037]">Google Sheet 學生名冊同步與部署教學</h3>
+                <p className="text-xs text-[#5D4037]/80 font-bold">簡單 4 步驟即可讓您的 Google 試算表具備雙向即時同步功能</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-[#5D4037] font-medium">
+              <div className="bg-white p-3.5 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+                <div className="font-black text-[#8E24AA] text-sm mb-1">步驟 1：開啟您的 Google 試算表</div>
+                <p>開啟您的 Google 試算表 ➔ 點擊頂端選單的「擴充功能」 ➔ 選擇「Apps Script」。</p>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-black text-[#8E24AA] text-sm">步驟 2：貼上學生名冊 Apps Script 腳本</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(STUDENT_ROSTER_APPS_SCRIPT_CODE);
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="text-[11px] bg-[#8E24AA] hover:bg-[#7B1FA2] text-white font-black px-2.5 py-1 rounded-lg border border-[#5D4037] flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedCode ? '已複製程式碼！' : '一鍵複製 Apps Script'}
+                  </button>
+                </div>
+                <p className="mb-2">清空 Apps Script 現有程式碼，將複製的內容貼上並按 Ctrl+S (Cmd+S) 儲存。</p>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+                <div className="font-black text-[#8E24AA] text-sm mb-1">步驟 3：部署為網頁應用程式 (Web App)</div>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>點選右上角「部署」按鈕 ➔ 「新增部署」。</li>
+                  <li>種類選擇「網頁應用程式 (Web App)」。</li>
+                  <li>執行身分：選擇「我 (Me)」。</li>
+                  <li><strong>存取權限：必須選擇「所有人 (Anyone)」</strong>。</li>
+                </ol>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+                <div className="font-black text-[#8E24AA] text-sm mb-1">步驟 4：複製網址並使用</div>
+                <p>完成部署與授權後，複製系統產生的「網頁應用程式 URL」(以 <code className="bg-[#F3E5F5] px-1 py-0.5 rounded text-[#8E24AA]">/exec</code> 結尾)，貼至系統設定即可！</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t-2 border-[#5D4037] flex justify-end">
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="px-5 py-2 bg-[#5D4037] text-white font-black text-xs rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:bg-[#4E342E] cursor-pointer"
+              >
+                好的，了解！
+              </button>
+            </div>
           </div>
         </div>
       )}

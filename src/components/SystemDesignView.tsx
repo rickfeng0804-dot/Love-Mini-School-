@@ -7,6 +7,7 @@ import {
   STUDENT_ROSTER_APPS_SCRIPT_CODE,
   DEFAULT_WEB_APP_URL,
   DEFAULT_STUDENT_WEB_APP_URL,
+  DEFAULT_STUDENT_LIBRARY_URL,
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
   fetchFromWebApp, 
@@ -421,7 +422,24 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
               <div className="mt-2.5 p-2.5 bg-white/90 rounded-xl border border-[#5D4037]/30 text-[10px] text-[#5D4037] font-bold space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊」URL:</span>
+                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊 Library URL」:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_STUDENT_LIBRARY_URL);
+                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Library URL！系統將會自動解析為 Web App 執行檔。' });
+                    }}
+                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
+                  >
+                    點此帶入 Library URL
+                  </button>
+                </div>
+                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
+                  {DEFAULT_STUDENT_LIBRARY_URL}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
+                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊 Web App Exec URL」:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -430,7 +448,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                     }}
                     className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
                   >
-                    點此帶入
+                    點此帶入 Web App Exec
                   </button>
                 </div>
                 <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">

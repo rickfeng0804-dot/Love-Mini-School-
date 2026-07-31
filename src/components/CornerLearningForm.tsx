@@ -171,7 +171,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       try {
         await syncToWebApp(webAppTarget, students, updatedRecords, []);
       } catch (err) {
-        console.warn('Corner record Web App sync failed:', err);
+        console.error('Corner record Web App sync failed:', err);
       }
     }
 
@@ -183,7 +183,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, []);
         }
       } catch (err) {
-        console.warn('Auto sync to sheet failed:', err);
+        console.error('Auto sync to sheet failed:', err);
       }
     }
 
