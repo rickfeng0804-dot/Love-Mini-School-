@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
 @media print {
   /* Preserve background colors and graphics when printing/exporting to PDF */
   *, *::before, *::after {
@@ -20,15 +25,24 @@
     background-color: white !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-size: 12pt;
   }
 
   /* Optimize printable container for A4 sheet */
-  #printable-area, .printable-card {
+  #printable-area, .printable-card, .a4-report-card {
     box-shadow: none !important;
     border-color: #5D4037 !important;
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 auto !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* A4 Page Break support for multi-student archival printing */
+  .page-break, .a4-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
   }
 }
+
