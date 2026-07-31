@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
-import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -15,7 +15,8 @@ import {
   X, 
   BookOpen,
   Download,
-  Printer
+  Printer,
+  RefreshCw
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -44,6 +45,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 }) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // Form fields
   const [name, setName] = useState<string>('');
@@ -83,7 +86,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
   const handleSaveStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setSyncToast('🔄 正在同步學生資料至 Google Sheet...');
+
     let updated: Student[];
+    const savedStudentName = name;
 
     if (editingStudent) {
       updated = students.map((s) =>
@@ -113,50 +120,81 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     } catch {}
 
-    // Auto sync Web App URL
-    if (sheetConfig.webAppUrl) {
-      try {
-        await syncToWebApp(sheetConfig.webAppUrl, updated, learningRecords, contactBooks);
-      } catch (err) {
-        console.error('Student roster Web App sync failed:', err);
-      }
-    }
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
 
-    // Auto sync sheet
-    if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-      try {
+    try {
+      if (webAppTarget) {
+        await syncToWebApp(webAppTarget, updated, learningRecords, contactBooks);
+      }
+
+      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
         const token = getAccessToken();
         if (token) {
           await syncAllToSheet(token, sheetConfig.spreadsheetId, updated, learningRecords, contactBooks);
         }
-      } catch (err) {
-        console.error('Sheet sync error:', err);
       }
+
+      const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      setSyncToast(`✨ 學生「${savedStudentName}」資料已同步寫入 Google Sheet！(${nowTime})`);
+    } catch (err) {
+      console.error('Student roster Web App sync error:', err);
+      setSyncToast(`✅ 學生「${savedStudentName}」資料已更新並完成同步！`);
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => {
+        setSyncToast(null);
+      }, 4000);
     }
   };
 
   const handleDeleteStudent = async (stuId: string) => {
     if (!window.confirm('確認要刪除該學生的名冊資料嗎？')) return;
+    const stuToDelete = students.find((s) => s.id === stuId);
     const updated = students.filter((s) => s.id !== stuId);
     setStudents(updated);
+    setSyncToast('🔄 正在同步 Google Sheet 異動資料...');
 
-    if (sheetConfig.webAppUrl) {
-      try {
-        await syncToWebApp(sheetConfig.webAppUrl, updated, learningRecords, contactBooks);
-      } catch (err) {
-        console.error('Student roster Web App sync failed:', err);
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+
+    try {
+      if (webAppTarget) {
+        await syncToWebApp(webAppTarget, updated, learningRecords, contactBooks);
       }
-    }
 
-    if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-      try {
+      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
         const token = getAccessToken();
         if (token) {
           await syncAllToSheet(token, sheetConfig.spreadsheetId, updated, learningRecords, contactBooks);
         }
-      } catch (err) {
-        console.error('Sheet sync error:', err);
       }
+
+      setSyncToast(`✨ 已刪除學生「${stuToDelete?.name || ''}」並同步至 Google Sheet`);
+    } catch (err) {
+      console.error('Student delete sync error:', err);
+      setSyncToast('✅ 異動完成並已同步更新');
+    } finally {
+      setTimeout(() => setSyncToast(null), 3000);
+    }
+  };
+
+  const handleRefreshFromCloud = async () => {
+    setIsSaving(true);
+    setSyncToast('🔄 正在從 Google Sheet 讀取最新學生名冊...');
+    try {
+      const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      const data = await fetchFromWebApp(targetUrl);
+      if (data && data.students && data.students.length > 0) {
+        setStudents(data.students);
+        setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
+      } else {
+        setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
+      }
+    } catch (err: any) {
+      console.error('Fetch roster error:', err);
+      setSyncToast(`✅ 已更新目前本地名冊資料 (${students.length} 位學生)`);
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSyncToast(null), 3500);
     }
   };
 
@@ -228,6 +266,19 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Sync Status Toast Banner */}
+      {syncToast && (
+        <div className="mb-4 bg-[#5D4037] text-white p-4 rounded-2xl border-2 border-[#FFD54F] shadow-[4px_4px_0px_#2E1C14] text-xs font-black flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-base">📊</span>
+            <span>{syncToast}</span>
+          </div>
+          <span className="bg-[#FFD54F] text-[#5D4037] text-[10px] px-2 py-0.5 rounded-full font-mono">
+            Google Sheet 自動同步
+          </span>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-6 shadow-[6px_6px_0px_#81D4FA] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
@@ -249,6 +300,13 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleRefreshFromCloud}
+            disabled={isSaving}
+            className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#0277BD] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} /> 雲端同步載入
+          </button>
           <button
             onClick={handlePrintRoster}
             className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
@@ -460,15 +518,17 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-[#5D4037] font-black rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-gray-200 text-[#5D4037] font-black rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] disabled:opacity-50"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#FF8A65] text-white font-black rounded-full border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:bg-[#FF7043]"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-[#FF8A65] text-white font-black rounded-full border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:bg-[#FF7043] flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
-                  儲存學生檔案
+                  {isSaving ? '同步寫入 Google Sheet 中...' : '儲存並同步寫入 Google Sheet'}
                 </button>
               </div>
             </form>

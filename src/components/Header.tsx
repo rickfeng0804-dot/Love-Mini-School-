@@ -16,7 +16,8 @@ import {
   Baby, 
   GraduationCap,
   Download,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -27,6 +28,8 @@ interface HeaderProps {
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
   onOpenCsvModal: () => void;
+  onInstantSync?: () => void;
+  isSyncing?: boolean;
   students: Student[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
@@ -40,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
   sheetConfig,
   onOpenSheetModal,
   onOpenCsvModal,
+  onInstantSync,
+  isSyncing,
   students,
   selectedStudentId,
   setSelectedStudentId,
@@ -74,6 +79,26 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar: Role Switch, CSV Export & Google Sheet Sync */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+            {/* Instant Sync Button */}
+            <button
+              onClick={onInstantSync}
+              disabled={isSyncing}
+              title={sheetConfig.lastSyncedAt ? `上次同步時間：${sheetConfig.lastSyncedAt}` : '立即同步最新資料'}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer ${
+                isSyncing
+                  ? 'bg-amber-100 text-[#5D4037] cursor-wait'
+                  : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20] active:translate-y-0.5'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
+              <span>{isSyncing ? '同步中...' : '立即同步'}</span>
+              {sheetConfig.lastSyncedAt && (
+                <span className="hidden lg:inline text-[10px] bg-white/70 px-1.5 py-0.2 rounded-full text-[#1B5E20]">
+                  {sheetConfig.lastSyncedAt}
+                </span>
+              )}
+            </button>
+
             {/* CSV Export Button */}
             <button
               onClick={onOpenCsvModal}

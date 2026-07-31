@@ -3,7 +3,7 @@ import { Student, LearningRecord, ContactBook } from '../types';
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
 
-export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1';
+export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
 export const DEFAULT_WEB_APP_URL = DEFAULT_STUDENT_WEB_APP_URL;
@@ -661,11 +661,14 @@ function updateContactSheet(ss, contactBooks) {
 `;
 
 export function normalizeWebAppUrl(url: string): string {
-  if (!url) return '';
+  if (!url) return DEFAULT_WEB_APP_URL;
   let trimmed = url.trim();
   // Transform library URLs: /macros/library/d/{id}/1 -> /macros/s/{id}/exec
   const libraryMatch = trimmed.match(/\/macros\/library\/d\/([^\/]+)/);
   if (libraryMatch && libraryMatch[1]) {
+    if (libraryMatch[1] === '1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh') {
+      return DEFAULT_WEB_APP_URL;
+    }
     return `https://script.google.com/macros/s/${libraryMatch[1]}/exec`;
   }
   // If macro URL doesn't end with /exec, append it if needed
@@ -688,10 +691,20 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   try {
     res = await fetch(normalizedUrl, { redirect: 'follow' });
   } catch (err: any) {
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
     throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。`);
   }
 
   if (!res.ok) {
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
     throw new Error(`Web App 請求失敗 (${res.status}): ${res.statusText || '網址無法存取'}`);
   }
 
@@ -699,6 +712,11 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   try {
     data = await res.json();
   } catch (jsonErr) {
+    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+      try {
+        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      } catch (fallbackErr) {}
+    }
     throw new Error('Web App 回傳內容非 JSON 格式。請確認 Apps Script 程式碼已複製貼上最新版並儲存部署。');
   }
 

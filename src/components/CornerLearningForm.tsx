@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Student, LearningRecord, CornerAreaId, SheetConfig } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { DrawingCanvas } from './DrawingCanvas';
-import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -165,10 +165,11 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       });
     } catch {}
 
-    // Auto-sync to Web App URL if configured
-    if (sheetConfig.webAppUrl) {
+    // Auto-sync to Web App URL
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    if (webAppTarget) {
       try {
-        await syncToWebApp(sheetConfig.webAppUrl, students, updatedRecords, []);
+        await syncToWebApp(webAppTarget, students, updatedRecords, []);
       } catch (err) {
         console.error('Corner record Web App sync failed:', err);
       }

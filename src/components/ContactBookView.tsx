@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, ContactBook, RoleMode, SheetConfig } from '../types';
-import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -92,9 +92,10 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
     } catch {}
 
     // Sync to Web App URL (Google Sheets Web App)
-    if (sheetConfig.webAppUrl) {
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    if (webAppTarget) {
       try {
-        await syncToWebApp(sheetConfig.webAppUrl, students, learningRecords, updated);
+        await syncToWebApp(webAppTarget, students, learningRecords, updated);
       } catch (err) {
         console.error('Web App sync error:', err);
       }
@@ -134,9 +135,10 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
     } catch {}
 
-    if (sheetConfig.webAppUrl) {
+    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    if (webAppTarget) {
       try {
-        await syncToWebApp(sheetConfig.webAppUrl, students, learningRecords, updated);
+        await syncToWebApp(webAppTarget, students, learningRecords, updated);
       } catch (err) {
         console.error('Web App sync error:', err);
       }

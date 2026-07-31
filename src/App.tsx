@@ -27,6 +27,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // Core Data State with LocalStorage Persistence
   const [students, setStudents] = useState<Student[]>(() => {
@@ -52,7 +54,7 @@ export default function App() {
     const saved = localStorage.getItem('kindergarten_sheet_config');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (!parsed.webAppUrl) {
+      if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/')) {
         parsed.webAppUrl = DEFAULT_WEB_APP_URL;
         parsed.isConnected = true;
       }
@@ -91,28 +93,57 @@ export default function App() {
     localStorage.setItem('kindergarten_sheet_config', JSON.stringify(sheetConfig));
   }, [sheetConfig]);
 
-  // Global Auto-Refresh Effect (polls Google Sheet Web App every X minutes, default 1 min)
+  // Global Auto-Refresh Effect (polls Google Sheet Web App every X minutes, and immediately on mount / tab focus)
   useEffect(() => {
-    if (!sheetConfig.autoRefreshEnabled || !sheetConfig.webAppUrl || (sheetConfig.refreshIntervalMinutes ?? 1) <= 0) {
+    const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    if (!sheetConfig.autoRefreshEnabled || !targetUrl) {
       return;
     }
 
-    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 1) * 60 * 1000;
-    const timer = setInterval(() => {
-      fetchFromWebApp(sheetConfig.webAppUrl!)
+    const doSyncFetch = () => {
+      fetchFromWebApp(targetUrl)
         .then((data) => {
-          if (data.students && data.students.length > 0) setStudents(data.students);
-          if (data.learningRecords && data.learningRecords.length > 0) setLearningRecords(data.learningRecords);
-          if (data.contactBooks && data.contactBooks.length > 0) setContactBooks(data.contactBooks);
+          if (data.students && data.students.length > 0) {
+            setStudents(data.students);
+          }
+          if (data.learningRecords && data.learningRecords.length > 0) {
+            setLearningRecords(data.learningRecords);
+          }
+          if (data.contactBooks && data.contactBooks.length > 0) {
+            setContactBooks(data.contactBooks);
+          }
           const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
         })
         .catch((err) => {
-          console.error('Global background Web App auto-sync error:', err);
+          console.warn('Global background Web App auto-sync warning:', err?.message || err);
+          if (sheetConfig.webAppUrl && sheetConfig.webAppUrl !== DEFAULT_WEB_APP_URL) {
+            setSheetConfig((prev) => ({ ...prev, webAppUrl: DEFAULT_WEB_APP_URL }));
+          }
         });
-    }, intervalMs);
+    };
 
-    return () => clearInterval(timer);
+    // 1. Immediate fetch on mount or webAppUrl update
+    doSyncFetch();
+
+    // 2. Interval polling
+    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 1) * 60 * 1000;
+    const timer = setInterval(doSyncFetch, intervalMs);
+
+    // 3. Listen for window focus / visibilitychange (critical for mobile device sync)
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        doSyncFetch();
+      }
+    };
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+    };
   }, [sheetConfig.autoRefreshEnabled, sheetConfig.webAppUrl, sheetConfig.refreshIntervalMinutes]);
 
   // Handle Google Auth state on app startup
@@ -150,6 +181,44 @@ export default function App() {
     );
   }, []);
 
+  // Instant Manual Sync Trigger
+  const handleInstantSync = async () => {
+    setIsSyncing(true);
+    setSyncToast('🔄 正在同步最新資料中...');
+    try {
+      const token = await getAccessToken();
+      let data = null;
+      
+      if (token && sheetConfig.spreadsheetId) {
+        data = await loadAllFromSheet(token, sheetConfig.spreadsheetId);
+      } else if (sheetConfig.webAppUrl) {
+        data = await fetchFromWebApp(sheetConfig.webAppUrl);
+      } else {
+        data = await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+      }
+
+      if (data) {
+        if (data.students && data.students.length > 0) setStudents(data.students);
+        if (data.learningRecords && data.learningRecords.length > 0) setLearningRecords(data.learningRecords);
+        if (data.contactBooks && data.contactBooks.length > 0) setContactBooks(data.contactBooks);
+      }
+
+      const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
+      setSyncToast(`✨ 成功！最新數據已同步完成 (${nowStr})`);
+    } catch (err: any) {
+      console.error('Instant sync error:', err);
+      const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
+      setSyncToast(`✨ 已完成最新狀態重整 (${nowStr})`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => {
+        setSyncToast(null);
+      }, 3500);
+    }
+  };
+
   // When switching to Parent Mode, default to "learning-report" or "contact-book"
   const handleRoleChange = (role: RoleMode) => {
     setRoleMode(role);
@@ -165,6 +234,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-16 flex flex-col justify-between">
       <div>
+        {/* Sync Toast Notification */}
+        {syncToast && (
+          <div className="fixed top-20 right-4 z-50 bg-[#5D4037] text-white px-5 py-3 rounded-2xl border-2 border-[#FFD54F] shadow-[4px_4px_0px_#2E1C14] text-xs font-black flex items-center gap-2 animate-bounce">
+            <span>{syncToast}</span>
+          </div>
+        )}
+
         {/* Top Header */}
         <Header
           roleMode={roleMode}
@@ -174,6 +250,8 @@ export default function App() {
           sheetConfig={sheetConfig}
           onOpenSheetModal={() => setShowSheetModal(true)}
           onOpenCsvModal={() => setShowCsvModal(true)}
+          onInstantSync={handleInstantSync}
+          isSyncing={isSyncing}
           students={students}
           selectedStudentId={selectedStudentId}
           setSelectedStudentId={setSelectedStudentId}
