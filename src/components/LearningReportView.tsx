@@ -41,6 +41,7 @@ interface LearningReportViewProps {
 
 interface SingleReportCardProps {
   record: LearningRecord;
+  students?: Student[];
   isBatch?: boolean;
 }
 
@@ -154,48 +155,32 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = f
         })}
       </div>
 
-      {/* Drawing & Photo Section Grid */}
-      <div className="grid grid-cols-2 border-2 border-[#5D4037] mb-3 text-xs bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none">
-        {/* ✋ 繪圖紀錄 */}
-        <div className="border-r-2 border-[#5D4037] p-2 min-h-[170px] flex flex-col">
-          <h4 className="font-black text-xs mb-1 flex items-center gap-1 border-b border-[#5D4037] pb-1 text-[#5D4037]">
-            ✋ 繪圖紀錄
-          </h4>
-          <div className="flex-1 flex items-center justify-center p-1 bg-[#FFFDE7] border border-[#5D4037] rounded-xl overflow-hidden">
-            {record.drawingImage ? (
-              <img src={record.drawingImage} alt="繪圖紀錄" className="max-h-[150px] object-contain" />
+      {/* Photo & Video Section */}
+      <div className="border-2 border-[#5D4037] mb-3 text-xs bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none p-2 min-h-[140px] flex flex-col">
+        <h4 className="font-black text-xs mb-1 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
+          <span>📷 影像與 🎥 影片紀錄</span>
+          {record.videoUrls && record.videoUrls.length > 0 && (
+            <span className="text-[10px] bg-[#0288D1] text-white font-black px-1.5 py-0.2 rounded-full">
+              {record.videoUrls.length} 支影片
+            </span>
+          )}
+        </h4>
+        <div className="flex-1 flex flex-col gap-1.5 p-2 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {record.photoImages && record.photoImages.length > 0 ? (
+              record.photoImages.map((img, i) => (
+                <div key={i} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037] bg-white">
+                  <img src={img} alt="活動紀錄" className="w-full h-full object-cover" />
+                </div>
+              ))
             ) : (
-              <div className="text-[#5D4037]/50 text-xs text-center italic font-bold">（未進行繪圖紀錄）</div>
+              <div className="col-span-2 sm:col-span-4 text-[#5D4037]/50 text-xs flex items-center justify-center italic font-bold py-3">
+                （尚無影像紀錄）
+              </div>
             )}
           </div>
-        </div>
 
-        {/* 📷 影像與 🎥 影片紀錄 */}
-        <div className="p-2 min-h-[170px] flex flex-col">
-          <h4 className="font-black text-xs mb-1 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
-            <span>📷 影像與 🎥 影片紀錄</span>
-            {record.videoUrls && record.videoUrls.length > 0 && (
-              <span className="text-[10px] bg-[#0288D1] text-white font-black px-1.5 py-0.2 rounded-full">
-                {record.videoUrls.length} 支影片
-              </span>
-            )}
-          </h4>
-          <div className="flex-1 flex flex-col gap-1.5 p-1 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
-            <div className="grid grid-cols-2 gap-1.5">
-              {record.photoImages && record.photoImages.length > 0 ? (
-                record.photoImages.map((img, i) => (
-                  <div key={i} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037]">
-                    <img src={img} alt="活動紀錄" className="w-full h-full object-cover" />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 text-[#5D4037]/50 text-xs flex items-center justify-center italic font-bold py-2">
-                  （尚無影像紀錄）
-                </div>
-              )}
-            </div>
-
-            {/* Video Links */}
+          {/* Video Links */}
             {record.videoUrls && record.videoUrls.length > 0 && (
               <div className="pt-1 border-t border-dashed border-[#5D4037]/40 space-y-1">
                 <p className="text-[10px] font-black text-[#01579B] flex items-center gap-1">
@@ -217,7 +202,6 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = f
             )}
           </div>
         </div>
-      </div>
 
       {/* Teacher Review & Official Red Anime Stamp */}
       <div className="border-2 border-[#5D4037] p-3 rounded-2xl flex items-center justify-between gap-4 bg-[#FFF3E0] shadow-[3px_3px_0px_#5D4037] print:shadow-none">

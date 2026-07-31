@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Student, LearningRecord, CornerAreaId, SheetConfig } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
-import { DrawingCanvas } from './DrawingCanvas';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -22,7 +21,9 @@ import {
   Calendar, 
   UserCheck,
   Video,
-  Plus
+  Plus,
+  User,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -87,7 +88,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     blocks: '',
   });
 
-  const [drawingImage, setDrawingImage] = useState<string>('');
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
+
   const [photoImages, setPhotoImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
   ]);
@@ -98,8 +100,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   );
   const [stamp, setStamp] = useState<string>('たいへんよくできました');
   const [isSaving, setIsSaving] = useState<boolean>(false);
-
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0];
 
   const handleToggleCheck = (areaId: CornerAreaId, item: string) => {
     setCheckedItems((prev) => {
@@ -144,7 +144,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       seatNumber: selectedStudent.seatNumber,
       checkedItems,
       customNotes,
-      drawingImage,
+      drawingImage: '',
       photoImages,
       videoUrls,
       teacherComment,
@@ -334,29 +334,21 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           })}
         </div>
 
-        {/* Drawing & Photo Record Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* ✋ 繪圖紀錄 Canvas */}
-          <DrawingCanvas
-            initialImage={drawingImage}
-            onSave={(imgData) => setDrawingImage(imgData)}
-          />
-
-          {/* 📷 影像紀錄 Photo Box */}
-          <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📷</span>
-                  <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
-                    影像紀錄 (作品/活動照片)
-                  </h4>
-                </div>
-                <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3.5 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                  <Camera className="w-3.5 h-3.5" /> 上傳照片
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                </label>
+        {/* Activity Photos & Videos Section */}
+        <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📷</span>
+                <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
+                  影像與影音紀錄 (作品/活動照片與影片)
+                </h4>
               </div>
+              <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3.5 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
+                <Camera className="w-3.5 h-3.5" /> 上傳照片
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              </label>
+            </div>
 
               {/* Photo Gallery Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
@@ -443,7 +435,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               💡 影像與影片紀錄將會自動儲存 URL 網址，未來可一鍵匯出 CSV 至 Google Sheet！
             </p>
           </div>
-        </div>
 
         {/* Teacher Comment & Japanese Stamp */}
         <div className="bg-[#FFF3E0] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFCCBC] space-y-4">
