@@ -66,9 +66,9 @@ export default function App() {
         parsed.isConnected = true;
       }
       return {
-        refreshIntervalMinutes: 1,
-        autoRefreshEnabled: true,
+        refreshIntervalMinutes: 5,
         ...parsed,
+        autoRefreshEnabled: false, // Cancel automatic update, switch to manual sync by default
       };
     }
     return {
@@ -78,8 +78,8 @@ export default function App() {
       webAppUrl: DEFAULT_WEB_APP_URL,
       isConnected: true,
       lastSyncedAt: null,
-      refreshIntervalMinutes: 1,
-      autoRefreshEnabled: true,
+      refreshIntervalMinutes: 5,
+      autoRefreshEnabled: false, // Manual sync default
     };
   });
 
@@ -100,7 +100,7 @@ export default function App() {
     localStorage.setItem('kindergarten_sheet_config', JSON.stringify(sheetConfig));
   }, [sheetConfig]);
 
-  // Global Auto-Refresh Effect (polls Google Sheet Web App every X minutes, and immediately on mount / tab focus)
+  // Background Auto-Refresh Effect (Disabled by default; runs ONLY if autoRefreshEnabled is manually turned on)
   useEffect(() => {
     const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
     if (!sheetConfig.autoRefreshEnabled || !targetUrl) {
@@ -130,26 +130,15 @@ export default function App() {
         });
     };
 
-    // 1. Immediate fetch on mount or webAppUrl update
+    // Immediate fetch on mount ONLY if autoRefreshEnabled is true
     doSyncFetch();
 
-    // 2. Interval polling
-    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 1) * 60 * 1000;
+    // Interval polling
+    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 5) * 60 * 1000;
     const timer = setInterval(doSyncFetch, intervalMs);
-
-    // 3. Listen for window focus / visibilitychange (critical for mobile device sync)
-    const handleFocusOrVisible = () => {
-      if (document.visibilityState === 'visible') {
-        doSyncFetch();
-      }
-    };
-    window.addEventListener('focus', handleFocusOrVisible);
-    document.addEventListener('visibilitychange', handleFocusOrVisible);
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('focus', handleFocusOrVisible);
-      document.removeEventListener('visibilitychange', handleFocusOrVisible);
     };
   }, [sheetConfig.autoRefreshEnabled, sheetConfig.webAppUrl, sheetConfig.refreshIntervalMinutes]);
 
