@@ -51,107 +51,107 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="bg-[#FFD54F] border-b-4 border-[#5D4037] shadow-sm sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
         {/* Top Branding Row */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 mb-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2 sm:mb-3">
           {/* Kindergarten Logo & Name */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] transform -rotate-3 hover:rotate-0 transition-transform">
-              <span className="text-2xl">🌸</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs bg-[#5D4037] text-white font-black px-2.5 py-0.5 rounded-full tracking-wider">
-                  桃園市私立
-                </span>
-                <span className="text-xs text-[#5D4037] font-bold bg-white/90 px-2.5 py-0.5 rounded-full border border-[#5D4037]">
-                  あいあいようちえん
-                </span>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-2xl flex items-center justify-center border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] transform -rotate-3 shrink-0">
+                <span className="text-xl sm:text-2xl">🌸</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2">
-                愛愛幼兒園
-                <span className="text-xs text-[#5D4037] font-extrabold hidden sm:inline-block bg-white px-3 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-                  大班角落學習區與聯絡簿
-                </span>
-              </h1>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] sm:text-xs bg-[#5D4037] text-white font-black px-2 py-0.2 rounded-full tracking-wider">
+                    桃園市私立
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-[#5D4037] font-bold bg-white/90 px-2 py-0.2 rounded-full border border-[#5D4037]">
+                    あいあいようちえん
+                  </span>
+                </div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2">
+                  愛愛幼兒園
+                  <span className="text-[10px] sm:text-xs text-[#5D4037] font-extrabold hidden md:inline-block bg-white px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
+                    大班角落學習區與聯絡簿
+                  </span>
+                </h1>
+              </div>
+            </div>
+
+            {/* Mobile Mode Badge Indicator */}
+            <div className="sm:hidden">
+              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] ${
+                roleMode === 'teacher' ? 'bg-[#FF8A65] text-white' : 'bg-[#81D4FA] text-[#0277BD]'
+              }`}>
+                {roleMode === 'teacher' ? '老師' : '家長'}
+              </span>
             </div>
           </div>
 
           {/* Right Action Bar: Role Switch, CSV Export & Google Sheet Sync */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
             {/* Instant Sync Button */}
             <button
               onClick={onInstantSync}
               disabled={isSyncing}
               title={sheetConfig.lastSyncedAt ? `上次同步時間：${sheetConfig.lastSyncedAt}` : '立即同步最新資料'}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 isSyncing
                   ? 'bg-amber-100 text-[#5D4037] cursor-wait'
-                  : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20] active:translate-y-0.5'
+                  : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20]'
               }`}
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
-              <span>{isSyncing ? '同步中...' : '立即同步'}</span>
-              {sheetConfig.lastSyncedAt && (
-                <span className="hidden lg:inline text-[10px] bg-white/70 px-1.5 py-0.2 rounded-full text-[#1B5E20]">
-                  {sheetConfig.lastSyncedAt}
-                </span>
-              )}
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
+              <span>{isSyncing ? '同步中' : '立即同步'}</span>
             </button>
 
             {/* CSV Export Button */}
             <button
               onClick={onOpenCsvModal}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
             >
-              <Download className="w-4 h-4" />
-              <span>匯出 CSV (Google Sheet)</span>
+              <Download className="w-3.5 h-3.5" />
+              <span>匯出 CSV</span>
             </button>
 
             {/* Google Sheets Status Badge */}
             <button
               onClick={onOpenSheetModal}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 sheetConfig.isConnected
                   ? 'bg-[#C8E6C9] text-[#2E7D32] hover:bg-[#A5D6A7]'
                   : 'bg-[#FFE082] text-[#5D4037] hover:bg-[#FFCA28] animate-pulse'
               }`}
             >
-              <FileSpreadsheet className="w-4 h-4" />
+              <FileSpreadsheet className="w-3.5 h-3.5" />
               {sheetConfig.isConnected ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#2E7D32]" />
-                  <span>Google Sheet 已同步</span>
-                </>
+                <span>Sheet 已連線</span>
               ) : (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5 text-[#E65100]" />
-                  <span>連接 Google Sheet</span>
-                </>
+                <span>設定 Sheet</span>
               )}
             </button>
 
             {/* Role Switcher */}
-            <div className="bg-white p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037]">
+            <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
               <button
                 onClick={() => setRoleMode('teacher')}
-                className={`flex items-center gap-1 px-3.5 py-1 rounded-full text-xs font-black transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'teacher'
                     ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#FFF3E0]'
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5" /> 老師模式
+                <GraduationCap className="w-3.5 h-3.5" /> 老師
               </button>
               <button
                 onClick={() => setRoleMode('parent')}
-                className={`flex items-center gap-1 px-3.5 py-1 rounded-full text-xs font-black transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'parent'
                     ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#E1F5FE]'
                 }`}
               >
-                <Baby className="w-3.5 h-3.5" /> 家長模式
+                <Baby className="w-3.5 h-3.5" /> 家長
               </button>
             </div>
           </div>
@@ -159,15 +159,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Parent Mode Quick Student Select */}
         {roleMode === 'parent' && (
-          <div className="bg-[#E1F5FE] border-2 border-[#5D4037] rounded-2xl p-2.5 mb-2 flex items-center justify-between gap-3 text-xs shadow-[3px_3px_0px_#5D4037]">
-            <div className="flex items-center gap-2 text-[#5D4037] font-black">
+          <div className="bg-[#E1F5FE] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
+            <div className="flex items-center gap-1.5 text-[#5D4037] font-black shrink-0">
               <Sparkles className="w-4 h-4 text-[#0288D1]" />
-              <span>請選擇您的孩子：</span>
+              <span className="hidden sm:inline">請選擇孩子：</span>
             </div>
             <select
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1 font-extrabold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-extrabold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] w-full sm:w-auto"
             >
               {students.map((stu) => (
                 <option key={stu.id} value={stu.id}>
@@ -178,8 +178,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
+        {/* Navigation Tabs (Desktop & Tablet) */}
+        <nav className="hidden md:flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
           {roleMode === 'teacher' && (
             <button
               onClick={() => setActiveTab('corner-form')}

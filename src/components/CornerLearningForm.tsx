@@ -218,16 +218,45 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           </div>
 
           {/* Student & Date Picker Selector Card */}
-          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto">
+          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
+            {/* Quick Student Horizontal Scroll Chips for Mobile */}
+            <div>
+              <label className="block text-[#5D4037] text-xs font-black mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 快速點選學生:
+                </span>
+                <span className="text-[10px] text-[#5D4037]/70 font-bold sm:hidden">可左右滑動 👈👉</span>
+              </label>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+                {students.map((stu) => {
+                  const isSelected = stu.id === selectedStudentId;
+                  return (
+                    <button
+                      key={stu.id}
+                      type="button"
+                      onClick={() => setSelectedStudentId(stu.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap border-2 border-[#5D4037] transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
+                        isSelected
+                          ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-102'
+                          : 'bg-[#FFFBF0] text-[#5D4037] hover:bg-[#FFE082]'
+                      }`}
+                    >
+                      {stu.seatNumber}號 {stu.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-black text-[#5D4037]">
               <div>
                 <label className="block text-[#5D4037] mb-1 flex items-center gap-1">
-                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 選擇學生:
+                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 學生選單:
                 </label>
                 <select
                   value={selectedStudentId}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                 >
                   {students.map((stu) => (
                     <option key={stu.id} value={stu.id}>
@@ -246,14 +275,14 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     type="date"
                     value={dateStart}
                     onChange={(e) => setDateStart(e.target.value)}
-                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
+                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1.5 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
                   />
                   <span>-</span>
                   <input
                     type="date"
                     value={dateEnd}
                     onChange={(e) => setDateEnd(e.target.value)}
-                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
+                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1.5 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
                   />
                 </div>
               </div>
@@ -484,10 +513,22 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           <button
             type="submit"
             disabled={isSaving}
-            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-base py-3.5 px-8 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] hover:shadow-[3px_3px_0px_#5D4037] transition-all transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm sm:text-base py-3.5 px-8 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Save className="w-5 h-5" />
             {isSaving ? '正在儲存並同步中...' : '儲存紀錄並產生學習歷程報告 🚀'}
+          </button>
+        </div>
+
+        {/* Mobile Floating Quick Save Bar */}
+        <div className="md:hidden fixed bottom-16 left-3 right-3 z-30 pointer-events-auto">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="w-full bg-[#FF8A65] active:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-full border-3 border-[#5D4037] shadow-[0px_4px_12px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSaving ? '同步中...' : '一鍵儲存學生角落紀錄 🚀'}</span>
           </button>
         </div>
       </form>

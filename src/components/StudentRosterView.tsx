@@ -363,39 +363,39 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handlePushToCloud}
             disabled={isSaving}
-            className="bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#1B5E20] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-none justify-center bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#1B5E20] font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 min-h-[40px]"
           >
-            <FileSpreadsheet className="w-4 h-4 text-[#2E7D32]" /> 同步寫入 Sheet
+            <FileSpreadsheet className="w-4 h-4 text-[#2E7D32]" /> 寫入 Sheet
           </button>
           <button
             onClick={handleRefreshFromCloud}
             disabled={isSaving}
-            className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#0277BD] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-none justify-center bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#0277BD] font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 min-h-[40px]"
           >
-            <RefreshCw className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} /> 雲端同步載入
+            <RefreshCw className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} /> 雲端同步
           </button>
           <button
             onClick={handlePrintRoster}
-            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
-            <Printer className="w-4 h-4" /> 列印 / 匯出 PDF
+            <Printer className="w-4 h-4" /> 列印名冊
           </button>
           <button
             onClick={() => {
               const csv = generateStudentsCsv(students);
               downloadCsv(`愛愛幼兒園_學生名冊_${new Date().toISOString().slice(0, 10)}.csv`, csv);
             }}
-            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
-            <Download className="w-4 h-4" /> 匯出名冊 CSV
+            <Download className="w-4 h-4" /> 匯出 CSV
           </button>
           <button
             onClick={openAddModal}
-            className="bg-[#CE93D8] hover:bg-[#BA68C8] text-[#4A148C] font-black text-sm py-2.5 px-5 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            className="w-full sm:w-auto justify-center bg-[#CE93D8] hover:bg-[#BA68C8] text-[#4A148C] font-black text-xs sm:text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
             <UserPlus className="w-4 h-4" /> 新增學生資料
           </button>

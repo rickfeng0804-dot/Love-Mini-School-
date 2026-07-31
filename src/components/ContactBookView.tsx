@@ -245,36 +245,65 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
           </p>
         </div>
 
-        {/* Student Select Bar & CSV Export */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handlePrintContactBook}
-            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" /> 列印 / 匯出 PDF
-          </button>
-          <button
-            onClick={() => {
-              const csv = generateContactBooksCsv(contactBooks);
-              downloadCsv(`愛愛幼兒園_家長聯絡簿紀錄_${new Date().toISOString().slice(0, 10)}.csv`, csv);
-            }}
-            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" /> 匯出聯絡簿 CSV
-          </button>
-          <div className="bg-white p-2.5 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex items-center gap-2">
-            <span className="text-xs font-black text-[#5D4037]">選擇孩子:</span>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+        {/* Student Select Bar & Quick Chips */}
+        <div className="flex flex-col gap-3.5 w-full md:w-auto">
+          {/* Quick Mobile Horizontal Student Chips */}
+          <div>
+            <label className="block text-xs font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
+              <span>快速選擇學生:</span>
+              <span className="text-[10px] text-[#5D4037]/70 font-bold sm:hidden">滑動切換 👈👉</span>
+            </label>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+              {students.map((stu) => {
+                const isSelected = stu.id === selectedStudentId;
+                return (
+                  <button
+                    key={stu.id}
+                    type="button"
+                    onClick={() => setSelectedStudentId(stu.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap border-2 border-[#5D4037] transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
+                      isSelected
+                        ? 'bg-[#81D4FA] text-[#01579B] shadow-[2px_2px_0px_#5D4037] scale-102'
+                        : 'bg-white text-[#5D4037] hover:bg-[#E1F5FE]'
+                    }`}
+                  >
+                    {stu.seatNumber}號 {stu.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end">
+            <button
+              onClick={handlePrintContactBook}
+              className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[38px]"
             >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name}
-                </option>
-              ))}
-            </select>
+              <Printer className="w-3.5 h-3.5" /> 列印 / PDF
+            </button>
+            <button
+              onClick={() => {
+                const csv = generateContactBooksCsv(contactBooks);
+                downloadCsv(`愛愛幼兒園_家長聯絡簿紀錄_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+              }}
+              className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+            >
+              <Download className="w-3.5 h-3.5" /> 匯出 CSV
+            </button>
+            <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-2">
+              <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+              >
+                {students.map((stu) => (
+                  <option key={stu.id} value={stu.id}>
+                    {stu.className} - {stu.seatNumber}號 {stu.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>

@@ -21,6 +21,13 @@ import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
 import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
+import { 
+  ClipboardList, 
+  BookOpenCheck, 
+  Heart, 
+  Users, 
+  Layers 
+} from 'lucide-react';
 
 export default function App() {
   const [roleMode, setRoleMode] = useState<RoleMode>('teacher');
@@ -232,7 +239,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-16 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-24 md:pb-16 flex flex-col justify-between">
       <div>
         {/* Sync Toast Notification */}
         {syncToast && (
@@ -324,6 +331,73 @@ export default function App() {
           <span>GOOGLE SHEETS SYNC ACTIVE</span>
         </div>
       </footer>
+
+      {/* Mobile Fixed Bottom Navigation Bar (App style) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1.5 py-1 flex items-center justify-around">
+        {roleMode === 'teacher' && (
+          <button
+            onClick={() => setActiveTab('corner-form')}
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+              activeTab === 'corner-form'
+                ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                : 'text-[#5D4037] hover:bg-white/40'
+            }`}
+          >
+            <ClipboardList className="w-5 h-5 mb-0.5" />
+            <span>角落紀錄</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => setActiveTab('learning-report')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+            activeTab === 'learning-report'
+              ? 'bg-[#FFB74D] text-[#5D4037] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <BookOpenCheck className="w-5 h-5 mb-0.5" />
+          <span>學習歷程</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('contact-book')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+            activeTab === 'contact-book'
+              ? 'bg-[#81D4FA] text-[#01579B] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <Heart className="w-5 h-5 mb-0.5" />
+          <span>聯絡簿</span>
+        </button>
+
+        {roleMode === 'teacher' && (
+          <button
+            onClick={() => setActiveTab('roster')}
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+              activeTab === 'roster'
+                ? 'bg-[#CE93D8] text-[#4A148C] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                : 'text-[#5D4037] hover:bg-white/40'
+            }`}
+          >
+            <Users className="w-5 h-5 mb-0.5" />
+            <span>學生名冊</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => setActiveTab('system-design')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+            activeTab === 'system-design'
+              ? 'bg-[#FFF3E0] text-[#E65100] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <Layers className="w-5 h-5 mb-0.5" />
+          <span>設定/Sheet</span>
+        </button>
+      </div>
 
       {/* Google Sheets Config & Authorization Modal */}
       <GoogleSheetsModal

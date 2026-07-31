@@ -434,43 +434,76 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Top Filter & Print Controls (Hidden on Print) */}
-      <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-4 sm:p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-3">
+          {/* Quick Mobile Student Horizontal Scroll Chips */}
           <div>
-            <label className="block text-xs font-black text-[#5D4037] mb-1">選擇學生:</label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => {
-                setSelectedStudentId(e.target.value);
-                const firstRec = learningRecords.find((r) => r.studentId === e.target.value);
-                if (firstRec) setActiveRecordId(firstRec.id);
-              }}
-              className="bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-            >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name}
-                </option>
-              ))}
-            </select>
+            <label className="block text-xs font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
+              <span>快速選擇學生:</span>
+              <span className="text-[10px] text-[#5D4037]/70 font-bold sm:hidden">滑動切換 👈👉</span>
+            </label>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+              {students.map((stu) => {
+                const isSelected = stu.id === selectedStudentId;
+                return (
+                  <button
+                    key={stu.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedStudentId(stu.id);
+                      const firstRec = learningRecords.find((r) => r.studentId === stu.id);
+                      if (firstRec) setActiveRecordId(firstRec.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap border-2 border-[#5D4037] transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
+                      isSelected
+                        ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-102'
+                        : 'bg-white text-[#5D4037] hover:bg-[#FFE082]'
+                    }`}
+                  >
+                    {stu.seatNumber}號 {stu.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {studentRecords.length > 0 && (
-            <div>
-              <label className="block text-xs font-black text-[#5D4037] mb-1">選擇紀錄週次:</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex-1 sm:flex-none">
+              <label className="block text-xs font-black text-[#5D4037] mb-1">學生下拉表:</label>
               <select
-                value={activeRecord?.id || ''}
-                onChange={(e) => setActiveRecordId(e.target.value)}
-                className="bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                value={selectedStudentId}
+                onChange={(e) => {
+                  setSelectedStudentId(e.target.value);
+                  const firstRec = learningRecords.find((r) => r.studentId === e.target.value);
+                  if (firstRec) setActiveRecordId(firstRec.id);
+                }}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
               >
-                {studentRecords.map((rec) => (
-                  <option key={rec.id} value={rec.id}>
-                    週次: {rec.dateStart} ~ {rec.dateEnd} ({rec.studentName})
+                {students.map((stu) => (
+                  <option key={stu.id} value={stu.id}>
+                    {stu.className} - {stu.seatNumber}號 {stu.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
+
+            {studentRecords.length > 0 && (
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-xs font-black text-[#5D4037] mb-1">紀錄週次區間:</label>
+                <select
+                  value={activeRecord?.id || ''}
+                  onChange={(e) => setActiveRecordId(e.target.value)}
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                >
+                  {studentRecords.map((rec) => (
+                    <option key={rec.id} value={rec.id}>
+                      週次: {rec.dateStart} ~ {rec.dateEnd} ({rec.studentName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -480,21 +513,21 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               const csv = generateLearningRecordsCsv(studentRecords.length > 0 ? studentRecords : learningRecords);
               downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent.name}.csv`, csv);
             }}
-            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:shadow-[1px_1px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
             <Download className="w-4 h-4" /> 匯出 CSV
           </button>
           <button
             onClick={handlePrintSingle}
-            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
-            <Printer className="w-4 h-4" /> 列印本頁 A4 報告書
+            <Printer className="w-4 h-4" /> 列印 A4 報告書
           </button>
           <button
             onClick={handlePrintAllStudents}
-            className="bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto justify-center bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
-            <Printer className="w-4 h-4" /> 全班 A4 報告書批次列印 (自動分頁)
+            <Printer className="w-4 h-4" /> 全班 A4 批次列印
           </button>
         </div>
       </div>
