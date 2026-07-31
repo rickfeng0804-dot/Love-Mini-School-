@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student, ContactBook, RoleMode, SheetConfig } from '../types';
-import { syncAllToSheet } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -14,8 +14,10 @@ import {
   MessageSquare, 
   Utensils, 
   Moon, 
-  Plus 
+  Plus,
+  Download
 } from 'lucide-react';
+import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
 interface ContactBookViewProps {
   roleMode: RoleMode;
@@ -88,7 +90,16 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
     } catch {}
 
-    // Sync to sheet
+    // Sync to Web App URL (Google Sheets Web App)
+    if (sheetConfig.webAppUrl) {
+      try {
+        await syncToWebApp(sheetConfig.webAppUrl, students, learningRecords, updated);
+      } catch (err) {
+        console.error('Web App sync error:', err);
+      }
+    }
+
+    // Sync to sheet OAuth API
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {
         const token = getAccessToken();
@@ -121,6 +132,14 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
     try {
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
     } catch {}
+
+    if (sheetConfig.webAppUrl) {
+      try {
+        await syncToWebApp(sheetConfig.webAppUrl, students, learningRecords, updated);
+      } catch (err) {
+        console.error('Web App sync error:', err);
+      }
+    }
 
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {
@@ -156,20 +175,31 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
           </p>
         </div>
 
-        {/* Student Select Bar */}
-        <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex items-center gap-3">
-          <span className="text-xs font-black text-[#5D4037]">選擇孩子:</span>
-          <select
-            value={selectedStudentId}
-            onChange={(e) => setSelectedStudentId(e.target.value)}
-            className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+        {/* Student Select Bar & CSV Export */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const csv = generateContactBooksCsv(contactBooks);
+              downloadCsv(`愛愛幼兒園_家長聯絡簿紀錄_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+            }}
+            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            {students.map((stu) => (
-              <option key={stu.id} value={stu.id}>
-                {stu.className} - {stu.seatNumber}號 {stu.name}
-              </option>
-            ))}
-          </select>
+            <Download className="w-3.5 h-3.5" /> 匯出聯絡簿 CSV
+          </button>
+          <div className="bg-white p-2.5 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex items-center gap-2">
+            <span className="text-xs font-black text-[#5D4037]">選擇孩子:</span>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+            >
+              {students.map((stu) => (
+                <option key={stu.id} value={stu.id}>
+                  {stu.className} - {stu.seatNumber}號 {stu.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

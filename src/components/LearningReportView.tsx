@@ -11,8 +11,12 @@ import {
   Heart, 
   BarChart3, 
   CheckSquare, 
-  Square 
+  Square,
+  Video,
+  ExternalLink,
+  FileSpreadsheet
 } from 'lucide-react';
+import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
   Radar, 
   RadarChart, 
@@ -119,7 +123,16 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const csv = generateLearningRecordsCsv(studentRecords.length > 0 ? studentRecords : learningRecords);
+              downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent.name}.csv`, csv);
+            }}
+            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:shadow-[1px_1px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> 匯出本歷程 CSV
+          </button>
           <button
             onClick={handlePrint}
             className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-5 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 cursor-pointer"
@@ -298,21 +311,49 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               </div>
             </div>
 
-            {/* 📷 影像紀錄 */}
+            {/* 📷 影像與 🎥 影片紀錄 */}
             <div className="p-2 min-h-[180px] flex flex-col">
-              <h4 className="font-black text-xs mb-1 flex items-center gap-1 border-b border-[#5D4037] pb-1 text-[#5D4037]">
-                📷 影像紀錄
+              <h4 className="font-black text-xs mb-1 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
+                <span>📷 影像與 🎥 影片紀錄</span>
+                {activeRecord.videoUrls && activeRecord.videoUrls.length > 0 && (
+                  <span className="text-[10px] bg-[#0288D1] text-white font-black px-1.5 py-0.2 rounded-full">
+                    {activeRecord.videoUrls.length} 支影片網址
+                  </span>
+                )}
               </h4>
-              <div className="flex-1 grid grid-cols-2 gap-1.5 p-1 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
-                {activeRecord.photoImages && activeRecord.photoImages.length > 0 ? (
-                  activeRecord.photoImages.map((img, i) => (
-                    <div key={i} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037]">
-                      <img src={img} alt="活動紀錄" className="w-full h-full object-cover" />
+              <div className="flex-1 flex flex-col gap-1.5 p-1 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {activeRecord.photoImages && activeRecord.photoImages.length > 0 ? (
+                    activeRecord.photoImages.map((img, i) => (
+                      <div key={i} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037]">
+                        <img src={img} alt="活動紀錄" className="w-full h-full object-cover" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-[#5D4037]/50 text-xs flex items-center justify-center italic font-bold py-2">
+                      （尚無影像紀錄）
                     </div>
-                  ))
-                ) : (
-                  <div className="col-span-2 text-[#5D4037]/50 text-xs flex items-center justify-center italic font-bold">
-                    （尚無影像紀錄）
+                  )}
+                </div>
+
+                {/* Video Links */}
+                {activeRecord.videoUrls && activeRecord.videoUrls.length > 0 && (
+                  <div className="pt-1 border-t border-dashed border-[#5D4037]/40 space-y-1">
+                    <p className="text-[10px] font-black text-[#01579B] flex items-center gap-1">
+                      <Video className="w-3 h-3 text-[#0288D1]" /> 活動影片 URL 連結：
+                    </p>
+                    {activeRecord.videoUrls.map((vUrl, vI) => (
+                      <a
+                        key={vI}
+                        href={vUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between bg-white px-2 py-1 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#0288D1] hover:underline"
+                      >
+                        <span className="truncate max-w-[220px]">🎬 {vUrl}</span>
+                        <ExternalLink className="w-2.5 h-2.5 shrink-0 ml-1" />
+                      </a>
+                    ))}
                   </div>
                 )}
               </div>

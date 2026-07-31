@@ -48,6 +48,7 @@ export interface LearningRecord {
   customNotes: Record<CornerAreaId, string>;
   drawingImage?: string; // Data URL or URL
   photoImages: string[];  // Array of image Data URLs or URLs
+  videoUrls?: string[];   // Array of video URLs (YouTube, Drive, MP4)
   teacherComment: string;
   stamp: string; // e.g., 'たいへんよくできました', '好棒章', '特別優秀', '創意無限'
   createdAt: string;
@@ -69,6 +70,8 @@ export interface ContactBook {
   healthNotes: string;
   teacherMessage: string;
   parentReply?: string;
+  photoUrls?: string[]; // Array of image URLs
+  videoUrls?: string[]; // Array of video URLs
   isReadByParent: boolean;
   createdAt: string;
 }
@@ -77,6 +80,9 @@ export interface SheetConfig {
   spreadsheetId: string | null;
   spreadsheetUrl: string | null;
   spreadsheetName: string;
+  webAppUrl?: string;
   isConnected: boolean;
   lastSyncedAt: string | null;
+  refreshIntervalMinutes?: number; // 0 (Manual), 1, 5, 15, 30, 60
+  autoRefreshEnabled?: boolean;
 }

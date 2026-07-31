@@ -14,16 +14,19 @@ import {
   AlertCircle, 
   Heart, 
   Baby, 
-  GraduationCap 
+  GraduationCap,
+  Download,
+  Layers
 } from 'lucide-react';
 
 interface HeaderProps {
   roleMode: RoleMode;
   setRoleMode: (role: RoleMode) => void;
-  activeTab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster';
-  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster') => void;
+  activeTab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design';
+  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design') => void;
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
+  onOpenCsvModal: () => void;
   students: Student[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
@@ -36,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   sheetConfig,
   onOpenSheetModal,
+  onOpenCsvModal,
   students,
   selectedStudentId,
   setSelectedStudentId,
@@ -68,12 +72,21 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Action Bar: Role Switch & Google Sheet Sync */}
+          {/* Right Action Bar: Role Switch, CSV Export & Google Sheet Sync */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+            {/* CSV Export Button */}
+            <button
+              onClick={onOpenCsvModal}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>匯出 CSV (Google Sheet)</span>
+            </button>
+
             {/* Google Sheets Status Badge */}
             <button
               onClick={onOpenSheetModal}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer ${
                 sheetConfig.isConnected
                   ? 'bg-[#C8E6C9] text-[#2E7D32] hover:bg-[#A5D6A7]'
                   : 'bg-[#FFE082] text-[#5D4037] hover:bg-[#FFCA28] animate-pulse'
@@ -189,6 +202,17 @@ export const Header: React.FC<HeaderProps> = ({
               <Users className="w-4 h-4" /> 學生名冊管理
             </button>
           )}
+
+          <button
+            onClick={() => setActiveTab('system-design')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-black text-xs md:text-sm whitespace-nowrap transition-all border-2 border-[#5D4037] ${
+              activeTab === 'system-design'
+                ? 'bg-[#FFF3E0] text-[#E65100] shadow-[3px_3px_0px_#5D4037] transform -translate-y-0.5 border-orange-500'
+                : 'bg-white text-[#5D4037] hover:bg-[#FFF3E0] shadow-[2px_2px_0px_#5D4037]'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-[#FF8A65]" /> 系統設計與 Google Sheet 連結
+          </button>
         </nav>
       </div>
     </header>

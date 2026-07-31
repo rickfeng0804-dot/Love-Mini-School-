@@ -13,8 +13,10 @@ import {
   Sparkles, 
   Check, 
   X, 
-  BookOpen 
+  BookOpen,
+  Download
 } from 'lucide-react';
+import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
 interface StudentRosterViewProps {
   students: Student[];
@@ -162,12 +164,23 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="bg-[#CE93D8] hover:bg-[#BA68C8] text-[#4A148C] font-black text-sm py-2.5 px-5 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" /> 新增學生資料
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const csv = generateStudentsCsv(students);
+              downloadCsv(`愛愛幼兒園_學生名冊_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+            }}
+            className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> 匯出名冊 CSV
+          </button>
+          <button
+            onClick={openAddModal}
+            className="bg-[#CE93D8] hover:bg-[#BA68C8] text-[#4A148C] font-black text-sm py-2.5 px-5 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" /> 新增學生資料
+          </button>
+        </div>
       </div>
 
       {/* Roster Cards Grid */}

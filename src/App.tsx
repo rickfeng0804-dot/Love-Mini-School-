@@ -16,14 +16,17 @@ import { CornerLearningForm } from './components/CornerLearningForm';
 import { LearningReportView } from './components/LearningReportView';
 import { ContactBookView } from './components/ContactBookView';
 import { StudentRosterView } from './components/StudentRosterView';
+import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
+import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { findKindergartenSpreadsheet, loadAllFromSheet } from './lib/googleSheets';
+import { findKindergartenSpreadsheet, loadAllFromSheet, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
 
 export default function App() {
   const [roleMode, setRoleMode] = useState<RoleMode>('teacher');
-  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'contact-book' | 'roster'>('corner-form');
+  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
+  const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
 
   // Core Data State with LocalStorage Persistence
   const [students, setStudents] = useState<Student[]>(() => {
@@ -47,15 +50,24 @@ export default function App() {
 
   const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
     const saved = localStorage.getItem('kindergarten_sheet_config');
-    return saved
-      ? JSON.parse(saved)
-      : {
-          spreadsheetId: null,
-          spreadsheetUrl: null,
-          spreadsheetName: '愛愛幼兒園_學習歷程與聯絡簿_資料庫',
-          isConnected: false,
-          lastSyncedAt: null,
-        };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (!parsed.webAppUrl) {
+        parsed.webAppUrl = DEFAULT_WEB_APP_URL;
+        parsed.isConnected = true;
+      }
+      return parsed;
+    }
+    return {
+      spreadsheetId: null,
+      spreadsheetUrl: null,
+      spreadsheetName: '愛愛幼兒園_學習歷程與家長聯絡簿_資料庫',
+      webAppUrl: DEFAULT_WEB_APP_URL,
+      isConnected: true,
+      lastSyncedAt: null,
+      refreshIntervalMinutes: 5,
+      autoRefreshEnabled: true,
+    };
   });
 
   // Save to LocalStorage whenever state updates
@@ -133,6 +145,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           sheetConfig={sheetConfig}
           onOpenSheetModal={() => setShowSheetModal(true)}
+          onOpenCsvModal={() => setShowCsvModal(true)}
           students={students}
           selectedStudentId={selectedStudentId}
           setSelectedStudentId={setSelectedStudentId}
@@ -181,6 +194,19 @@ export default function App() {
               sheetConfig={sheetConfig}
             />
           )}
+
+          {activeTab === 'system-design' && (
+            <SystemDesignView
+              sheetConfig={sheetConfig}
+              setSheetConfig={setSheetConfig}
+              students={students}
+              setStudents={setStudents}
+              learningRecords={learningRecords}
+              setLearningRecords={setLearningRecords}
+              contactBooks={contactBooks}
+              setContactBooks={setContactBooks}
+            />
+          )}
         </main>
       </div>
 
@@ -197,6 +223,7 @@ export default function App() {
       <GoogleSheetsModal
         isOpen={showSheetModal}
         onClose={() => setShowSheetModal(false)}
+        onOpenCsvModal={() => setShowCsvModal(true)}
         sheetConfig={sheetConfig}
         setSheetConfig={setSheetConfig}
         students={students}
@@ -205,6 +232,15 @@ export default function App() {
         setLearningRecords={setLearningRecords}
         contactBooks={contactBooks}
         setContactBooks={setContactBooks}
+      />
+
+      {/* CSV Export Center Modal */}
+      <CsvExportModal
+        isOpen={showCsvModal}
+        onClose={() => setShowCsvModal(false)}
+        students={students}
+        learningRecords={learningRecords}
+        contactBooks={contactBooks}
       />
     </div>
   );

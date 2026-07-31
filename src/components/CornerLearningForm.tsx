@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Student, LearningRecord, CornerAreaId, SheetConfig } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { DrawingCanvas } from './DrawingCanvas';
-import { syncAllToSheet } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -20,7 +20,9 @@ import {
   Check, 
   Award, 
   Calendar, 
-  UserCheck 
+  UserCheck,
+  Video,
+  Plus
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -89,6 +91,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [photoImages, setPhotoImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
   ]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoInput, setVideoInput] = useState<string>('');
   const [teacherComment, setTeacherComment] = useState<string>(
     '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
   );
@@ -142,6 +146,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       customNotes,
       drawingImage,
       photoImages,
+      videoUrls,
       teacherComment,
       stamp,
       createdAt: new Date().toISOString(),
@@ -160,7 +165,16 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       });
     } catch {}
 
-    // Auto-sync to Google Sheet if connected
+    // Auto-sync to Web App URL if configured
+    if (sheetConfig.webAppUrl) {
+      try {
+        await syncToWebApp(sheetConfig.webAppUrl, students, updatedRecords, []);
+      } catch (err) {
+        console.error('Corner record Web App sync failed:', err);
+      }
+    }
+
+    // Auto-sync to Google Sheet if connected via OAuth API
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {
         const token = getAccessToken();
@@ -379,9 +393,53 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Video URL Link Input Section */}
+              <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mt-2.5">
+                <label className="block text-[11px] font-black text-[#5D4037] mb-1 flex items-center gap-1">
+                  <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 新增活動影片 URL (YouTube / Google Drive 連結):
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={videoInput}
+                    onChange={(e) => setVideoInput(e.target.value)}
+                    className="flex-1 bg-[#FFFBF0] border border-[#5D4037] rounded-xl px-2.5 py-1 text-xs text-[#5D4037] font-bold focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (videoInput.trim()) {
+                        setVideoUrls([...videoUrls, videoInput.trim()]);
+                        setVideoInput('');
+                      }
+                    }}
+                    className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#01579B] font-black text-xs px-3 py-1 rounded-xl border border-[#5D4037] flex items-center gap-1 shadow-[1px_1px_0px_#5D4037]"
+                  >
+                    <Plus className="w-3 h-3" /> 新增
+                  </button>
+                </div>
+                {videoUrls.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {videoUrls.map((vUrl, vIdx) => (
+                      <div key={vIdx} className="flex items-center justify-between bg-[#E1F5FE] p-1.5 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#01579B]">
+                        <span className="truncate max-w-[200px]">🎬 {vUrl}</span>
+                        <button
+                          type="button"
+                          onClick={() => setVideoUrls(videoUrls.filter((_, i) => i !== vIdx))}
+                          className="text-[#FF5252] font-black hover:underline px-1"
+                        >
+                          刪除
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <p className="text-[11px] text-[#5D4037] font-bold mt-2">
-              💡 影像紀錄將會呈現於學習歷程報告的右側相簿專區。
+              💡 影像與影片紀錄將會自動儲存 URL 網址，未來可一鍵匯出 CSV 至 Google Sheet！
             </p>
           </div>
         </div>
