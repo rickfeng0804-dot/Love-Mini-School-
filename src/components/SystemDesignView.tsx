@@ -61,10 +61,10 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
   const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || '');
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
-    sheetConfig.refreshIntervalMinutes ?? 5
+    sheetConfig.refreshIntervalMinutes ?? 1
   );
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(
-    sheetConfig.autoRefreshEnabled ?? false
+    sheetConfig.autoRefreshEnabled ?? true
   );
   
   const [isSyncing, setIsSyncing] = useState(false);
@@ -74,8 +74,8 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   // Sync state changes with sheetConfig
   useEffect(() => {
     setWebAppInput(sheetConfig.webAppUrl || '');
-    setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
-    setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
+    setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 1);
+    setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? true);
   }, [sheetConfig]);
 
   // Copy code handler

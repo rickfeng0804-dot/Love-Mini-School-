@@ -20,7 +20,7 @@ import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { findKindergartenSpreadsheet, loadAllFromSheet, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
+import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
 
 export default function App() {
   const [roleMode, setRoleMode] = useState<RoleMode>('teacher');
@@ -56,7 +56,11 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_WEB_APP_URL;
         parsed.isConnected = true;
       }
-      return parsed;
+      return {
+        refreshIntervalMinutes: 1,
+        autoRefreshEnabled: true,
+        ...parsed,
+      };
     }
     return {
       spreadsheetId: null,
@@ -65,7 +69,7 @@ export default function App() {
       webAppUrl: DEFAULT_WEB_APP_URL,
       isConnected: true,
       lastSyncedAt: null,
-      refreshIntervalMinutes: 5,
+      refreshIntervalMinutes: 1,
       autoRefreshEnabled: true,
     };
   });
@@ -86,6 +90,30 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('kindergarten_sheet_config', JSON.stringify(sheetConfig));
   }, [sheetConfig]);
+
+  // Global Auto-Refresh Effect (polls Google Sheet Web App every X minutes, default 1 min)
+  useEffect(() => {
+    if (!sheetConfig.autoRefreshEnabled || !sheetConfig.webAppUrl || (sheetConfig.refreshIntervalMinutes ?? 1) <= 0) {
+      return;
+    }
+
+    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 1) * 60 * 1000;
+    const timer = setInterval(() => {
+      fetchFromWebApp(sheetConfig.webAppUrl!)
+        .then((data) => {
+          if (data.students && data.students.length > 0) setStudents(data.students);
+          if (data.learningRecords && data.learningRecords.length > 0) setLearningRecords(data.learningRecords);
+          if (data.contactBooks && data.contactBooks.length > 0) setContactBooks(data.contactBooks);
+          const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
+        })
+        .catch((err) => {
+          console.error('Global background Web App auto-sync error:', err);
+        });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [sheetConfig.autoRefreshEnabled, sheetConfig.webAppUrl, sheetConfig.refreshIntervalMinutes]);
 
   // Handle Google Auth state on app startup
   useEffect(() => {

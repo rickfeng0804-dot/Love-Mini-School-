@@ -15,7 +15,8 @@ import {
   Utensils, 
   Moon, 
   Plus,
-  Download
+  Download,
+  Printer
 } from 'lucide-react';
 import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
@@ -153,6 +154,73 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
     }
   };
 
+  const handlePrintContactBook = () => {
+    const listArea = document.getElementById('contact-book-list');
+    const stuName = selectedStudent?.name || '幼童';
+
+    if (listArea) {
+      try {
+        const printWindow = window.open('', '_blank', 'width=1024,height=900,top=50,left=50');
+        if (printWindow) {
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>愛愛幼兒園 - 家長聯絡簿 - ${stuName}</title>
+                <meta charset="utf-8" />
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                  @media print {
+                    .no-print { display: none !important; }
+                    body { background: white !important; margin: 0 !important; padding: 0 !important; }
+                    *, *::before, *::after {
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                      color-adjust: exact !important;
+                    }
+                  }
+                  body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    background-color: #f5f5f5;
+                    margin: 0;
+                    padding: 20px;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #FFFDE7; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
+                  <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📄 愛愛幼兒園 家長聯絡簿卡片 - ${stuName}：</span>
+                  <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
+                    🖨️ 立即列印 / 儲存 PDF 檔案
+                  </button>
+                  <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
+                    ✖ 關閉視窗
+                  </button>
+                </div>
+                <div style="max-width: 960px; margin: 0 auto; background: white;">
+                  ${listArea.outerHTML}
+                </div>
+                <script>
+                  setTimeout(() => {
+                    window.focus();
+                    window.print();
+                  }, 600);
+                </script>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+          return;
+        }
+      } catch (err) {
+        console.error('Print window error:', err);
+      }
+    }
+
+    window.focus();
+    setTimeout(() => { window.print(); }, 100);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Top Banner */}
@@ -177,6 +245,12 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
 
         {/* Student Select Bar & CSV Export */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handlePrintContactBook}
+            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" /> 列印 / 匯出 PDF
+          </button>
           <button
             onClick={() => {
               const csv = generateContactBooksCsv(contactBooks);
@@ -345,7 +419,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
         )}
 
         {/* Right Column: Postcard Style Contact Book Entries */}
-        <div className={roleMode === 'teacher' ? 'lg:col-span-2 space-y-4' : 'lg:col-span-3 space-y-4'}>
+        <div id="contact-book-list" className={roleMode === 'teacher' ? 'lg:col-span-2 space-y-4' : 'lg:col-span-3 space-y-4'}>
           <h3 className="font-black text-[#5D4037] text-base mb-2 flex items-center gap-2 italic">
             <MessageSquare className="w-5 h-5 text-[#FF5252]" />
             {selectedStudent.name} 的歷史聯絡簿紀錄

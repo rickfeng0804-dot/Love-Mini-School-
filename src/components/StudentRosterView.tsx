@@ -14,7 +14,8 @@ import {
   Check, 
   X, 
   BookOpen,
-  Download
+  Download,
+  Printer
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -159,6 +160,72 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     }
   };
 
+  const handlePrintRoster = () => {
+    const gridArea = document.getElementById('roster-grid');
+
+    if (gridArea) {
+      try {
+        const printWindow = window.open('', '_blank', 'width=1024,height=900,top=50,left=50');
+        if (printWindow) {
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>愛愛幼兒園 - 班級學生名冊</title>
+                <meta charset="utf-8" />
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                  @media print {
+                    .no-print { display: none !important; }
+                    body { background: white !important; margin: 0 !important; padding: 0 !important; }
+                    *, *::before, *::after {
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                      color-adjust: exact !important;
+                    }
+                  }
+                  body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    background-color: #f5f5f5;
+                    margin: 0;
+                    padding: 20px;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #E1F5FE; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
+                  <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📁 愛愛幼兒園 班級學生名冊 (點擊「另存為 PDF」或列印)：</span>
+                  <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
+                    🖨️ 立即列印 / 儲存 PDF 檔案
+                  </button>
+                  <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
+                    ✖ 關閉視窗
+                  </button>
+                </div>
+                <div style="max-width: 1100px; margin: 0 auto; background: white;">
+                  ${gridArea.outerHTML}
+                </div>
+                <script>
+                  setTimeout(() => {
+                    window.focus();
+                    window.print();
+                  }, 600);
+                </script>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+          return;
+        }
+      } catch (err) {
+        console.error('Print window error:', err);
+      }
+    }
+
+    window.focus();
+    setTimeout(() => { window.print(); }, 100);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Top Banner */}
@@ -183,6 +250,12 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={handlePrintRoster}
+            className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" /> 列印 / 匯出 PDF
+          </button>
+          <button
             onClick={() => {
               const csv = generateStudentsCsv(students);
               downloadCsv(`愛愛幼兒園_學生名冊_${new Date().toISOString().slice(0, 10)}.csv`, csv);
@@ -201,7 +274,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       </div>
 
       {/* Roster Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {students.map((stu) => {
           const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
           const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;

@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+@media print {
+  /* Preserve background colors and graphics when printing/exporting to PDF */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide interactive non-printable elements */
+  header,
+  nav,
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Optimize printable container for A4 sheet */
+  #printable-area, .printable-card {
+    box-shadow: none !important;
+    border-color: #5D4037 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    page-break-inside: avoid !important;
+  }
+}
