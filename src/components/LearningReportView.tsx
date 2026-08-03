@@ -181,26 +181,52 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = f
             )}
           </div>
 
-          {/* Video Links */}
-            {record.videoUrls && record.videoUrls.length > 0 && (
-              <div className="pt-1 border-t border-dashed border-[#5D4037]/40 space-y-1">
-                <p className="text-[10px] font-black text-[#01579B] flex items-center gap-1">
-                  <Video className="w-3 h-3 text-[#0288D1]" /> 活動影片 URL 連結：
-                </p>
-                {record.videoUrls.map((vUrl, vI) => (
-                  <a
-                    key={vI}
-                    href={vUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between bg-white px-2 py-1 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#0288D1] hover:underline"
-                  >
-                    <span className="truncate max-w-[220px]">🎬 {vUrl}</span>
-                    <ExternalLink className="w-2.5 h-2.5 shrink-0 ml-1" />
-                  </a>
-                ))}
+          {/* Video Links & Video Player */}
+          {record.videoUrls && record.videoUrls.length > 0 && (
+            <div className="pt-2 border-t border-dashed border-[#5D4037]/40 space-y-2">
+              <p className="text-[10px] font-black text-[#01579B] flex items-center gap-1">
+                <Video className="w-3 h-3 text-[#0288D1]" /> 活動影片紀錄：
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {record.videoUrls.map((vUrl, vI) => {
+                  const isVideoFile =
+                    vUrl.startsWith('data:video') ||
+                    vUrl.includes('.mp4') ||
+                    vUrl.includes('.mov') ||
+                    vUrl.includes('.webm') ||
+                    vUrl.includes('blob:');
+
+                  if (isVideoFile) {
+                    return (
+                      <div key={vI} className="bg-white p-1.5 rounded-lg border border-[#5D4037]">
+                        <video
+                          src={vUrl}
+                          controls
+                          className="w-full h-32 object-cover rounded-md bg-black"
+                        />
+                        <span className="text-[9px] font-black text-[#01579B] block mt-1 truncate">
+                          🎬 影片檔 #{vI + 1}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <a
+                      key={vI}
+                      href={vUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#0288D1] hover:underline"
+                    >
+                      <span className="truncate max-w-[200px]">🎬 {vUrl}</span>
+                      <ExternalLink className="w-2.5 h-2.5 shrink-0 ml-1" />
+                    </a>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
           </div>
         </div>
 
@@ -445,75 +471,42 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Top Filter & Print Controls (Hidden on Print) */}
       <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-4 sm:p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="flex flex-col gap-3">
-          {/* Quick Mobile Student Horizontal Scroll Chips */}
-          <div>
-            <label className="block text-xs font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
-              <span>快速選擇學生:</span>
-              <span className="text-[10px] text-[#5D4037]/70 font-bold sm:hidden">滑動切換 👈👉</span>
-            </label>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
-              {students.map((stu) => {
-                const isSelected = stu.id === selectedStudentId;
-                return (
-                  <button
-                    key={stu.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedStudentId(stu.id);
-                      const firstRec = learningRecords.find((r) => r.studentId === stu.id);
-                      if (firstRec) setActiveRecordId(firstRec.id);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap border-2 border-[#5D4037] transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
-                      isSelected
-                        ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-102'
-                        : 'bg-white text-[#5D4037] hover:bg-[#FFE082]'
-                    }`}
-                  >
-                    {stu.seatNumber}號 {stu.name}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 sm:flex-none min-w-[200px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1">快速選擇學生:</label>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => {
+                setSelectedStudentId(e.target.value);
+                const firstRec = learningRecords.find((r) => r.studentId === e.target.value);
+                if (firstRec) setActiveRecordId(firstRec.id);
+              }}
+              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              {students.map((stu) => (
+                <option key={stu.id} value={stu.id}>
+                  {stu.className} - {stu.seatNumber}號 {stu.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex-1 sm:flex-none">
-              <label className="block text-xs font-black text-[#5D4037] mb-1">學生下拉表:</label>
+          {studentRecords.length > 0 && (
+            <div className="flex-1 sm:flex-none min-w-[200px]">
+              <label className="block text-xs font-black text-[#5D4037] mb-1">紀錄週次區間:</label>
               <select
-                value={selectedStudentId}
-                onChange={(e) => {
-                  setSelectedStudentId(e.target.value);
-                  const firstRec = learningRecords.find((r) => r.studentId === e.target.value);
-                  if (firstRec) setActiveRecordId(firstRec.id);
-                }}
-                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                value={activeRecord?.id || ''}
+                onChange={(e) => setActiveRecordId(e.target.value)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
               >
-                {students.map((stu) => (
-                  <option key={stu.id} value={stu.id}>
-                    {stu.className} - {stu.seatNumber}號 {stu.name}
+                {studentRecords.map((rec) => (
+                  <option key={rec.id} value={rec.id}>
+                    週次: {rec.dateStart} ~ {rec.dateEnd} ({rec.studentName})
                   </option>
                 ))}
               </select>
             </div>
-
-            {studentRecords.length > 0 && (
-              <div className="flex-1 sm:flex-none">
-                <label className="block text-xs font-black text-[#5D4037] mb-1">紀錄週次區間:</label>
-                <select
-                  value={activeRecord?.id || ''}
-                  onChange={(e) => setActiveRecordId(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                >
-                  {studentRecords.map((rec) => (
-                    <option key={rec.id} value={rec.id}>
-                      週次: {rec.dateStart} ~ {rec.dateEnd} ({rec.studentName})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Action Buttons */}

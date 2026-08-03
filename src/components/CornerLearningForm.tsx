@@ -20,10 +20,9 @@ import {
   Award, 
   Calendar, 
   UserCheck,
-  Video,
-  Plus,
   User,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Video
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -44,14 +43,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Puzzle: <Puzzle className="w-5 h-5" />,
   Box: <Box className="w-5 h-5" />,
 };
-
-const SAMPLE_ACTIVITY_PHOTOS = [
-  'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1587691592099-24045742c181?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1560785496-3c9d22f773cd?w=600&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&auto=format&fit=crop&q=80',
-];
 
 export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   students,
@@ -103,7 +94,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
   ]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [videoInput, setVideoInput] = useState<string>('');
   const [teacherComment, setTeacherComment] = useState<string>(
     '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
   );
@@ -135,6 +125,21 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       }
     };
     reader.readAsDataURL(files[0]);
+    e.target.value = '';
+  };
+
+  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setVideoUrls((prev) => [...prev, event.target!.result as string]);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSubmitRecord = async (e: React.FormEvent) => {
@@ -227,45 +232,16 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           </div>
 
           {/* Student & Date Picker Selector Card */}
-          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
-            {/* Quick Student Horizontal Scroll Chips for Mobile */}
-            <div>
-              <label className="block text-[#5D4037] text-xs font-black mb-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 快速點選學生:
-                </span>
-                <span className="text-[10px] text-[#5D4037]/70 font-bold sm:hidden">可左右滑動 👈👉</span>
-              </label>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
-                {students.map((stu) => {
-                  const isSelected = stu.id === selectedStudentId;
-                  return (
-                    <button
-                      key={stu.id}
-                      type="button"
-                      onClick={() => setSelectedStudentId(stu.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap border-2 border-[#5D4037] transition-all cursor-pointer shrink-0 active:scale-95 min-h-[36px] ${
-                        isSelected
-                          ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-102'
-                          : 'bg-[#FFFBF0] text-[#5D4037] hover:bg-[#FFE082]'
-                      }`}
-                    >
-                      {stu.seatNumber}號 {stu.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
+          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-black text-[#5D4037]">
               <div>
                 <label className="block text-[#5D4037] mb-1 flex items-center gap-1">
-                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 學生選單:
+                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 快速選擇學生:
                 </label>
                 <select
                   value={selectedStudentId}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                 >
                   {students.map((stu) => (
                     <option key={stu.id} value={stu.id}>
@@ -375,104 +351,134 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         {/* Activity Photos & Videos Section */}
         <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
                 <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
                   影像與影音紀錄 (作品/活動照片與影片)
                 </h4>
               </div>
-              <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3.5 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                <Camera className="w-3.5 h-3.5" /> 上傳照片
-                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
+                  <Camera className="w-3.5 h-3.5" /> 上傳照片
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                </label>
+                <label className="cursor-pointer bg-[#0288D1] hover:bg-[#0277BD] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
+                  <Video className="w-3.5 h-3.5" /> 上傳影片檔
+                  <input type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
+                </label>
+              </div>
             </div>
 
-              {/* Photo Gallery Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-                {photoImages.map((imgUrl, idx) => (
-                  <div key={idx} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
-                    <img src={imgUrl} alt="活動照片" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setPhotoImages(photoImages.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 bg-[#FF5252] border border-[#5D4037] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Preset Sample Photos Picker */}
-              <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-                <p className="text-[11px] font-black text-[#5D4037] mb-1.5">或快速選用活動情境照片樣板：</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {SAMPLE_ACTIVITY_PHOTOS.map((url, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        if (!photoImages.includes(url)) {
-                          setPhotoImages([...photoImages, url]);
-                        }
-                      }}
-                      className="w-14 h-10 rounded-xl overflow-hidden border-2 border-[#5D4037] shrink-0 hover:scale-105 transition-transform shadow-[1px_1px_0px_#5D4037]"
-                    >
-                      <img src={url} alt="樣板" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Video URL Link Input Section */}
-              <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mt-2.5">
-                <label className="block text-[11px] font-black text-[#5D4037] mb-1 flex items-center gap-1">
-                  <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 新增活動影片 URL (YouTube / Google Drive 連結):
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={videoInput}
-                    onChange={(e) => setVideoInput(e.target.value)}
-                    className="flex-1 bg-[#FFFBF0] border border-[#5D4037] rounded-xl px-2.5 py-1 text-xs text-[#5D4037] font-bold focus:outline-none"
-                  />
+            {/* Photo Gallery Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+              {photoImages.map((imgUrl, idx) => (
+                <div key={idx} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
+                  <img src={imgUrl} alt="活動照片" className="w-full h-full object-cover" />
                   <button
                     type="button"
-                    onClick={() => {
-                      if (videoInput.trim()) {
-                        setVideoUrls([...videoUrls, videoInput.trim()]);
-                        setVideoInput('');
-                      }
-                    }}
-                    className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#01579B] font-black text-xs px-3 py-1 rounded-xl border border-[#5D4037] flex items-center gap-1 shadow-[1px_1px_0px_#5D4037]"
+                    onClick={() => setPhotoImages(photoImages.filter((_, i) => i !== idx))}
+                    className="absolute top-1 right-1 bg-[#FF5252] border border-[#5D4037] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" /> 新增
+                    ✕
                   </button>
                 </div>
-                {videoUrls.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {videoUrls.map((vUrl, vIdx) => (
-                      <div key={vIdx} className="flex items-center justify-between bg-[#E1F5FE] p-1.5 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#01579B]">
-                        <span className="truncate max-w-[200px]">🎬 {vUrl}</span>
-                        <button
-                          type="button"
-                          onClick={() => setVideoUrls(videoUrls.filter((_, i) => i !== vIdx))}
-                          className="text-[#FF5252] font-black hover:underline px-1"
-                        >
-                          刪除
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-            <p className="text-[11px] text-[#5D4037] font-bold mt-2">
-              💡 影像與影片紀錄將會自動儲存 URL 網址，未來可一鍵匯出 CSV 至 Google Sheet！
-            </p>
+
+            {/* Video Upload Section */}
+            <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mt-2.5">
+              <label className="block text-[11px] font-black text-[#5D4037] mb-1 flex items-center gap-1">
+                <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 新增活動影片 (可點擊右上角「上傳影片檔」按鈕進行上傳):
+              </label>
+
+              {/* Sample Videos Quick Picker */}
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#5D4037] mb-2 flex-wrap">
+                <span>或快速試用範例影片：</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const demo = 'https://www.w3schools.com/html/mov_bbb.mp4';
+                    if (!videoUrls.includes(demo)) setVideoUrls([...videoUrls, demo]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  + 範例影片 1 (建構創作)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const demo2 = 'https://assets.mixkit.co/videos/preview/mixkit-children-drawing-with-colored-pencils-41221-large.mp4';
+                    if (!videoUrls.includes(demo2)) setVideoUrls([...videoUrls, demo2]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  + 範例影片 2 (美勞繪畫)
+                </button>
+              </div>
+
+              {/* Video Preview List */}
+              {videoUrls.length > 0 && (
+                <div className="space-y-2 mt-2 border-t border-dashed border-[#5D4037]/30 pt-2">
+                  <p className="text-[11px] font-black text-[#01579B]">已新增的影片 ({videoUrls.length} 部):</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {videoUrls.map((vUrl, vIdx) => {
+                      const isLocalFileOrDirectMp4 =
+                        vUrl.startsWith('data:video') ||
+                        vUrl.includes('.mp4') ||
+                        vUrl.includes('.mov') ||
+                        vUrl.includes('.webm') ||
+                        vUrl.includes('blob:');
+
+                      return (
+                        <div key={vIdx} className="bg-[#E1F5FE] p-2 rounded-xl border border-[#5D4037] flex flex-col justify-between relative group">
+                          <button
+                            type="button"
+                            onClick={() => setVideoUrls(videoUrls.filter((_, i) => i !== vIdx))}
+                            className="absolute top-1 right-1 bg-[#FF5252] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#5D4037] text-[10px] font-black z-10 cursor-pointer"
+                            title="刪除影片"
+                          >
+                            ✕
+                          </button>
+
+                          {isLocalFileOrDirectMp4 ? (
+                            <div>
+                              <video
+                                src={vUrl}
+                                controls
+                                className="w-full h-28 object-cover rounded-lg border border-[#5D4037] bg-black mb-1"
+                              />
+                              <span className="text-[10px] font-bold text-[#01579B] truncate block">
+                                🎬 影片檔紀錄 #{vIdx + 1}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="p-1">
+                              <span className="text-[11px] font-bold text-[#01579B] break-all block mb-1">
+                                🔗 影片連結:
+                              </span>
+                              <a
+                                href={vUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-[#0288D1] font-black underline truncate block max-w-[180px]"
+                              >
+                                {vUrl}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+          <p className="text-[11px] text-[#5D4037] font-bold mt-2">
+            💡 影片紀錄可直接上傳檔案，未來可一鍵匯出 CSV 至 Google Sheet！
+          </p>
+        </div>
 
         {/* Teacher Comment & Japanese Stamp */}
         <div className="bg-[#FFF3E0] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFCCBC] space-y-4">
