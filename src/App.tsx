@@ -61,25 +61,25 @@ export default function App() {
     const saved = localStorage.getItem('kindergarten_sheet_config');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/') || parsed.webAppUrl.includes('AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5')) {
-        parsed.webAppUrl = DEFAULT_WEB_APP_URL;
+      if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/')) {
+        parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
         parsed.isConnected = true;
       }
       return {
         refreshIntervalMinutes: 5,
         ...parsed,
-        autoRefreshEnabled: false, // Cancel automatic update, switch to manual sync by default
+        autoRefreshEnabled: false,
       };
     }
     return {
       spreadsheetId: null,
       spreadsheetUrl: null,
-      spreadsheetName: '愛愛幼兒園_學習歷程與家長聯絡簿_資料庫',
-      webAppUrl: DEFAULT_WEB_APP_URL,
+      spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
+      webAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
       isConnected: true,
       lastSyncedAt: null,
       refreshIntervalMinutes: 5,
-      autoRefreshEnabled: false, // Manual sync default
+      autoRefreshEnabled: false,
     };
   });
 
@@ -260,6 +260,7 @@ export default function App() {
               students={students}
               learningRecords={learningRecords}
               setLearningRecords={setLearningRecords}
+              contactBooks={contactBooks}
               sheetConfig={sheetConfig}
               onSavedRecord={handleSavedRecordNav}
             />

@@ -21,7 +21,12 @@ import {
   ExternalLink,
   CheckCircle2,
   HelpCircle,
-  Copy
+  Copy,
+  Upload,
+  Camera,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  RotateCcw
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -89,6 +94,55 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setParentContact(stu.parentContact);
     setNotes(stu.notes || '');
     setShowModal(true);
+  };
+
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('請上傳有效的圖片檔案 (JPG, PNG, WEBP)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 320;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            setAvatarUrl(canvas.toDataURL('image/jpeg', 0.88));
+          } else {
+            setAvatarUrl(result);
+          }
+        };
+        img.onerror = () => {
+          setAvatarUrl(result);
+        };
+        img.src = result;
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveStudent = async (e: React.FormEvent) => {
@@ -571,6 +625,108 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                     className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                     placeholder="如: 0912-345-678"
                   />
+                </div>
+              </div>
+
+              {/* Avatar Upload & Link Section */}
+              <div className="bg-[#FFF8E1] border-2 border-[#5D4037] rounded-2xl p-3 shadow-[2px_2px_0px_#5D4037] space-y-2">
+                <div className="flex items-center justify-between text-[#5D4037]">
+                  <label className="font-black text-xs flex items-center gap-1">
+                    <Camera className="w-4 h-4 text-[#8E24AA]" />
+                    學生大頭照片 (上傳檔案或建立連結):
+                  </label>
+                  {avatarUrl && (
+                    <span className="text-[10px] text-[#2E7D32] bg-[#E8F5E9] px-2 py-0.5 rounded-full border border-[#2E7D32] font-black">
+                      ✓ 已設置照片
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Live Avatar Preview */}
+                  <div className="relative shrink-0 group">
+                    <img
+                      src={avatarUrl || AVATAR_SAMPLES[0]}
+                      alt="學生大頭照預覽"
+                      className="w-16 h-16 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037] bg-white"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = AVATAR_SAMPLES[0];
+                      }}
+                    />
+                    <label
+                      htmlFor="student-avatar-file-input"
+                      className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer text-[10px] font-black"
+                    >
+                      <Upload className="w-4 h-4 mb-0.5" />
+                      更換照片
+                    </label>
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    {/* Upload Button */}
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="student-avatar-file-input"
+                        className="bg-[#CE93D8] hover:bg-[#BA68C8] text-[#4A148C] text-xs font-black px-3 py-1.5 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> 上傳照片檔案
+                      </label>
+                      <input
+                        id="student-avatar-file-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFileUpload}
+                      />
+                      <span className="text-[10px] text-[#5D4037]/70 font-bold">
+                        (支援電腦/手機相片檔)
+                      </span>
+                    </div>
+
+                    {/* Image URL Link Input */}
+                    <div>
+                      <div className="flex items-center gap-1 text-[10px] text-[#5D4037] font-bold mb-0.5">
+                        <LinkIcon className="w-3 h-3 text-[#0288D1]" /> 或貼上/輸入圖片網址 (URL):
+                      </div>
+                      <input
+                        type="text"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-[11px] font-mono focus:outline-none shadow-[1px_1px_0px_#5D4037]"
+                        placeholder="https://... 或圖片數據連結"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preset Avatars Bar */}
+                <div className="pt-1.5 border-t border-dashed border-[#5D4037]/30">
+                  <div className="text-[10px] font-bold text-[#5D4037] mb-1 flex items-center justify-between">
+                    <span>快速選擇預設相片範本：</span>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl(AVATAR_SAMPLES[Math.floor(Math.random() * AVATAR_SAMPLES.length)])}
+                        className="text-[10px] text-[#0288D1] hover:underline flex items-center gap-0.5"
+                      >
+                        <RotateCcw className="w-3 h-3" /> 隨機更換
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {AVATAR_SAMPLES.map((sampleUrl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setAvatarUrl(sampleUrl)}
+                        className={`shrink-0 w-8 h-8 rounded-full border-2 border-[#5D4037] overflow-hidden cursor-pointer transition-all ${
+                          avatarUrl === sampleUrl ? 'ring-2 ring-[#8E24AA] scale-110 shadow-md' : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={sampleUrl} alt={`Preset avatar ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

@@ -371,92 +371,66 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Sub-card: Web App URL Setting */}
           <div className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-2xl p-5 shadow-[4px_4px_0px_#5D4037] space-y-4">
-            <h4 className="font-black text-sm text-[#5D4037] flex items-center gap-2">
-              <Globe className="w-4 h-4 text-[#FF8A65]" />
-              輸入 Google Apps Script Web App URL：
-            </h4>
+            <div className="flex items-center justify-between border-b border-dashed border-[#5D4037]/30 pb-2">
+              <h4 className="font-black text-sm text-[#5D4037] flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#FF8A65]" />
+                角落學習紀錄 Google Sheet 連結網址設定
+              </h4>
+              <span className="bg-[#E0F7FA] text-[#00838F] border border-[#00838F] text-[10px] font-black px-2 py-0.5 rounded-full">
+                角落學習區專屬
+              </span>
+            </div>
 
             <div>
               <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
-                <label className="text-[11px] font-black text-[#5D4037]">Google Sheet Web App URL：</label>
+                <label className="text-[11px] font-black text-[#5D4037]">
+                  角落學習紀錄 Web App URL（可在下方文字框自由修改）：
+                </label>
                 <div className="flex flex-wrap items-center gap-1">
                   <button
                     type="button"
                     onClick={() => {
-                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入學生名冊預設 Web App URL！請點選儲存設定或測試連線。' });
-                    }}
-                    className="bg-[#AB47BC] hover:bg-[#8E24AA] text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
-                  >
-                    帶入學生名冊預設 URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
                       setWebAppInput(DEFAULT_LEARNING_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入角落學習紀錄預設 Web App URL！請點選儲存或測試連線。' });
+                      setStatusMessage({ type: 'info', text: '已自動帶入角落學習紀錄預設 Web App URL！請點選「儲存設定」或「測試連線與更新」。' });
                     }}
-                    className="bg-[#00ACC1] hover:bg-[#00838F] text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
+                    className="bg-[#00ACC1] hover:bg-[#00838F] text-white font-black text-[10px] px-2.5 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
                   >
                     帶入角落學習區預設 URL
                   </button>
                   <button
                     type="button"
                     onClick={() => {
+                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已自動帶入學生名冊預設 Web App URL！' });
+                    }}
+                    className="bg-[#AB47BC] hover:bg-[#8E24AA] text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
+                  >
+                    帶入學生名冊 URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setWebAppInput(DEFAULT_CONTACT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入家長聯絡簿預設 Web App URL！請點選儲存或測試連線。' });
+                      setStatusMessage({ type: 'info', text: '已自動帶入家長聯絡簿預設 Web App URL！' });
                     }}
                     className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
                   >
-                    帶入家長聯絡簿預設 URL
+                    帶入家長聯絡簿 URL
                   </button>
                 </div>
               </div>
+              
               <input
                 type="url"
                 value={webAppInput}
                 onChange={(e) => setWebAppInput(e.target.value)}
-                placeholder="https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/1"
-                className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                placeholder="https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec"
+                className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
               />
 
               <div className="mt-2.5 p-2.5 bg-white/90 rounded-xl border border-[#5D4037]/30 text-[10px] text-[#5D4037] font-bold space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊 Library URL」:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_STUDENT_LIBRARY_URL);
-                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Library URL！系統將會自動解析為 Web App 執行檔。' });
-                    }}
-                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
-                  >
-                    點此帶入 Library URL
-                  </button>
-                </div>
-                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
-                  {DEFAULT_STUDENT_LIBRARY_URL}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
-                  <span className="text-[#8E24AA] font-black">📌 系統預設「學生名冊 Web App Exec URL」:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Web App URL！' });
-                    }}
-                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
-                  >
-                    點此帶入 Web App Exec
-                  </button>
-                </div>
-                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
-                  {DEFAULT_STUDENT_WEB_APP_URL}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
-                  <span className="text-[#00838F] font-black">📌 系統預設「角落學習紀錄」URL:</span>
+                  <span className="text-[#00838F] font-black">📌 角落學習紀錄預設 URL:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -465,7 +439,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                     }}
                     className="text-[9px] text-[#00838F] hover:underline cursor-pointer font-black"
                   >
-                    點此帶入
+                    點此填入
                   </button>
                 </div>
                 <div className="font-mono break-all text-[9px] text-[#00838F] bg-[#E0F7FA] p-1.5 rounded border border-[#00838F]/30">
@@ -473,7 +447,24 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
-                  <span className="text-[#E65100] font-black">📌 系統預設「家長聯絡簿」URL:</span>
+                  <span className="text-[#8E24AA] font-black">📌 學生名冊預設 Exec URL:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
+                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Web App URL！' });
+                    }}
+                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
+                  >
+                    點此填入
+                  </button>
+                </div>
+                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
+                  {DEFAULT_STUDENT_WEB_APP_URL}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
+                  <span className="text-[#E65100] font-black">📌 家長聯絡簿預設 URL:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -482,7 +473,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                     }}
                     className="text-[9px] text-[#E65100] hover:underline cursor-pointer font-black"
                   >
-                    點此帶入
+                    點此填入
                   </button>
                 </div>
                 <div className="font-mono break-all text-[9px] text-[#E65100] bg-[#FFF3E0] p-1.5 rounded border border-[#E65100]/30">
@@ -498,7 +489,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 className="bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#2E7D32] font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                儲存網址與更新時間設定
+                儲存修改之網址與設定
               </button>
 
               <button
@@ -508,7 +499,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#01579B] font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                測試連線並載入 Sheet 資料
+                測試連線與更新資料
               </button>
 
               <button
@@ -518,7 +509,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 className="bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
-                將本地名冊與紀錄同步至 Sheet
+                推送更新至 Google Sheet
               </button>
             </div>
           </div>

@@ -257,7 +257,14 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
         {/* Student Select Bar */}
         <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end w-full md:w-auto">
           <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-2">
-            <span className="text-xs font-black text-[#5D4037] shrink-0">快速選擇學生:</span>
+            {selectedStudent?.avatarUrl && (
+              <img
+                src={selectedStudent.avatarUrl}
+                alt={selectedStudent.name}
+                className="w-8 h-8 rounded-full border border-[#5D4037] object-cover shrink-0 shadow-xs"
+              />
+            )}
+            <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
             <select
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}

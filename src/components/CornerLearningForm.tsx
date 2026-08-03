@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, LearningRecord, CornerAreaId, SheetConfig } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
@@ -22,13 +22,16 @@ import {
   UserCheck,
   User,
   Image as ImageIcon,
-  Video
+  Video,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
   students: Student[];
   learningRecords: LearningRecord[];
   setLearningRecords: React.Dispatch<React.SetStateAction<LearningRecord[]>>;
+  contactBooks?: ContactBook[];
   sheetConfig: SheetConfig;
   onSavedRecord: (recordId: string) => void;
 }
@@ -48,6 +51,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   students,
   learningRecords,
   setLearningRecords,
+  contactBooks = [],
   sheetConfig,
   onSavedRecord,
 }) => {
@@ -99,6 +103,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   );
   const [stamp, setStamp] = useState<string>('たいへんよくできました');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const handleToggleCheck = (areaId: CornerAreaId, item: string) => {
     setCheckedItems((prev) => {
@@ -147,6 +152,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     if (!selectedStudent) return;
 
     setIsSaving(true);
+    setSyncStatus({ type: 'info', message: '正在儲存紀錄並同步至資料庫與 Google Sheet...' });
 
     const newRecord: LearningRecord = {
       id: `rec-${Date.now()}`,
@@ -169,6 +175,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     const updatedRecords = [newRecord, ...learningRecords];
     setLearningRecords(updatedRecords);
 
+    try {
+      localStorage.setItem('kindergarten_learning_records', JSON.stringify(updatedRecords));
+    } catch (e) {}
+
     // Trigger celebration confetti
     try {
       confetti({
@@ -181,28 +191,39 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
 
     // Auto-sync to Web App URL
     const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    let webAppSynced = false;
     if (webAppTarget) {
       try {
-        await syncToWebApp(webAppTarget, students, updatedRecords, []);
+        await syncToWebApp(webAppTarget, students, updatedRecords, contactBooks);
+        webAppSynced = true;
       } catch (err) {
-        console.error('Corner record Web App sync failed:', err);
+        console.warn('Corner record Web App sync warning:', err);
       }
     }
 
     // Auto-sync to Google Sheet if connected via OAuth API
+    let oauthSynced = false;
     if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
       try {
         const token = getAccessToken();
         if (token) {
-          await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, []);
+          await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, contactBooks);
+          oauthSynced = true;
         }
       } catch (err) {
-        console.error('Auto sync to sheet failed:', err);
+        console.warn('Auto sync to sheet failed:', err);
       }
     }
 
     setIsSaving(false);
-    onSavedRecord(newRecord.id);
+    setSyncStatus({
+      type: 'success',
+      message: `🎉 已成功儲存 ${selectedStudent.name} 的角落觀察紀錄！${webAppSynced || oauthSynced ? '（已成功同步發送至 Google Sheet）' : '（已儲存於本機系統，若需連線至試算表，可至「系統設定」確認 Web App URL 設定）'}`,
+    });
+
+    setTimeout(() => {
+      onSavedRecord(newRecord.id);
+    }, 1200);
   };
 
   return (
@@ -232,23 +253,40 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           </div>
 
           {/* Student & Date Picker Selector Card */}
-          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto">
+          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-black text-[#5D4037]">
               <div>
-                <label className="block text-[#5D4037] mb-1 flex items-center gap-1">
-                  <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 快速選擇學生:
+                <label className="block text-[#5D4037] mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-[#FF8A65]" /> 選擇觀察學生:
+                  </span>
+                  {selectedStudent && (
+                    <span className="text-[10px] text-[#5D4037]/80 font-mono font-bold">
+                      {selectedStudent.seatNumber}號 {selectedStudent.gender === 'boy' ? '👦' : '👧'}
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-                >
-                  {students.map((stu) => (
-                    <option key={stu.id} value={stu.id}>
-                      {stu.className} - {stu.seatNumber}號 {stu.name}
-                    </option>
-                  ))}
-                </select>
+
+                <div className="flex items-center gap-2">
+                  {selectedStudent?.avatarUrl && (
+                    <img
+                      src={selectedStudent.avatarUrl}
+                      alt={selectedStudent.name}
+                      className="w-10 h-10 rounded-full border-2 border-[#5D4037] object-cover shrink-0 shadow-[2px_2px_0px_#5D4037]"
+                    />
+                  )}
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                  >
+                    {students.map((stu) => (
+                      <option key={stu.id} value={stu.id}>
+                        {stu.className} - {stu.seatNumber}號 {stu.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -272,8 +310,61 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Quick Student Photo Avatar Selection Bar */}
+            <div className="pt-2 border-t border-dashed border-[#5D4037]/30">
+              <div className="text-[10px] font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
+                <span>點擊幼兒照片點名快速選擇：</span>
+                <span className="text-[9px] text-[#FF8A65]">共 {students.length} 位幼兒</span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {students.map((stu) => {
+                  const isSelected = stu.id === selectedStudentId;
+                  return (
+                    <button
+                      key={stu.id}
+                      type="button"
+                      onClick={() => setSelectedStudentId(stu.id)}
+                      className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#FFD54F] text-[#5D4037] shadow-[2px_2px_0px_#5D4037] scale-105 font-black'
+                          : 'bg-[#FFFBF0] text-[#5D4037]/80 hover:bg-white hover:scale-100 font-bold'
+                      }`}
+                    >
+                      <img
+                        src={stu.avatarUrl}
+                        alt={stu.name}
+                        className="w-6 h-6 rounded-full border border-[#5D4037] object-cover shrink-0"
+                      />
+                      <span className="text-[11px] whitespace-nowrap">{stu.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
+
+        {syncStatus && (
+          <div
+            className={`mt-4 p-3 rounded-2xl border-2 border-[#5D4037] flex items-center gap-2.5 text-xs font-black shadow-[3px_3px_0px_#5D4037] animate-fade-in ${
+              syncStatus.type === 'success'
+                ? 'bg-[#E8F5E9] text-[#2E7D32]'
+                : syncStatus.type === 'error'
+                ? 'bg-[#FFEBEE] text-[#C62828]'
+                : 'bg-[#E1F5FE] text-[#0277BD]'
+            }`}
+          >
+            {syncStatus.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#2E7D32]" />
+            ) : syncStatus.type === 'error' ? (
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#C62828]" />
+            ) : (
+              <Sparkles className="w-4 h-4 shrink-0 text-[#0277BD] animate-spin" />
+            )}
+            <span>{syncStatus.message}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Form */}

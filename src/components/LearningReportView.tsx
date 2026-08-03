@@ -45,8 +45,11 @@ interface SingleReportCardProps {
   isBatch?: boolean;
 }
 
-const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = false }) => {
+const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, isBatch = false }) => {
   if (!record) return null;
+  const matchingStudent = students?.find((s) => s.id === record.studentId || s.name === record.studentName);
+  const avatarToDisplay = matchingStudent?.avatarUrl;
+
   return (
     <div className={`bg-[#FFFBF0] border-4 border-[#5D4037] p-6 md:p-8 rounded-[2rem] shadow-[10px_10px_0px_#5D4037] max-w-[1000px] mx-auto text-[#5D4037] font-sans print:shadow-none print:border-4 print:border-[#5D4037] print:p-6 print:bg-white ${isBatch ? 'a4-page-break' : ''}`}>
       {/* Header Row */}
@@ -63,11 +66,20 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, isBatch = f
           </div>
         </div>
 
-        <div className="text-right">
-          <h1 className="text-2xl font-black tracking-widest text-[#5D4037] italic">
-            我的學習紀錄
-          </h1>
-          <span className="text-[10px] text-[#5D4037]/70 font-mono font-bold">ぼくのぐんぐんきろく</span>
+        <div className="text-right flex items-center gap-3">
+          {avatarToDisplay && (
+            <img
+              src={avatarToDisplay}
+              alt={record.studentName}
+              className="w-12 h-12 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037] print:shadow-none shrink-0"
+            />
+          )}
+          <div>
+            <h1 className="text-2xl font-black tracking-widest text-[#5D4037] italic">
+              我的學習紀錄
+            </h1>
+            <span className="text-[10px] text-[#5D4037]/70 font-mono font-bold block">ぼくのぐんぐんきろく</span>
+          </div>
         </div>
       </div>
 
@@ -582,14 +594,14 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {activeRecord ? (
         <>
           <div id="printable-area">
-            <SingleReportCard record={activeRecord} />
+            <SingleReportCard record={activeRecord} students={students} />
           </div>
 
           {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
           <div id="all-printable-reports" className="hidden">
             {learningRecords.map((rec) => (
               <div key={rec.id} className="a4-page-break mb-8">
-                <SingleReportCard record={rec} isBatch={true} />
+                <SingleReportCard record={rec} students={students} isBatch={true} />
               </div>
             ))}
           </div>
