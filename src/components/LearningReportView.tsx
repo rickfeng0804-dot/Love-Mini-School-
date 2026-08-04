@@ -14,7 +14,8 @@ import {
   Square,
   Video,
   ExternalLink,
-  FileSpreadsheet
+  FileSpreadsheet,
+  PieChart as PieIcon
 } from 'lucide-react';
 import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
@@ -24,12 +25,11 @@ import {
   PolarAngleAxis, 
   PolarRadiusAxis, 
   ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
+  PieChart,
+  Pie,
+  Cell,
   Tooltip, 
-  Cell 
+  Legend
 } from 'recharts';
 
 interface LearningReportViewProps {
@@ -279,6 +279,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
 }) => {
   const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
   const [activeRecordId, setActiveRecordId] = useState<string>('');
+  const [pieMode, setPieMode] = useState<'week' | 'cumulative'>('week');
 
   React.useEffect(() => {
     const matchingRecs = learningRecords.filter((r) => r.studentId === selectedStudentId);
@@ -466,7 +467,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     setTimeout(() => { window.print(); }, 100);
   };
 
-  // Compute Domain Radar Stats based on checked items across corners
   const computeDomainStats = (record?: LearningRecord) => {
     if (!record) return [];
     const checked: Record<string, string[]> = record.checkedItems || {};
@@ -486,7 +486,55 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     ];
   };
 
+  const CORNER_COLORS: Record<string, string> = {
+    language: '#FF7043',   // 語文區
+    watercolor: '#29B6F6', // 水彩區
+    art: '#FFA726',        // 美勞區
+    beads: '#AB47BC',      // 拼豆區
+    science: '#66BB6A',    // 科學區
+    brain: '#5C6BC0',      // 益智區
+    puzzle: '#EC407A',     // 拼圖/建構區
+    blocks: '#8D6E63',     // 積木區
+  };
+
+  const computeCornerPieData = () => {
+    const targetRecords = pieMode === 'cumulative' ? studentRecords : (activeRecord ? [activeRecord] : []);
+    if (targetRecords.length === 0) return [];
+
+    const counts: Record<string, number> = {};
+    CORNER_AREAS.forEach((area) => {
+      counts[area.id] = 0;
+    });
+
+    targetRecords.forEach((rec) => {
+      const checked = rec.checkedItems || {};
+      CORNER_AREAS.forEach((area) => {
+        const itemsCount = (checked[area.id] || []).length;
+        const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
+        counts[area.id] += itemsCount + noteCount;
+      });
+    });
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    return CORNER_AREAS.map((area) => {
+      const val = counts[area.id] || 0;
+      const percentage = total > 0 ? Math.round((val / total) * 100) : 0;
+      return {
+        name: area.name,
+        id: area.id,
+        value: val,
+        percentage,
+        color: CORNER_COLORS[area.id] || '#FFA726',
+      };
+    }).filter((item) => item.value > 0);
+  };
+
   const chartData = computeDomainStats(activeRecord);
+  const pieData = computeCornerPieData();
+  const topCorner = pieData.length > 0
+    ? [...pieData].sort((a, b) => b.value - a.value)[0]
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -556,40 +604,166 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
       </div>
 
-      {/* Development Domain Analytics Card (Hidden on Print) */}
+      {/* Development Domain & Corner Category Analytics Card (Hidden on Print) */}
       {activeRecord && (
         <div className="print:hidden bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] mb-6">
-          <h3 className="text-base font-black text-[#5D4037] mb-3 flex items-center gap-2 italic">
-            <BarChart3 className="w-5 h-5 text-[#FF8A65]" />
-            幼兒發展領域評量能力視覺化分析 (發展雷達圖)
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <div className="h-[220px] bg-white rounded-2xl p-2 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-                  <PolarGrid stroke="#5D4037" strokeDasharray="3 3" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#5D4037', fontSize: 11, fontWeight: 'bold' }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                  <Radar name={activeRecord.studentName} dataKey="score" stroke="#FF8A65" fill="#FF8A65" fillOpacity={0.5} />
-                </RadarChart>
-              </ResponsiveContainer>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b-2 border-[#5D4037]/20 pb-3">
+            <h3 className="text-base sm:text-lg font-black text-[#5D4037] flex items-center gap-2 italic">
+              <BarChart3 className="w-5 h-5 text-[#FF8A65]" />
+              {selectedStudent.name} 的學習歷程雙維度視覺化分析
+            </h3>
+
+            {/* Pie Chart Mode Selector */}
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setPieMode('week')}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  pieMode === 'week'
+                    ? 'bg-[#FF8A65] text-white shadow-[1px_1px_0px_#5D4037]'
+                    : 'text-[#5D4037] hover:bg-[#FFE082]'
+                }`}
+              >
+                📅 本週觀察
+              </button>
+              <button
+                type="button"
+                onClick={() => setPieMode('cumulative')}
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  pieMode === 'cumulative'
+                    ? 'bg-[#FF8A65] text-white shadow-[1px_1px_0px_#5D4037]'
+                    : 'text-[#5D4037] hover:bg-[#FFE082]'
+                }`}
+              >
+                📚 全學期累積 ({studentRecords.length}週)
+              </button>
+            </div>
+          </div>
+
+          {/* Grid of Two Analytics Panels */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-4">
+            {/* Panel 1: Radar Chart (Ability Radar) */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
+                  <span className="text-base">🎯</span> 幼兒六大發展能力評量 (雷達圖)
+                </span>
+                <span className="text-[10px] bg-[#FFE082] px-2 py-0.5 rounded-full font-black text-[#5D4037] border border-[#5D4037]">
+                  能力指標
+                </span>
+              </div>
+              <div className="h-[220px] w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
+                    <PolarGrid stroke="#5D4037" strokeDasharray="3 3" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#5D4037', fontSize: 10, fontWeight: 'bold' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <Radar name={activeRecord.studentName} dataKey="score" stroke="#FF8A65" fill="#FF8A65" fillOpacity={0.5} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
-                <span className="font-black text-[#FF8A65] block mb-1">🌟 發展領域亮點報告：</span>
-                <p className="text-[#5D4037] font-bold leading-relaxed">
-                  {selectedStudent.name} 在本週角落學習期間，共有{' '}
-                  <strong className="text-[#FF8A65]">
-                    {Object.values(activeRecord.checkedItems || {}).reduce((acc: number, curr: any) => acc + (Array.isArray(curr) ? curr.length : 0), 0)}
-                  </strong>{' '}
-                  項指標獲老師紀錄達成。繪畫、精細肌肉與專注觀察領域發展極佳！
-                </p>
+            {/* Panel 2: Pie Chart (Corner Categories Distribution) */}
+            <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
+                  <PieIcon className="w-4 h-4 text-[#0288D1]" /> 各角落類別投入比例 (圓餅圖)
+                </span>
+                {topCorner && (
+                  <span className="text-[10px] bg-[#E1F5FE] text-[#0288D1] px-2 py-0.5 rounded-full font-black border border-[#0288D1]">
+                    🏆 最熱衷：{topCorner.name} ({topCorner.percentage}%)
+                  </span>
+                )}
               </div>
-              <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
-                <span className="font-black text-[#0288D1] block mb-1">💮 老師指導建議：</span>
-                <p className="text-[#5D4037] font-bold leading-relaxed">{activeRecord.teacherComment}</p>
-              </div>
+
+              {pieData.length > 0 ? (
+                <div className="h-[220px] w-full flex items-center justify-center relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry) => (
+                          <Cell key={entry.id} fill={entry.color} stroke="#5D4037" strokeWidth={1.5} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-[#FFFBF0] border-2 border-[#5D4037] p-2.5 rounded-xl shadow-[3px_3px_0px_#5D4037] text-xs font-black text-[#5D4037] z-50">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="w-2.5 h-2.5 rounded-full inline-block border border-[#5D4037]" style={{ backgroundColor: data.color }} />
+                                  <span>{data.name}</span>
+                                </div>
+                                <div className="text-[11px] font-bold text-[#5D4037]/90 space-y-0.5">
+                                  <p>達成指標：<span className="text-[#FF8A65]">{data.value} 項</span></p>
+                                  <p>角落佔比：<span className="text-[#0288D1]">{data.percentage}%</span></p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  {/* Center Donut Label */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                    <span className="text-[10px] font-black text-[#5D4037]/70">總參與項</span>
+                    <span className="text-sm font-black text-[#FF8A65]">
+                      {pieData.reduce((acc, curr) => acc + curr.value, 0)} 項
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[220px] flex items-center justify-center text-xs font-bold text-[#5D4037]/70 italic">
+                  此區間尚無角落觀察指標紀錄
+                </div>
+              )}
+
+              {/* Pie Chart Legend Chips */}
+              {pieData.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2 border-t border-[#5D4037]/10">
+                  {pieData.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]/30 bg-[#FFFBF0]"
+                    >
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: item.color }} />
+                      <span className="text-[#5D4037]">{item.name}</span>
+                      <span className="text-[#FF8A65] font-mono">{item.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Insights Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+              <span className="font-black text-[#FF8A65] block mb-1">🌟 發展領域與角落亮點報告：</span>
+              <p className="text-[#5D4037] font-bold leading-relaxed">
+                {selectedStudent.name} 在{pieMode === 'cumulative' ? '全學期累積觀察中' : '本週角落學習期間'}，共有{' '}
+                <strong className="text-[#FF8A65]">
+                  {pieData.reduce((acc, curr) => acc + curr.value, 0)}
+                </strong>{' '}
+                項指標獲老師紀錄達成。{topCorner ? `其中以「${topCorner.name}」展現最高投入度 (${topCorner.percentage}%)！` : '繪畫、精細肌肉與專注觀察領域發展極佳！'}
+              </p>
+            </div>
+            <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
+              <span className="font-black text-[#0288D1] block mb-1">💮 老師指導建議：</span>
+              <p className="text-[#5D4037] font-bold leading-relaxed">{activeRecord.teacherComment || '學習態度非常良好，樂於探索與分享。'}</p>
             </div>
           </div>
         </div>
