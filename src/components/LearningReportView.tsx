@@ -278,9 +278,18 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   setSelectedStudentId,
 }) => {
   const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
-  const [activeRecordId, setActiveRecordId] = useState<string>(
-    studentRecords[0]?.id || learningRecords[0]?.id || ''
-  );
+  const [activeRecordId, setActiveRecordId] = useState<string>('');
+
+  React.useEffect(() => {
+    const matchingRecs = learningRecords.filter((r) => r.studentId === selectedStudentId);
+    if (matchingRecs.length > 0) {
+      setActiveRecordId(matchingRecs[0].id);
+    } else if (learningRecords.length > 0) {
+      setActiveRecordId(learningRecords[0].id);
+    } else {
+      setActiveRecordId('');
+    }
+  }, [selectedStudentId, learningRecords]);
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
@@ -572,7 +581,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                 <p className="text-[#5D4037] font-bold leading-relaxed">
                   {selectedStudent.name} 在本週角落學習期間，共有{' '}
                   <strong className="text-[#FF8A65]">
-                    {Object.values(activeRecord.checkedItems || {}).flat().length}
+                    {Object.values(activeRecord.checkedItems || {}).reduce((acc: number, curr: any) => acc + (Array.isArray(curr) ? curr.length : 0), 0)}
                   </strong>{' '}
                   項指標獲老師紀錄達成。繪畫、精細肌肉與專注觀察領域發展極佳！
                 </p>

@@ -83,21 +83,37 @@ export default function App() {
     };
   });
 
-  // Save to LocalStorage whenever state updates
+  // Save to LocalStorage whenever state updates safely with try-catch
   useEffect(() => {
-    localStorage.setItem('kindergarten_students', JSON.stringify(students));
+    try {
+      localStorage.setItem('kindergarten_students', JSON.stringify(students));
+    } catch (e) {
+      console.warn('Failed to save students to localStorage:', e);
+    }
   }, [students]);
 
   useEffect(() => {
-    localStorage.setItem('kindergarten_learning_records', JSON.stringify(learningRecords));
+    try {
+      localStorage.setItem('kindergarten_learning_records', JSON.stringify(learningRecords));
+    } catch (e) {
+      console.warn('Failed to save learning records to localStorage:', e);
+    }
   }, [learningRecords]);
 
   useEffect(() => {
-    localStorage.setItem('kindergarten_contact_books', JSON.stringify(contactBooks));
+    try {
+      localStorage.setItem('kindergarten_contact_books', JSON.stringify(contactBooks));
+    } catch (e) {
+      console.warn('Failed to save contact books to localStorage:', e);
+    }
   }, [contactBooks]);
 
   useEffect(() => {
-    localStorage.setItem('kindergarten_sheet_config', JSON.stringify(sheetConfig));
+    try {
+      localStorage.setItem('kindergarten_sheet_config', JSON.stringify(sheetConfig));
+    } catch (e) {
+      console.warn('Failed to save sheet config to localStorage:', e);
+    }
   }, [sheetConfig]);
 
   // Background Auto-Refresh Effect (Disabled by default; runs ONLY if autoRefreshEnabled is manually turned on)
@@ -224,6 +240,10 @@ export default function App() {
   };
 
   const handleSavedRecordNav = (recordId: string) => {
+    const rec = learningRecords.find((r) => r.id === recordId);
+    if (rec && rec.studentId) {
+      setSelectedStudentId(rec.studentId);
+    }
     setActiveTab('learning-report');
   };
 

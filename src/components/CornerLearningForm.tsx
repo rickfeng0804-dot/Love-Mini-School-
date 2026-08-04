@@ -123,13 +123,60 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const file = files[0];
+
+    if (!file.type.startsWith('image/')) {
+      alert('請選擇有效的圖片檔案 (JPG, PNG, WEBP)');
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      if (event.target?.result) {
-        setPhotoImages((prev) => [...prev, event.target!.result as string]);
-      }
+      const result = event.target?.result as string;
+      if (!result) return;
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 1000;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setPhotoImages((prev) => [...prev, compressed]);
+          } else {
+            setPhotoImages((prev) => [...prev, result]);
+          }
+        } catch (err) {
+          console.warn('Photo compression error, using original:', err);
+          setPhotoImages((prev) => [...prev, result]);
+        }
+      };
+      img.onerror = () => {
+        setPhotoImages((prev) => [...prev, result]);
+      };
+      img.src = result;
     };
-    reader.readAsDataURL(files[0]);
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -137,11 +184,23 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
+
+    // Check size limit (5MB) for local video storage
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      alert(`此影片檔案為 ${(file.size / (1024 * 1024)).toFixed(1)}MB，超過本機照片影音建議儲存上限 (5MB)。\n建議上傳短短短片或使用線上影片網址連結，以維持畫面流暢與發送穩定！`);
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
         setVideoUrls((prev) => [...prev, event.target!.result as string]);
       }
+    };
+    reader.onerror = () => {
+      alert('影片檔案讀取失敗，請重新選擇或填寫影片網址。');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
