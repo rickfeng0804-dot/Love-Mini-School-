@@ -173,32 +173,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     e.target.value = '';
   };
 
-  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-
-    // Check size limit (5MB) for local video storage
-    const maxSizeBytes = 5 * 1024 * 1024;
-    if (file.size > maxSizeBytes) {
-      alert(`此影片檔案為 ${(file.size / (1024 * 1024)).toFixed(1)}MB，超過本機照片影音建議儲存上限 (5MB)。\n建議上傳短短短片或使用線上影片網址連結，以維持畫面流暢與發送穩定！`);
-      e.target.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setVideoUrls((prev) => [...prev, event.target!.result as string]);
-      }
-    };
-    reader.onerror = () => {
-      alert('影片檔案讀取失敗，請重新選擇或填寫影片網址。');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   const handleSubmitRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent) return;
@@ -497,17 +471,13 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
                 <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
-                  影像與影音紀錄 (作品/活動照片與影片)
+                  影像與作品照片紀錄 (可上傳作品與活動照片)
                 </h4>
               </div>
               <div className="flex items-center gap-2">
                 <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
                   <Camera className="w-3.5 h-3.5" /> 上傳照片
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                </label>
-                <label className="cursor-pointer bg-[#0288D1] hover:bg-[#0277BD] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                  <Video className="w-3.5 h-3.5" /> 上傳影片檔
-                  <input type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
                 </label>
               </div>
             </div>
@@ -528,10 +498,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               ))}
             </div>
 
-            {/* Video Upload Section */}
+            {/* Video Section */}
             <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mt-2.5">
               <label className="block text-[11px] font-black text-[#5D4037] mb-1 flex items-center gap-1">
-                <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 新增活動影片 (可點擊右上角「上傳影片檔」按鈕進行上傳):
+                <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 活動影片連結 (範例影片試用與線上連結):
               </label>
 
               {/* Sample Videos Quick Picker */}
