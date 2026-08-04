@@ -702,17 +702,25 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
     throw new Error('請輸入或選擇有效的 Google Apps Script Web App URL');
   }
 
+  // Append cache buster to prevent mobile browser aggressive GET caching
+  const fetchUrl = normalizedUrl + (normalizedUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+
   let res: Response | null = null;
   try {
-    res = await fetch(normalizedUrl, { redirect: 'follow' });
+    res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
   } catch (err: any) {
-    if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
-      try {
-        return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
-      } catch (fallbackErr) {}
+    // Retry direct URL without extra query params if network error occurs
+    try {
+      res = await fetch(normalizedUrl, { redirect: 'follow' });
+    } catch (retryErr) {
+      if (normalizedUrl !== DEFAULT_WEB_APP_URL) {
+        try {
+          return await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+        } catch (fallbackErr) {}
+      }
+      console.warn(`Web App fetch warning (${normalizedUrl}):`, err?.message || err);
+      throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。系統已安全載入本地名冊。`);
     }
-    console.warn(`Web App fetch warning (${normalizedUrl}):`, err?.message || err);
-    throw new Error(`無法連線至 Web App 網址 (${normalizedUrl})。請確認 Apps Script 已點選「部署 ➔ 新增部署 ➔ 網頁應用程式 (Web App)」，存取權限設為「所有人 (Anyone)」。系統已安全載入本地名冊。`);
   }
 
   if (!res || !res.ok) {
@@ -860,17 +868,33 @@ export async function syncToWebApp(
     contactBooks: contactBooks || [],
   };
 
-  // 1. Always execute hidden form submission to guarantee POST body is delivered past 302 redirects
+  const jsonString = JSON.stringify(payload);
+
+  // 1. Send via beacon on mobile if available (avoids iframe security blocks & CORS redirects)
+  if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+    try {
+      const formData = new FormData();
+      formData.append('payload', jsonString);
+      navigator.sendBeacon(normalizedUrl, formData);
+    } catch (bErr) {
+      console.warn('sendBeacon warning:', bErr);
+    }
+  }
+
+  // 2. Always execute hidden form submission as backup
   sendViaHiddenForm(normalizedUrl, payload);
 
-  // 2. Execute fetch call
+  // 3. Execute fetch call with URLSearchParams body for mobile simple request POST
   try {
+    const params = new URLSearchParams();
+    params.append('payload', jsonString);
+
     const res = await fetch(normalizedUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(payload),
+      body: params,
       redirect: 'follow',
     });
 
@@ -892,15 +916,14 @@ export async function syncToWebApp(
       }
     }
   } catch (err: any) {
-    // Retry with no-cors if CORS restriction triggered a fetch failure
+    // Retry with no-cors and simple form params if CORS restriction triggered a fetch failure on mobile
     try {
+      const params = new URLSearchParams();
+      params.append('payload', jsonString);
       await fetch(normalizedUrl, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify(payload),
+        body: params,
       });
     } catch (fallbackErr: any) {
       console.warn('Web App Sync Warning:', err.message || fallbackErr.message);

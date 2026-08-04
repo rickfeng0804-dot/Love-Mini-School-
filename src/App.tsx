@@ -37,6 +37,17 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
+  // Global Font Size scaling state
+  const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>(() => {
+    const saved = localStorage.getItem('kindergarten_font_size');
+    return (saved as 'normal' | 'large' | 'xlarge') || 'large';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font-size', fontSize);
+    localStorage.setItem('kindergarten_font_size', fontSize);
+  }, [fontSize]);
+
   // Core Data State with LocalStorage Persistence
   const [students, setStudents] = useState<Student[]>(() => {
     const saved = localStorage.getItem('kindergarten_students');
@@ -124,8 +135,15 @@ export default function App() {
     }
 
     const doSyncFetch = () => {
+      const startTime = Date.now();
+      let slowTimer: any = setTimeout(() => {
+        setSyncToast('⚠️ 連線不穩，建議檢查網路 (背景同步傳輸較慢)');
+        setTimeout(() => setSyncToast(null), 4000);
+      }, 3000);
+
       fetchFromWebApp(targetUrl)
         .then((data) => {
+          clearTimeout(slowTimer);
           if (data.students && data.students.length > 0) {
             setStudents(data.students);
           }
@@ -139,6 +157,7 @@ export default function App() {
           setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
         })
         .catch((err) => {
+          clearTimeout(slowTimer);
           console.warn('Global background Web App auto-sync warning:', err?.message || err);
           if (sheetConfig.webAppUrl && sheetConfig.webAppUrl !== DEFAULT_WEB_APP_URL) {
             setSheetConfig((prev) => ({ ...prev, webAppUrl: DEFAULT_WEB_APP_URL }));
@@ -197,6 +216,14 @@ export default function App() {
   const handleInstantSync = async () => {
     setIsSyncing(true);
     setSyncToast('🔄 正在同步最新資料中...');
+    let isSlowConnection = false;
+
+    // Detect weak network / latency > 3 seconds
+    const slowTimer = setTimeout(() => {
+      isSlowConnection = true;
+      setSyncToast('⚠️ 連線不穩，建議檢查網路 (同步回應超過 3 秒...)');
+    }, 3000);
+
     try {
       const token = await getAccessToken();
       let data = null;
@@ -217,17 +244,27 @@ export default function App() {
 
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
-      setSyncToast(`✨ 成功！最新數據已同步完成 (${nowStr})`);
+      
+      if (isSlowConnection) {
+        setSyncToast(`⚠️ 同步已完成 (${nowStr}) — 偵測到連線不穩，建議檢查網路！`);
+      } else {
+        setSyncToast(`✨ 成功！最新數據已同步完成 (${nowStr})`);
+      }
     } catch (err: any) {
       console.error('Instant sync error:', err);
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
-      setSyncToast(`✨ 已完成最新狀態重整 (${nowStr})`);
+      setSyncToast(
+        isSlowConnection
+          ? `⚠️ 連線不穩，建議檢查網路！已完成本機狀態重整 (${nowStr})`
+          : `✨ 已完成最新狀態重整 (${nowStr})`
+      );
     } finally {
+      clearTimeout(slowTimer);
       setIsSyncing(false);
       setTimeout(() => {
         setSyncToast(null);
-      }, 3500);
+      }, 4500);
     }
   };
 
@@ -252,7 +289,13 @@ export default function App() {
       <div>
         {/* Sync Toast Notification */}
         {syncToast && (
-          <div className="fixed top-20 right-4 z-50 bg-[#5D4037] text-white px-5 py-3 rounded-2xl border-2 border-[#FFD54F] shadow-[4px_4px_0px_#2E1C14] text-xs font-black flex items-center gap-2 animate-bounce">
+          <div
+            className={`fixed top-20 right-4 z-50 px-5 py-3 rounded-2xl border-2 shadow-[4px_4px_0px_#2E1C14] text-xs font-black flex items-center gap-2 animate-bounce transition-all ${
+              syncToast.includes('連線不穩') || syncToast.includes('⚠️')
+                ? 'bg-[#FFF3E0] text-[#D84315] border-[#D84315]'
+                : 'bg-[#5D4037] text-white border-[#FFD54F]'
+            }`}
+          >
             <span>{syncToast}</span>
           </div>
         )}
@@ -271,6 +314,8 @@ export default function App() {
           students={students}
           selectedStudentId={selectedStudentId}
           setSelectedStudentId={setSelectedStudentId}
+          fontSize={fontSize}
+          setFontSize={setFontSize}
         />
 
         {/* Main Content Area */}

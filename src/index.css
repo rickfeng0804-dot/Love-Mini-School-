@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+html {
+  font-size: 18.5px;
+}
+
+html[data-font-size="normal"] {
+  font-size: 16.5px;
+}
+
+html[data-font-size="large"] {
+  font-size: 18.5px;
+}
+
+html[data-font-size="xlarge"] {
+  font-size: 21px;
+}
+
+/* Ensure smooth text rendering and crisp borders */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
 @page {
   size: A4 portrait;
   margin: 10mm;

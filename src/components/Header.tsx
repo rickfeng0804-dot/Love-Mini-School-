@@ -17,7 +17,8 @@ import {
   GraduationCap,
   Download,
   Layers,
-  RefreshCw
+  RefreshCw,
+  Type
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -33,6 +34,8 @@ interface HeaderProps {
   students: Student[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
+  fontSize: 'normal' | 'large' | 'xlarge';
+  setFontSize: (size: 'normal' | 'large' | 'xlarge') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -48,6 +51,8 @@ export const Header: React.FC<HeaderProps> = ({
   students,
   selectedStudentId,
   setSelectedStudentId,
+  fontSize,
+  setFontSize,
 }) => {
   return (
     <header className="bg-[#FFD54F] border-b-4 border-[#5D4037] shadow-sm sticky top-0 z-30">
@@ -130,6 +135,22 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>設定 Sheet</span>
               )}
             </button>
+
+            {/* Font Size Selector */}
+            <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = fontSize === 'normal' ? 'large' : fontSize === 'large' ? 'xlarge' : 'normal';
+                  setFontSize(next);
+                }}
+                title="點擊切換字體大小 (標準 / 大 / 特大)"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFE082] text-[#5D4037] hover:bg-[#FFD54F] border border-[#5D4037] cursor-pointer"
+              >
+                <Type className="w-3.5 h-3.5 text-[#5D4037]" />
+                <span>字體: {fontSize === 'normal' ? '標準' : fontSize === 'large' ? '大 🔍' : '特大 🔍+'}</span>
+              </button>
+            </div>
 
             {/* Role Switcher */}
             <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
