@@ -100,27 +100,28 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
     } catch {}
 
-    // Sync to Web App URL (Google Sheets Web App)
-    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-    if (webAppTarget) {
-      try {
-        await syncToWebApp(webAppTarget, students, learningRecords, updated);
-      } catch (err) {
-        console.error('Web App sync error:', err);
-      }
-    }
-
-    // Sync to sheet OAuth API
-    if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-      try {
-        const token = getAccessToken();
-        if (token) {
-          await syncAllToSheet(token, sheetConfig.spreadsheetId, students, learningRecords, updated);
+    // Async background sync
+    (async () => {
+      const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      if (webAppTarget) {
+        try {
+          await syncToWebApp(webAppTarget, students, learningRecords, updated);
+        } catch (err) {
+          console.warn('Contact book Web App background sync warning:', err);
         }
-      } catch (err) {
-        console.error('Sync error:', err);
       }
-    }
+
+      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
+        try {
+          const token = getAccessToken();
+          if (token) {
+            await syncAllToSheet(token, sheetConfig.spreadsheetId, students, learningRecords, updated);
+          }
+        } catch (err) {
+          console.warn('Contact book sheet sync warning:', err);
+        }
+      }
+    })();
   };
 
   const handleParentSubmitReply = async (contactBookId: string) => {

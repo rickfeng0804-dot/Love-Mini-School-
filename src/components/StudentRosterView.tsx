@@ -176,36 +176,37 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
     setStudents(updated);
     setShowModal(false);
+    setIsSaving(false);
 
     try {
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
     } catch {}
 
-    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+    const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    setSyncToast(`✨ 學生「${savedStudentName}」資料已在本機儲存！(背景同步至 Google Sheet 中...)`);
 
-    try {
-      if (webAppTarget) {
-        await syncToWebApp(webAppTarget, updated, learningRecords, contactBooks);
-      }
-
-      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-        const token = getAccessToken();
-        if (token) {
-          await syncAllToSheet(token, sheetConfig.spreadsheetId, updated, learningRecords, contactBooks);
+    (async () => {
+      const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      try {
+        if (webAppTarget) {
+          await syncToWebApp(webAppTarget, updated, learningRecords, contactBooks);
         }
-      }
 
-      const nowTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-      setSyncToast(`✨ 學生「${savedStudentName}」資料已同步寫入 Google Sheet！(${nowTime})`);
-    } catch (err) {
-      console.error('Student roster Web App sync error:', err);
-      setSyncToast(`✅ 學生「${savedStudentName}」資料已更新並完成同步！`);
-    } finally {
-      setIsSaving(false);
-      setTimeout(() => {
-        setSyncToast(null);
-      }, 4000);
-    }
+        if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
+          const token = getAccessToken();
+          if (token) {
+            await syncAllToSheet(token, sheetConfig.spreadsheetId, updated, learningRecords, contactBooks);
+          }
+        }
+        setSyncToast(`✨ 學生「${savedStudentName}」資料已成功同步至 Google Sheet！(${nowTime})`);
+      } catch (err) {
+        console.warn('Student roster background sync warning:', err);
+      } finally {
+        setTimeout(() => {
+          setSyncToast(null);
+        }, 4000);
+      }
+    })();
   };
 
   const handleDeleteStudent = async (stuId: string) => {

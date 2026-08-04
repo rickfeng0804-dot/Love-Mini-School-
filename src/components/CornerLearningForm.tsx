@@ -140,20 +140,13 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          const maxDim = 1000;
+          const maxWidth = 800;
           let width = img.width;
           let height = img.height;
 
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
           }
 
           canvas.width = width;
@@ -211,7 +204,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     if (!selectedStudent) return;
 
     setIsSaving(true);
-    setSyncStatus({ type: 'info', message: '正在儲存紀錄並同步至資料庫與 Google Sheet...' });
+    setSyncStatus({ type: 'info', message: '正在儲存紀錄並準備產生報告...' });
 
     const newRecord: LearningRecord = {
       id: `rec-${Date.now()}`,
@@ -248,41 +241,40 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       });
     } catch {}
 
-    // Auto-sync to Web App URL
-    const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-    let webAppSynced = false;
-    if (webAppTarget) {
-      try {
-        await syncToWebApp(webAppTarget, students, updatedRecords, contactBooks);
-        webAppSynced = true;
-      } catch (err) {
-        console.warn('Corner record Web App sync warning:', err);
-      }
-    }
-
-    // Auto-sync to Google Sheet if connected via OAuth API
-    let oauthSynced = false;
-    if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-      try {
-        const token = getAccessToken();
-        if (token) {
-          await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, contactBooks);
-          oauthSynced = true;
-        }
-      } catch (err) {
-        console.warn('Auto sync to sheet failed:', err);
-      }
-    }
-
+    // Instant local save success
     setIsSaving(false);
     setSyncStatus({
       type: 'success',
-      message: `🎉 已成功儲存 ${selectedStudent.name} 的角落觀察紀錄！${webAppSynced || oauthSynced ? '（已成功同步發送至 Google Sheet）' : '（已儲存於本機系統，若需連線至試算表，可至「系統設定」確認 Web App URL 設定）'}`,
+      message: `🎉 已成功儲存 ${selectedStudent.name} 的角落觀察紀錄！已立即產生學習歷程報告，背景正在同步更新至 Google Sheet...`,
     });
 
+    // Jump immediately to report view after short delay so user doesn't wait
     setTimeout(() => {
       onSavedRecord(newRecord.id);
-    }, 1200);
+    }, 200);
+
+    // Asynchronous background sync to Google Sheet & Web App
+    (async () => {
+      const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      if (webAppTarget) {
+        try {
+          await syncToWebApp(webAppTarget, students, updatedRecords, contactBooks);
+        } catch (err) {
+          console.warn('Corner record Web App background sync warning:', err);
+        }
+      }
+
+      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
+        try {
+          const token = getAccessToken();
+          if (token) {
+            await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, contactBooks);
+          }
+        } catch (err) {
+          console.warn('Auto sync to sheet failed:', err);
+        }
+      }
+    })();
   };
 
   return (
