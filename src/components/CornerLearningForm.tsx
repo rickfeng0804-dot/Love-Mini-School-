@@ -622,19 +622,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
             className="w-full sm:w-auto bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm sm:text-base py-3.5 px-8 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Save className="w-5 h-5" />
-            {isSaving ? '正在儲存並同步中...' : '儲存紀錄並產生學習歷程報告 🚀'}
-          </button>
-        </div>
-
-        {/* Mobile Floating Quick Save Bar */}
-        <div className="md:hidden fixed bottom-16 left-3 right-3 z-30 pointer-events-auto">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="w-full bg-[#FF8A65] active:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-full border-3 border-[#5D4037] shadow-[0px_4px_12px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isSaving ? '同步中...' : '一鍵儲存學生角落紀錄 🚀'}</span>
+            {isSaving ? '正在儲存並同步中...' : '確認儲存觀察紀錄並產生報告 🚀'}
           </button>
         </div>
       </form>
