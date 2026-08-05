@@ -26,7 +26,8 @@ import {
   BookOpenCheck, 
   Heart, 
   Users, 
-  Layers 
+  Layers,
+  WifiOff
 } from 'lucide-react';
 
 export default function App() {
@@ -36,6 +37,21 @@ export default function App() {
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState<boolean>(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+  // Monitor network online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Global Font Size scaling state
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>(() => {
@@ -287,6 +303,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-32 md:pb-16 flex flex-col justify-between">
       <div>
+        {/* Offline Mode Floating Alert Banner */}
+        {isOffline && (
+          <div className="sticky top-0 z-50 bg-[#D32F2F] text-white px-3 py-2 text-center text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md border-b-2 border-[#B71C1C] animate-pulse">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>目前為離線模式，聯絡簿與 Sheet 同步功能已暫時停用</span>
+          </div>
+        )}
+
         {/* Sync Toast Notification */}
         {syncToast && (
           <div

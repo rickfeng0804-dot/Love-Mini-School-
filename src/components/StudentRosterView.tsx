@@ -540,11 +540,12 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
       {/* Add / Edit Student Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-[2rem] max-w-md w-full p-6 shadow-[10px_10px_0px_#5D4037] relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-2xl sm:rounded-[2rem] max-w-md w-full p-4 sm:p-6 shadow-[6px_6px_0px_#5D4037] sm:shadow-[10px_10px_0px_#5D4037] relative my-auto max-h-[88vh] sm:max-h-[90vh] overflow-y-auto no-scrollbar">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037]"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037] z-10 cursor-pointer touch-manipulation"
+              title="關閉視窗"
             >
               <X className="w-5 h-5" />
             </button>
@@ -765,13 +766,14 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       )}
       {/* Apps Script Deployment Guide Modal */}
       {showGuideModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-[#FFF8E1] border-4 border-[#5D4037] rounded-[2rem] max-w-2xl w-full p-6 shadow-[8px_8px_0px_#5D4037] max-h-[90vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+          <div className="bg-[#FFF8E1] border-4 border-[#5D4037] rounded-2xl sm:rounded-[2rem] max-w-2xl w-full p-4 sm:p-6 shadow-[6px_6px_0px_#5D4037] sm:shadow-[8px_8px_0px_#5D4037] max-h-[88vh] sm:max-h-[90vh] overflow-y-auto relative my-auto no-scrollbar">
             <button
               onClick={() => setShowGuideModal(false)}
-              className="absolute top-4 right-4 w-9 h-9 bg-white border-2 border-[#5D4037] rounded-full flex items-center justify-center text-[#5D4037] font-bold shadow-[2px_2px_0px_#5D4037] hover:bg-gray-100 cursor-pointer"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 bg-white border-2 border-[#5D4037] rounded-full flex items-center justify-center text-[#5D4037] font-bold shadow-[2px_2px_0px_#5D4037] hover:bg-gray-100 cursor-pointer z-10 touch-manipulation"
+              title="關閉視窗"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <div className="flex items-center gap-2 mb-3">

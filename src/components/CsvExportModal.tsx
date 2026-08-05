@@ -72,33 +72,34 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-[2rem] shadow-[12px_12px_0px_#5D4037] max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-fade-in overflow-y-auto">
+      <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-2xl sm:rounded-[2rem] shadow-[6px_6px_0px_#5D4037] sm:shadow-[12px_12px_0px_#5D4037] max-w-2xl w-full p-4 sm:p-6 relative my-auto max-h-[88vh] sm:max-h-[90vh] overflow-y-auto no-scrollbar">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 bg-white hover:bg-[#FFCDD2] text-[#5D4037] p-2 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] transition-all cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white hover:bg-[#FFCDD2] text-[#5D4037] p-2 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] transition-all cursor-pointer z-10 touch-manipulation"
+          title="關閉視窗"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Title */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-3 bg-[#FFD54F] border-2 border-[#5D4037] rounded-2xl shadow-[3px_3px_0px_#5D4037]">
-            <Download className="w-7 h-7 text-[#5D4037]" />
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-5 pr-8">
+          <div className="p-2.5 sm:p-3 bg-[#FFD54F] border-2 border-[#5D4037] rounded-2xl shadow-[3px_3px_0px_#5D4037] shrink-0">
+            <Download className="w-6 h-6 sm:w-7 sm:h-7 text-[#5D4037]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#FF8A65] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full border border-[#5D4037]">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+              <span className="bg-[#FF8A65] text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]">
                 Google Sheet 匯入專用
               </span>
-              <span className="bg-[#E1F5FE] text-[#0277BD] text-[10px] font-black px-2.5 py-0.5 rounded-full border border-[#5D4037]">
+              <span className="bg-[#E1F5FE] text-[#0277BD] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]">
                 UTF-8 BOM 防亂碼
               </span>
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-[#5D4037] italic flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#5D4037] italic flex items-center gap-2">
               資料匯出 CSV 功能
-              <Sparkles className="w-5 h-5 text-[#FFB74D] animate-spin" />
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFB74D] animate-spin shrink-0" />
             </h2>
           </div>
         </div>
