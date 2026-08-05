@@ -27,7 +27,9 @@ import {
   BookOpenCheck, 
   Heart, 
   Users, 
-  Layers 
+  Layers,
+  GraduationCap,
+  Baby
 } from 'lucide-react';
 
 export default function App() {
@@ -275,9 +277,17 @@ export default function App() {
   // When switching to Parent Mode, default to "learning-report" or "contact-book"
   const handleRoleChange = (role: RoleMode) => {
     setRoleMode(role);
-    if (role === 'parent' && (activeTab === 'corner-form' || activeTab === 'roster')) {
-      setActiveTab('learning-report');
+    if (role === 'parent') {
+      if (activeTab === 'corner-form' || activeTab === 'roster') {
+        setActiveTab('learning-report');
+      }
+      setSyncToast('🌸 已切換至【家長模式】：專屬親師溝通與孩子學習歷程');
+    } else {
+      setSyncToast('👩‍🏫 已切換至【老師模式】：開放角落紀錄評估與全班名冊管理');
     }
+    setTimeout(() => {
+      setSyncToast(null);
+    }, 3500);
   };
 
   const handleSavedRecordNav = (recordId: string) => {
@@ -460,6 +470,19 @@ export default function App() {
         >
           <Layers className="w-5 h-5 mb-0.5" />
           <span>設定/Sheet</span>
+        </button>
+
+        <button
+          onClick={() => handleRoleChange(roleMode === 'teacher' ? 'parent' : 'teacher')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all border-2 border-[#5D4037] ${
+            roleMode === 'teacher'
+              ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037]'
+              : 'bg-[#81D4FA] text-[#0277BD] shadow-[2px_2px_0px_#5D4037]'
+          }`}
+          title="點擊切換 老師/家長 模式"
+        >
+          {roleMode === 'teacher' ? <GraduationCap className="w-5 h-5 mb-0.5" /> : <Baby className="w-5 h-5 mb-0.5" />}
+          <span>{roleMode === 'teacher' ? '切為家長' : '切為老師'}</span>
         </button>
       </div>
 

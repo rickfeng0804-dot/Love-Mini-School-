@@ -97,13 +97,19 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* Mobile Mode Badge Indicator */}
+            {/* Mobile Mode Switcher Toggle Button */}
             <div className="sm:hidden">
-              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] ${
-                roleMode === 'teacher' ? 'bg-[#FF8A65] text-white' : 'bg-[#81D4FA] text-[#0277BD]'
-              }`}>
-                {roleMode === 'teacher' ? '老師' : '家長'}
-              </span>
+              <button
+                type="button"
+                onClick={() => setRoleMode(roleMode === 'teacher' ? 'parent' : 'teacher')}
+                className={`text-[10px] font-black px-2.5 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer flex items-center gap-1 active:scale-95 ${
+                  roleMode === 'teacher' ? 'bg-[#FF8A65] text-white' : 'bg-[#81D4FA] text-[#0277BD]'
+                }`}
+                title="點擊切換老師/家長模式"
+              >
+                <span>{roleMode === 'teacher' ? '👩‍🏫 老師模式' : '👨‍👩‍👧 家長模式'}</span>
+                <span className="text-[9px] opacity-80">(點擊切換)</span>
+              </button>
             </div>
           </div>
 
@@ -166,27 +172,34 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Role Switcher */}
-            <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
+            {/* Role Switcher - Teacher / Parent Mode Selection */}
+            <div className="bg-white p-1 rounded-2xl border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0 gap-1">
+              <span className="text-[10px] font-black text-[#5D4037] px-1 hidden lg:inline-block">身份:</span>
               <button
+                type="button"
                 onClick={() => setRoleMode('teacher')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
+                title="切換至老師模式：可紀錄角落評估、編輯學習歷程與管理學生名冊"
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   roleMode === 'teacher'
-                    ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
+                    ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#FFF3E0]'
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5" /> 老師
+                <GraduationCap className="w-4 h-4" />
+                <span>👩‍🏫 老師模式</span>
               </button>
               <button
+                type="button"
                 onClick={() => setRoleMode('parent')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
+                title="切換至家長模式：可檢視專屬孩子的學習報告、歷程照片與填寫聯絡簿"
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   roleMode === 'parent'
-                    ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
+                    ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#E1F5FE]'
                 }`}
               >
-                <Baby className="w-3.5 h-3.5" /> 家長
+                <Baby className="w-4 h-4" />
+                <span>👨‍👩‍👧 家長模式</span>
               </button>
             </div>
           </div>
