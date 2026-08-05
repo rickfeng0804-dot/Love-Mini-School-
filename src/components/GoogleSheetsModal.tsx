@@ -328,6 +328,26 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         </div>
 
         {/* Step 3 / Alternative Option: Export CSV for Google Sheets */}
+        <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-3 mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h5 className="text-xs font-black text-purple-900 flex items-center gap-1">
+              <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" /> 學生名冊預設 Google Sheet 網址
+            </h5>
+            <p className="text-[11px] text-purple-800 font-mono font-bold truncate max-w-xs sm:max-w-md">
+              {sheetConfig.studentSheetUrl || 'https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing'}
+            </p>
+          </div>
+          <a
+            href={sheetConfig.studentSheetUrl || 'https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing'}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-xl shrink-0 shadow-xs transition-colors flex items-center gap-1"
+          >
+            開啟 Sheet ↗
+          </a>
+        </div>
+
+        {/* Step 4 / Alternative Option: Export CSV for Google Sheets */}
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 mb-4 flex items-center justify-between gap-3">
           <div>
             <h5 className="text-xs font-black text-amber-900 flex items-center gap-1">

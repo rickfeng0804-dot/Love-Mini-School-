@@ -20,7 +20,15 @@ import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
+import { 
+  findKindergartenSpreadsheet, 
+  loadAllFromSheet, 
+  fetchFromWebApp, 
+  DEFAULT_WEB_APP_URL, 
+  DEFAULT_LEARNING_WEB_APP_URL,
+  DEFAULT_STUDENT_SPREADSHEET_URL,
+  fetchStudentsFromGoogleSheetUrl
+} from './lib/googleSheets';
 import { 
   ClipboardList, 
   BookOpenCheck, 
@@ -92,6 +100,9 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
         parsed.isConnected = true;
       }
+      if (!parsed.studentSheetUrl) {
+        parsed.studentSheetUrl = DEFAULT_STUDENT_SPREADSHEET_URL;
+      }
       return {
         refreshIntervalMinutes: 5,
         ...parsed,
@@ -99,9 +110,10 @@ export default function App() {
       };
     }
     return {
-      spreadsheetId: null,
-      spreadsheetUrl: null,
-      spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
+      spreadsheetId: '1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84',
+      spreadsheetUrl: DEFAULT_STUDENT_SPREADSHEET_URL,
+      studentSheetUrl: DEFAULT_STUDENT_SPREADSHEET_URL,
+      spreadsheetName: '愛愛幼兒園_學生名冊與學習歷程_資料庫',
       webAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
       isConnected: true,
       lastSyncedAt: null,
@@ -109,6 +121,22 @@ export default function App() {
       autoRefreshEnabled: false,
     };
   });
+
+  // Auto sync student roster from Google Sheet on startup
+  useEffect(() => {
+    const targetUrl = sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL;
+    if (targetUrl) {
+      fetchStudentsFromGoogleSheetUrl(targetUrl)
+        .then((fetchedStudents) => {
+          if (fetchedStudents && fetchedStudents.length > 0) {
+            setStudents(fetchedStudents);
+          }
+        })
+        .catch((err) => {
+          console.warn('Initial student Google Sheet fetch notice:', err?.message || err);
+        });
+    }
+  }, [sheetConfig.studentSheetUrl]);
 
   // Save to LocalStorage whenever state updates safely with try-catch
   useEffect(() => {

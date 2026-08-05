@@ -81,6 +81,7 @@ export interface SheetConfig {
   spreadsheetUrl: string | null;
   spreadsheetName: string;
   webAppUrl?: string;
+  studentSheetUrl?: string; // Google Sheet URL for 學生名冊 (Default: https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing)
   isConnected: boolean;
   lastSyncedAt: string | null;
   refreshIntervalMinutes?: number; // 0 (Manual), 1, 5, 15, 30, 60

@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
-import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
+import { 
+  syncAllToSheet, 
+  syncToWebApp, 
+  fetchFromWebApp, 
+  DEFAULT_WEB_APP_URL, 
+  DEFAULT_STUDENT_WEB_APP_URL, 
+  DEFAULT_STUDENT_LIBRARY_URL, 
+  DEFAULT_STUDENT_SPREADSHEET_URL,
+  STUDENT_ROSTER_APPS_SCRIPT_CODE,
+  fetchStudentsFromGoogleSheetUrl
+} from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -243,17 +253,31 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setIsSaving(true);
     setSyncToast('🔄 正在從 Google Sheet 讀取最新學生名冊...');
     try {
-      const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-      const data = await fetchFromWebApp(targetUrl);
-      if (data && data.students && data.students.length > 0) {
-        setStudents(data.students);
-        setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
+      const studentUrl = sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL;
+      const fetchedStudents = await fetchStudentsFromGoogleSheetUrl(studentUrl);
+      if (fetchedStudents && fetchedStudents.length > 0) {
+        setStudents(fetchedStudents);
+        setSyncToast(`✨ 成功由 Google Sheet 同步載入 ${fetchedStudents.length} 位學生最新名冊！`);
+        try {
+          confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+        } catch {}
       } else {
         setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
       }
     } catch (err: any) {
       console.error('Fetch roster error:', err);
-      setSyncToast(`✅ 已更新目前本地名冊資料 (${students.length} 位學生)`);
+      try {
+        const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+        const data = await fetchFromWebApp(targetUrl);
+        if (data && data.students && data.students.length > 0) {
+          setStudents(data.students);
+          setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
+        } else {
+          setSyncToast(`✅ 目前本地名冊共有 ${students.length} 位學生`);
+        }
+      } catch (fallbackErr) {
+        setSyncToast(`⚠️ 同步完成 (${students.length} 位學生)`);
+      }
     } finally {
       setIsSaving(false);
       setTimeout(() => setSyncToast(null), 3500);
@@ -372,11 +396,19 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       {/* Google Sheet Sync Info Bar */}
       <div className="mb-4 bg-[#F3E5F5] border-2 border-[#5D4037] rounded-2xl p-3 shadow-[4px_4px_0px_#5D4037] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-xs font-black text-[#4A148C]">
-          <FileSpreadsheet className="w-4 h-4 text-[#AB47BC] shrink-0" />
-          <span>Google Sheet 同步 URL：</span>
-          <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded-lg border border-[#5D4037] text-[#4A148C] truncate max-w-xs sm:max-w-md select-all">
-            {sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL}
+          <FileSpreadsheet className="w-4 h-4 text-[#8E24AA] shrink-0" />
+          <span>學生名冊 Google Sheet：</span>
+          <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded-lg border border-[#5D4037] text-[#8E24AA] truncate max-w-xs sm:max-w-md select-all">
+            {sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL}
           </span>
+          <a
+            href={sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] bg-[#E1BEE7] hover:bg-[#D1C4E9] text-[#4A148C] font-black px-2 py-0.5 rounded-lg border border-[#5D4037] transition-all flex items-center gap-0.5 cursor-pointer"
+          >
+            開啟 Sheet 試算表 ↗
+          </a>
         </div>
         <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
           <button

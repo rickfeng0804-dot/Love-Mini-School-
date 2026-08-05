@@ -3,6 +3,7 @@ import { Student, LearningRecord, ContactBook } from '../types';
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
 
+export const DEFAULT_STUDENT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing';
 export const DEFAULT_STUDENT_LIBRARY_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/2';
 export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwj9uSMKO1_Me0A1H3G3AuMnAaEg3cehrGlgXnv4hDczdbf_wh16bp7jnYBCMp02eON/exec';
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
@@ -939,3 +940,163 @@ function safeJsonParse(str: string, fallback: any) {
     return fallback;
   }
 }
+
+/**
+ * Robust CSV string parser
+ */
+export function parseCsvText(text: string): string[][] {
+  const lines: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let insideQuote = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (insideQuote && nextChar === '"') {
+        cell += '"';
+        i++;
+      } else {
+        insideQuote = !insideQuote;
+      }
+    } else if (char === ',' && !insideQuote) {
+      row.push(cell);
+      cell = '';
+    } else if ((char === '\r' || char === '\n') && !insideQuote) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      row.push(cell);
+      if (row.some(c => c.trim() !== '')) {
+        lines.push(row);
+      }
+      row = [];
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  if (cell || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.trim() !== '')) {
+      lines.push(row);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Parse raw CSV string into Student objects
+ */
+export function parseStudentsFromCsvText(csvText: string): Student[] {
+  const rows = parseCsvText(csvText);
+  if (rows.length <= 1) return [];
+
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  const findIdx = (keywords: string[], fallback: number) => {
+    const idx = header.findIndex(h => keywords.some(k => h.includes(k.toLowerCase())));
+    return idx !== -1 ? idx : fallback;
+  };
+
+  const idIdx = findIdx(['id', '學號'], 0);
+  const nameIdx = findIdx(['name', '姓名'], 1);
+  const seatIdx = findIdx(['seatnumber', '座號', 'seat'], 2);
+  const classIdx = findIdx(['classname', '班級', 'class'], 3);
+  const genderIdx = findIdx(['gender', '性別'], 4);
+  const avatarIdx = findIdx(['avatarurl', '大頭照', '頭像', 'avatar'], 5);
+  const parentNameIdx = findIdx(['parentname', '家長姓名', '家長'], 6);
+  const parentContactIdx = findIdx(['parentcontact', '家長電話', '聯絡電話', 'contact'], 7);
+  const notesIdx = findIdx(['notes', '備註', '筆記'], 8);
+
+  const students: Student[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    const nameVal = row[nameIdx]?.trim();
+    if (!nameVal) continue;
+
+    const rawGender = (row[genderIdx] || '').toLowerCase();
+    const gender: 'boy' | 'girl' = (rawGender.includes('boy') || rawGender.includes('男')) ? 'boy' : 'girl';
+
+    const rawClass = (row[classIdx] || '').trim();
+    let className: any = '大班 (櫻桃班)';
+    if (rawClass.includes('中班') || rawClass.includes('草莓')) {
+      className = '中班 (草莓班)';
+    } else if (rawClass.includes('小班') || rawClass.includes('蘋果')) {
+      className = '小班 (蘋果班)';
+    }
+
+    students.push({
+      id: row[idIdx]?.trim() || `stu-${String(i).padStart(2, '0')}`,
+      name: nameVal,
+      seatNumber: row[seatIdx]?.trim() ? String(row[seatIdx].trim()).padStart(2, '0') : String(i).padStart(2, '0'),
+      className,
+      gender,
+      avatarUrl: row[avatarIdx]?.trim() || '',
+      parentName: row[parentNameIdx]?.trim() || '',
+      parentContact: row[parentContactIdx]?.trim() || '',
+      notes: row[notesIdx]?.trim() || '',
+    });
+  }
+
+  return students;
+}
+
+/**
+ * Fetch Student Roster directly from a Google Sheet URL or Web App URL
+ */
+export async function fetchStudentsFromGoogleSheetUrl(urlInput?: string): Promise<Student[]> {
+  const targetUrl = (urlInput || DEFAULT_STUDENT_SPREADSHEET_URL).trim();
+  if (!targetUrl) {
+    throw new Error('未提供有效的 Google Sheet URL 網址');
+  }
+
+  // Case 1: If it's an Apps Script Web App URL
+  if (targetUrl.includes('/macros/s/') || targetUrl.includes('/macros/library/')) {
+    const synced = await fetchFromWebApp(targetUrl);
+    if (synced.students && synced.students.length > 0) {
+      return synced.students;
+    }
+  }
+
+  // Case 2: Standard Google Sheet URL (docs.google.com/spreadsheets/d/{ID}/...)
+  const match = targetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match || !match[1]) {
+    throw new Error('無法由網址解析出 Google Sheet ID，請確認網址格式');
+  }
+
+  const spreadsheetId = match[1];
+  
+  // Try fetching Students tab first via gviz CSV export
+  const gvizStudentsUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Students`;
+  try {
+    const res = await fetch(gvizStudentsUrl, { cache: 'no-store' });
+    if (res.ok) {
+      const csvText = await res.text();
+      const students = parseStudentsFromCsvText(csvText);
+      if (students.length > 0) return students;
+    }
+  } catch (err) {
+    console.warn('gviz Students tab fetch notice:', err);
+  }
+
+  // Fallback: Default sheet gviz CSV export
+  const gvizDefaultUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`;
+  const resDefault = await fetch(gvizDefaultUrl, { cache: 'no-store' });
+  if (!resDefault.ok) {
+    throw new Error(`無法由 Google Sheet 讀取資料 (HTTP ${resDefault.status})。請確認該試算表共用權限已設為「知道連結的人皆可存取」。`);
+  }
+
+  const csvTextDefault = await resDefault.text();
+  const students = parseStudentsFromCsvText(csvTextDefault);
+  if (students.length === 0) {
+    throw new Error('Google Sheet 學生名冊解析結果為空，請確認表格包含 [ID, Name, SeatNumber, ClassName, Gender, AvatarUrl, ParentName, ParentContact, Notes] 欄位。');
+  }
+
+  return students;
+}
+
