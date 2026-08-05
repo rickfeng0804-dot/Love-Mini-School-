@@ -94,46 +94,44 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right Action Bar: Role Switch, CSV Export & Google Sheet Sync */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar touch-pan-x shrink-0">
             {/* Instant Sync Button */}
             <button
               onClick={onInstantSync}
               disabled={isSyncing}
               title={sheetConfig.lastSyncedAt ? `上次同步時間：${sheetConfig.lastSyncedAt}` : '立即同步最新資料'}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
+              className={`shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 isSyncing
                   ? 'bg-amber-100 text-[#5D4037] cursor-wait'
                   : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20]'
               }`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
-              <span>{isSyncing ? '同步中' : '立即同步'}</span>
+              <span className="whitespace-nowrap">{isSyncing ? '同步中' : '立即同步'}</span>
             </button>
 
             {/* CSV Export Button */}
             <button
               onClick={onOpenCsvModal}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
+              className="shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>匯出 CSV</span>
+              <span className="whitespace-nowrap">匯出 CSV</span>
             </button>
 
             {/* Google Sheets Status Badge */}
             <button
               onClick={onOpenSheetModal}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
+              className={`shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 sheetConfig.isConnected
                   ? 'bg-[#C8E6C9] text-[#2E7D32] hover:bg-[#A5D6A7]'
                   : 'bg-[#FFE082] text-[#5D4037] hover:bg-[#FFCA28] animate-pulse'
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              {sheetConfig.isConnected ? (
-                <span>Sheet 已連線</span>
-              ) : (
-                <span>設定 Sheet</span>
-              )}
+              <span className="whitespace-nowrap">
+                {sheetConfig.isConnected ? 'Sheet 已連線' : '設定 Sheet'}
+              </span>
             </button>
 
             {/* Font Size Selector */}
@@ -145,10 +143,10 @@ export const Header: React.FC<HeaderProps> = ({
                   setFontSize(next);
                 }}
                 title="點擊切換字體大小 (標準 / 大 / 特大)"
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFE082] text-[#5D4037] hover:bg-[#FFD54F] border border-[#5D4037] cursor-pointer"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFE082] text-[#5D4037] hover:bg-[#FFD54F] border border-[#5D4037] cursor-pointer whitespace-nowrap"
               >
                 <Type className="w-3.5 h-3.5 text-[#5D4037]" />
-                <span>字體: {fontSize === 'normal' ? '標準' : fontSize === 'large' ? '大 🔍' : '特大 🔍+'}</span>
+                <span>字體: {fontSize === 'normal' ? '標準' : fontSize === 'large' ? '大' : '特大'}</span>
               </button>
             </div>
 
@@ -156,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
               <button
                 onClick={() => setRoleMode('teacher')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all whitespace-nowrap ${
                   roleMode === 'teacher'
                     ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#FFF3E0]'
@@ -166,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={() => setRoleMode('parent')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all whitespace-nowrap ${
                   roleMode === 'parent'
                     ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#E1F5FE]'
