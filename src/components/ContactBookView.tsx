@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, ContactBook, RoleMode, SheetConfig, ClassFilterOption } from '../types';
+import { Student, ContactBook, RoleMode, SheetConfig } from '../types';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -16,8 +16,7 @@ import {
   Moon, 
   Plus,
   Download,
-  Printer,
-  Filter
+  Printer
 } from 'lucide-react';
 import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
@@ -42,11 +41,6 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
   sheetConfig,
   learningRecords,
 }) => {
-  const [cbClassFilter, setCbClassFilter] = useState<ClassFilterOption>('全部班級');
-  const filteredCbStudents = students.filter(
-    (s) => cbClassFilter === '全部班級' || s.className === cbClassFilter
-  );
-
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
     name: '學生',
@@ -263,57 +257,26 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
 
         {/* Student Select Bar */}
         <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end w-full md:w-auto">
-          <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex flex-wrap items-center gap-2">
-            {/* Class Filter Dropdown */}
-            <div className="flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#FF8A65]" />
-              <select
-                value={cbClassFilter}
-                onChange={(e) => {
-                  const newFilter = e.target.value as ClassFilterOption;
-                  setCbClassFilter(newFilter);
-                  const filtered = students.filter(
-                    (s) => newFilter === '全部班級' || s.className === newFilter
-                  );
-                  if (filtered.length > 0) {
-                    setSelectedStudentId(filtered[0].id);
-                  }
-                }}
-                className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-              >
-                <option value="全部班級">🏫 全部班級</option>
-                <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-                <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-                <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-                <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 border-l sm:border-l border-[#5D4037]/20 pl-2">
-              {selectedStudent?.avatarUrl && (
-                <img
-                  src={selectedStudent.avatarUrl}
-                  alt={selectedStudent.name}
-                  className="w-8 h-8 rounded-full border border-[#5D4037] object-cover shrink-0 shadow-xs"
-                />
-              )}
-              <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-              >
-                {filteredCbStudents.length > 0 ? (
-                  filteredCbStudents.map((stu) => (
-                    <option key={stu.id} value={stu.id}>
-                      {stu.className} - {stu.seatNumber}號 {stu.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">該班級尚無學生</option>
-                )}
-              </select>
-            </div>
+          <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-2">
+            {selectedStudent?.avatarUrl && (
+              <img
+                src={selectedStudent.avatarUrl}
+                alt={selectedStudent.name}
+                className="w-8 h-8 rounded-full border border-[#5D4037] object-cover shrink-0 shadow-xs"
+              />
+            )}
+            <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              {students.map((stu) => (
+                <option key={stu.id} value={stu.id}>
+                  {stu.className} - {stu.seatNumber}號 {stu.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">

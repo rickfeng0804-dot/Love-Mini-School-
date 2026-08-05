@@ -2,9 +2,7 @@ import React from 'react';
 import { 
   RoleMode, 
   SheetConfig, 
-  Student,
-  ClassFilterOption,
-  CLASS_FILTER_OPTIONS
+  Student 
 } from '../types';
 import { 
   ClipboardList, 
@@ -20,8 +18,7 @@ import {
   Download,
   Layers,
   RefreshCw,
-  Type,
-  Filter
+  Type
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -39,8 +36,6 @@ interface HeaderProps {
   setSelectedStudentId: (id: string) => void;
   fontSize: 'normal' | 'large' | 'xlarge';
   setFontSize: (size: 'normal' | 'large' | 'xlarge') => void;
-  selectedClassFilter: ClassFilterOption;
-  setSelectedClassFilter: (filter: ClassFilterOption) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -58,13 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   setSelectedStudentId,
   fontSize,
   setFontSize,
-  selectedClassFilter,
-  setSelectedClassFilter,
 }) => {
-  const filteredStudents = students.filter(
-    (s) => selectedClassFilter === '全部班級' || s.className === selectedClassFilter
-  );
-
   return (
     <header className="bg-[#FFD54F] border-b-4 border-[#5D4037] shadow-sm sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
@@ -77,39 +66,30 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xl sm:text-2xl">🌸</span>
               </div>
               <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5">
                   <span className="text-[10px] sm:text-xs bg-[#5D4037] text-white font-black px-2 py-0.2 rounded-full tracking-wider">
                     桃園市私立
                   </span>
                   <span className="text-[10px] sm:text-xs text-[#5D4037] font-bold bg-white/90 px-2 py-0.2 rounded-full border border-[#5D4037]">
                     あいあいようちえん
                   </span>
-                  <span className="text-[10px] sm:text-xs bg-[#FFE082] text-[#5D4037] font-black px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1">
-                    👑 園長 黃雅琦 Rachel
-                  </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2">
                   愛愛幼兒園
                   <span className="text-[10px] sm:text-xs text-[#5D4037] font-extrabold hidden md:inline-block bg-white px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-                    角落學習區與聯絡簿
+                    大班角落學習區與聯絡簿
                   </span>
                 </h1>
               </div>
             </div>
 
-            {/* Mobile Mode Switcher Toggle Button */}
+            {/* Mobile Mode Badge Indicator */}
             <div className="sm:hidden">
-              <button
-                type="button"
-                onClick={() => setRoleMode(roleMode === 'teacher' ? 'parent' : 'teacher')}
-                className={`text-[10px] font-black px-2.5 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer flex items-center gap-1 active:scale-95 ${
-                  roleMode === 'teacher' ? 'bg-[#FF8A65] text-white' : 'bg-[#81D4FA] text-[#0277BD]'
-                }`}
-                title="點擊切換老師/家長模式"
-              >
-                <span>{roleMode === 'teacher' ? '👩‍🏫 老師模式' : '👨‍👩‍👧 家長模式'}</span>
-                <span className="text-[9px] opacity-80">(點擊切換)</span>
-              </button>
+              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] ${
+                roleMode === 'teacher' ? 'bg-[#FF8A65] text-white' : 'bg-[#81D4FA] text-[#0277BD]'
+              }`}>
+                {roleMode === 'teacher' ? '老師' : '家長'}
+              </span>
             </div>
           </div>
 
@@ -172,85 +152,52 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Role Switcher - Teacher / Parent Mode Selection */}
-            <div className="bg-white p-1 rounded-2xl border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0 gap-1">
-              <span className="text-[10px] font-black text-[#5D4037] px-1 hidden lg:inline-block">身份:</span>
+            {/* Role Switcher */}
+            <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
               <button
-                type="button"
                 onClick={() => setRoleMode('teacher')}
-                title="切換至老師模式：可紀錄角落評估、編輯學習歷程與管理學生名冊"
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'teacher'
-                    ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                    ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#FFF3E0]'
                 }`}
               >
-                <GraduationCap className="w-4 h-4" />
-                <span>👩‍🏫 老師模式</span>
+                <GraduationCap className="w-3.5 h-3.5" /> 老師
               </button>
               <button
-                type="button"
                 onClick={() => setRoleMode('parent')}
-                title="切換至家長模式：可檢視專屬孩子的學習報告、歷程照片與填寫聯絡簿"
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'parent'
-                    ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                    ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#E1F5FE]'
                 }`}
               >
-                <Baby className="w-4 h-4" />
-                <span>👨‍👩‍👧 家長模式</span>
+                <Baby className="w-3.5 h-3.5" /> 家長
               </button>
             </div>
           </div>
         </div>
 
-        {/* Class Filter Bar & Parent Mode Student Select */}
-        <div className="bg-[#FFF8E1] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
-          {/* Class Filter Dropdown */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Parent Mode Quick Student Select */}
+        {roleMode === 'parent' && (
+          <div className="bg-[#E1F5FE] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
             <div className="flex items-center gap-1.5 text-[#5D4037] font-black shrink-0">
-              <Filter className="w-4 h-4 text-[#FF8A65]" />
-              <span>班級篩選：</span>
+              <Sparkles className="w-4 h-4 text-[#0288D1]" />
+              <span className="hidden sm:inline">請選擇孩子：</span>
             </div>
             <select
-              value={selectedClassFilter}
-              onChange={(e) => setSelectedClassFilter(e.target.value as ClassFilterOption)}
-              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer w-full sm:w-auto"
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-extrabold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] w-full sm:w-auto"
             >
-              <option value="全部班級">🏫 全部班級 (全校幼童)</option>
-              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+              {students.map((stu) => (
+                <option key={stu.id} value={stu.id}>
+                  {stu.className} - {stu.seatNumber}號 {stu.name} ({stu.parentName})
+                </option>
+              ))}
             </select>
           </div>
-
-          {/* Parent Mode Student Select */}
-          {roleMode === 'parent' && (
-            <div className="flex items-center gap-1.5 w-full sm:w-auto border-t sm:border-t-0 border-[#5D4037]/20 pt-1.5 sm:pt-0">
-              <div className="flex items-center gap-1 text-[#5D4037] font-black shrink-0">
-                <Sparkles className="w-3.5 h-3.5 text-[#0288D1]" />
-                <span>選擇孩子：</span>
-              </div>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] w-full sm:w-auto cursor-pointer"
-              >
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((stu) => (
-                    <option key={stu.id} value={stu.id}>
-                      {stu.className} - {stu.seatNumber}號 {stu.name} ({stu.parentName})
-                    </option>
-                  ))
-                ) : (
-                  <option value="">該班級尚無學生紀錄</option>
-                )}
-              </select>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Navigation Tabs (Desktop & Tablet) */}
         <nav className="hidden md:flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
