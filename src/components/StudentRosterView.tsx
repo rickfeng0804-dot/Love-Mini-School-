@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
+import { Student, ClassName, SheetConfig, LearningRecord, ContactBook, ClassFilterOption, CLASS_FILTER_OPTIONS } from '../types';
 import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -26,7 +26,8 @@ import {
   Camera,
   Link as LinkIcon,
   Image as ImageIcon,
-  RotateCcw
+  RotateCcw,
+  Filter
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -36,6 +37,8 @@ interface StudentRosterViewProps {
   learningRecords: LearningRecord[];
   contactBooks: ContactBook[];
   sheetConfig: SheetConfig;
+  selectedClassFilter?: ClassFilterOption;
+  setSelectedClassFilter?: (filter: ClassFilterOption) => void;
 }
 
 const AVATAR_SAMPLES = [
@@ -52,6 +55,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   learningRecords,
   contactBooks,
   sheetConfig,
+  selectedClassFilter,
+  setSelectedClassFilter,
 }) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
@@ -59,6 +64,21 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  // Local class filter fallback if prop is missing
+  const [internalClassFilter, setInternalClassFilter] = useState<ClassFilterOption>('全部班級');
+  const activeClassFilter = selectedClassFilter || internalClassFilter;
+  const handleClassFilterChange = (filter: ClassFilterOption) => {
+    if (setSelectedClassFilter) {
+      setSelectedClassFilter(filter);
+    } else {
+      setInternalClassFilter(filter);
+    }
+  };
+
+  const displayedStudents = students.filter(
+    (s) => activeClassFilter === '全部班級' || s.className === activeClassFilter
+  );
 
   // Form fields
   const [name, setName] = useState<string>('');
@@ -457,9 +477,58 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
       </div>
 
+      {/* Class Filter Bar */}
+      <div className="bg-[#FFF8E1] border-3 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Filter className="w-5 h-5 text-[#FF8A65] shrink-0" />
+            <span className="font-black text-xs sm:text-sm text-[#5D4037] shrink-0">班級篩選下拉選單：</span>
+            <select
+              value={activeClassFilter}
+              onChange={(e) => handleClassFilterChange(e.target.value as ClassFilterOption)}
+              className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="全部班級">🏫 全部班級 (顯示全校名冊)</option>
+              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+            </select>
+          </div>
+
+          {/* Quick Filter Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+            {CLASS_FILTER_OPTIONS.map((cls) => {
+              const count = cls === '全部班級'
+                ? students.length
+                : students.filter((s) => s.className === cls).length;
+              const isActive = activeClassFilter === cls;
+
+              return (
+                <button
+                  key={cls}
+                  type="button"
+                  onClick={() => handleClassFilterChange(cls)}
+                  className={`text-xs font-black px-3 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer flex items-center gap-1 ${
+                    isActive
+                      ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-105'
+                      : 'bg-white text-[#5D4037] hover:bg-[#FFF3E0] shadow-[1px_1px_0px_#5D4037]'
+                  }`}
+                >
+                  <span>{cls.split(' ')[0]}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white text-[#FF8A65]' : 'bg-[#E0E0E0] text-[#5D4037]'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Roster Cards Grid */}
       <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {students.map((stu) => {
+        {displayedStudents.map((stu) => {
           const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
           const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
 
@@ -588,9 +657,10 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                     onChange={(e) => setClassName(e.target.value as ClassName)}
                     className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037]"
                   >
-                    <option value="大班 (櫻桃班)">大班 (櫻桃班)</option>
-                    <option value="中班 (草莓班)">中班 (草莓班)</option>
-                    <option value="小班 (蘋果班)">小班 (蘋果班)</option>
+                    <option value="大班 (櫻桃班)">大班 (櫻桃班) 🌸</option>
+                    <option value="中班 (草莓班)">中班 (草莓班) 🍓</option>
+                    <option value="小班 (蘋果班)">小班 (蘋果班) 🍎</option>
+                    <option value="幼幼班 (葡萄班)">幼幼班 (葡萄班) 🍇</option>
                   </select>
                 </div>
                 <div>

@@ -1,6 +1,23 @@
 export type RoleMode = 'teacher' | 'parent';
 
-export type ClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)';
+export type ClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
+
+export const CLASS_OPTIONS: ClassName[] = [
+  '大班 (櫻桃班)',
+  '中班 (草莓班)',
+  '小班 (蘋果班)',
+  '幼幼班 (葡萄班)',
+];
+
+export type ClassFilterOption = '全部班級' | '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
+
+export const CLASS_FILTER_OPTIONS: ClassFilterOption[] = [
+  '全部班級',
+  '大班 (櫻桃班)',
+  '中班 (草莓班)',
+  '小班 (蘋果班)',
+  '幼幼班 (葡萄班)',
+];
 
 export interface Student {
   id: string;

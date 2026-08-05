@@ -4,7 +4,8 @@ import {
   Student, 
   LearningRecord, 
   ContactBook, 
-  SheetConfig 
+  SheetConfig,
+  ClassFilterOption
 } from './types';
 import { 
   INITIAL_STUDENTS, 
@@ -36,6 +37,9 @@ export default function App() {
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  // Global Class Filter state
+  const [selectedClassFilter, setSelectedClassFilter] = useState<ClassFilterOption>('全部班級');
 
   // Global Font Size scaling state
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>(() => {
@@ -316,6 +320,8 @@ export default function App() {
           setSelectedStudentId={setSelectedStudentId}
           fontSize={fontSize}
           setFontSize={setFontSize}
+          selectedClassFilter={selectedClassFilter}
+          setSelectedClassFilter={setSelectedClassFilter}
         />
 
         {/* Main Content Area */}
@@ -337,6 +343,7 @@ export default function App() {
               learningRecords={learningRecords}
               selectedStudentId={selectedStudentId}
               setSelectedStudentId={setSelectedStudentId}
+              contactBooks={contactBooks}
             />
           )}
 
@@ -360,6 +367,8 @@ export default function App() {
               learningRecords={learningRecords}
               contactBooks={contactBooks}
               sheetConfig={sheetConfig}
+              selectedClassFilter={selectedClassFilter}
+              setSelectedClassFilter={setSelectedClassFilter}
             />
           )}
 
@@ -380,7 +389,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-12 py-3 bg-[#5D4037] text-white flex flex-col sm:flex-row items-center justify-center text-xs gap-3 tracking-widest font-mono border-t-4 border-[#3E2723]">
-        <span className="opacity-80">愛愛幼兒園 | 大班角落學習區與聯絡簿管理系統</span>
+        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習區與聯絡簿管理系統</span>
         <div className="flex items-center gap-2 bg-[#4E342E] px-3 py-1 rounded-full text-[10px]">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>GOOGLE SHEETS SYNC ACTIVE</span>

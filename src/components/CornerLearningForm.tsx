@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig, ClassFilterOption } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
@@ -24,7 +24,8 @@ import {
   Image as ImageIcon,
   Video,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Filter
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -55,7 +56,22 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   sheetConfig,
   onSavedRecord,
 }) => {
+  const [formClassFilter, setFormClassFilter] = useState<ClassFilterOption>('全部班級');
+  const filteredStudents = students.filter(
+    (s) => formClassFilter === '全部班級' || s.className === formClassFilter
+  );
+
   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || 'stu-01');
+
+  // When class filter changes, ensure selectedStudentId points to a valid student in that class
+  useEffect(() => {
+    if (filteredStudents.length > 0) {
+      const exists = filteredStudents.some((s) => s.id === selectedStudentId);
+      if (!exists) {
+        setSelectedStudentId(filteredStudents[0].id);
+      }
+    }
+  }, [formClassFilter, students]);
   const [dateStart, setDateStart] = useState<string>('2026-07-27');
   const [dateEnd, setDateEnd] = useState<string>('2026-07-31');
 
@@ -95,8 +111,9 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   };
 
   const [photoImages, setPhotoImages] = useState<string[]>([
-    'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=800&auto=format&fit=crop&q=80',
   ]);
+  const [customPhotoInput, setCustomPhotoInput] = useState<string>('');
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [teacherComment, setTeacherComment] = useState<string>(
     '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
@@ -279,6 +296,24 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
 
           {/* Student & Date Picker Selector Card */}
           <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
+            {/* Class Filter Bar */}
+            <div className="flex items-center gap-2 pb-2 border-b border-[#5D4037]/20">
+              <span className="flex items-center gap-1 text-xs font-black text-[#5D4037] shrink-0">
+                <Filter className="w-3.5 h-3.5 text-[#FF8A65]" /> 班級篩選：
+              </span>
+              <select
+                value={formClassFilter}
+                onChange={(e) => setFormClassFilter(e.target.value as ClassFilterOption)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+              >
+                <option value="全部班級">🏫 全部班級 (顯示所有人)</option>
+                <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+                <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+                <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+                <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-black text-[#5D4037]">
               <div>
                 <label className="block text-[#5D4037] mb-1 flex items-center justify-between">
@@ -305,11 +340,15 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     onChange={(e) => setSelectedStudentId(e.target.value)}
                     className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                   >
-                    {students.map((stu) => (
-                      <option key={stu.id} value={stu.id}>
-                        {stu.className} - {stu.seatNumber}號 {stu.name}
-                      </option>
-                    ))}
+                    {filteredStudents.length > 0 ? (
+                      filteredStudents.map((stu) => (
+                        <option key={stu.id} value={stu.id}>
+                          {stu.className} - {stu.seatNumber}號 {stu.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">該班級尚無學生</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -471,26 +510,98 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
                 <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
-                  影像與作品照片紀錄 (可上傳作品與活動照片)
+                  學習照片與作品紀錄牆 (可上傳照片或輸入圖片網址)
                 </h4>
               </div>
               <div className="flex items-center gap-2">
                 <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                  <Camera className="w-3.5 h-3.5" /> 上傳照片
+                  <Camera className="w-3.5 h-3.5" /> 上傳照片檔案
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               </div>
             </div>
 
+            {/* Photo URL Input Bar & Sample Quick Buttons */}
+            <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mb-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#FF8A65] shrink-0" />
+                <input
+                  type="url"
+                  value={customPhotoInput}
+                  onChange={(e) => setCustomPhotoInput(e.target.value)}
+                  placeholder="請貼上學習照片/作品圖片網址 (https://...)"
+                  className="flex-1 bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs text-[#5D4037] font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customPhotoInput.trim()) {
+                      setPhotoImages([...photoImages, customPhotoInput.trim()]);
+                      setCustomPhotoInput('');
+                    }
+                  }}
+                  className="bg-[#0288D1] hover:bg-[#0277BD] text-white font-black text-xs px-3 py-1 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer shrink-0"
+                >
+                  ＋ 新增圖片 URL
+                </button>
+              </div>
+
+              {/* Sample Photo Presets */}
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#5D4037] flex-wrap pt-1 border-t border-dashed border-[#5D4037]/20">
+                <span className="font-black text-[#FF8A65]">⚡ 快速加入角落照片範例：</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample = 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&auto=format&fit=crop&q=80';
+                    if (!photoImages.includes(sample)) setPhotoImages([...photoImages, sample]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  ＋ 美勞手作
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample = 'https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=800&auto=format&fit=crop&q=80';
+                    if (!photoImages.includes(sample)) setPhotoImages([...photoImages, sample]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  ＋ 積木工程
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample = 'https://images.unsplash.com/photo-1587691592099-24045742c181?w=800&auto=format&fit=crop&q=80';
+                    if (!photoImages.includes(sample)) setPhotoImages([...photoImages, sample]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  ＋ 繪本閱讀
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80';
+                    if (!photoImages.includes(sample)) setPhotoImages([...photoImages, sample]);
+                  }}
+                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
+                >
+                  ＋ 益智思考
+                </button>
+              </div>
+            </div>
+
             {/* Photo Gallery Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {photoImages.map((imgUrl, idx) => (
                 <div key={idx} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
                   <img src={imgUrl} alt="活動照片" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setPhotoImages(photoImages.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 bg-[#FF5252] border border-[#5D4037] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black cursor-pointer"
+                    className="absolute top-1 right-1 bg-[#FF5252] border border-[#5D4037] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black cursor-pointer shadow-md"
+                    title="刪除這張照片"
                   >
                     ✕
                   </button>

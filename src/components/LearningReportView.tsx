@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, LearningRecord, CornerAreaId } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, ClassFilterOption } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
 import { 
   Printer, 
@@ -15,7 +15,17 @@ import {
   Video,
   ExternalLink,
   FileSpreadsheet,
-  PieChart as PieIcon
+  PieChart as PieIcon,
+  Camera,
+  Image as ImageIcon,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Tag,
+  ZoomIn,
+  Layers
 } from 'lucide-react';
 import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
@@ -37,6 +47,7 @@ interface LearningReportViewProps {
   learningRecords: LearningRecord[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
+  contactBooks?: ContactBook[];
 }
 
 interface SingleReportCardProps {
@@ -263,8 +274,8 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
 
       {/* Footer Sign-off */}
       <div className="flex justify-between items-center text-[10px] text-[#5D4037] mt-3 font-mono font-bold">
-        <span>幼兒園導師簽章：__________________</span>
-        <span>園長簽章：__________________</span>
+        <span>班級導師簽章：__________________</span>
+        <span>園長：黃雅琦 Rachel (簽章：__________________)</span>
         <span>家長查閱簽章：__________________</span>
       </div>
     </div>
@@ -276,10 +287,21 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   learningRecords,
   selectedStudentId,
   setSelectedStudentId,
+  contactBooks = [],
 }) => {
+  const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
+  const filteredReportStudents = students.filter(
+    (s) => reportClassFilter === '全部班級' || s.className === reportClassFilter
+  );
+
   const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
   const [activeRecordId, setActiveRecordId] = useState<string>('');
   const [pieMode, setPieMode] = useState<'week' | 'cumulative'>('week');
+
+  // Photo Wall States
+  const [activeTabMode, setActiveTabMode] = useState<'all' | 'gallery' | 'analytics' | 'printable'>('all');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [galleryCornerFilter, setGalleryCornerFilter] = useState<string>('all');
 
   React.useEffect(() => {
     const matchingRecs = learningRecords.filter((r) => r.studentId === selectedStudentId);
@@ -304,6 +326,80 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   };
   const activeRecord =
     learningRecords.find((r) => r.id === activeRecordId) || studentRecords[0] || learningRecords[0];
+
+  // Construct Gallery Photos Array for selected student (or all students if filtering)
+  interface GalleryPhotoItem {
+    id: string;
+    url: string;
+    date: string;
+    recordId: string;
+    studentName: string;
+    className: string;
+    seatNumber: string;
+    teacherComment?: string;
+    stamp?: string;
+    sourceType: 'learningRecord' | 'contactBook';
+    cornerName: string;
+  }
+
+  const galleryPhotos: GalleryPhotoItem[] = [];
+
+  const targetRecordsForPhotos = studentRecords.length > 0 ? studentRecords : learningRecords;
+  targetRecordsForPhotos.forEach((rec) => {
+    if (rec.photoImages && rec.photoImages.length > 0) {
+      rec.photoImages.forEach((imgUrl, idx) => {
+        let cornerName = '角落學習作品';
+        if (rec.customNotes) {
+          const foundEntry = Object.entries(rec.customNotes).find(([_, note]) => typeof note === 'string' && note.trim());
+          if (foundEntry) {
+            const cornerDef = CORNER_AREAS.find((c) => c.id === foundEntry[0]);
+            if (cornerDef) cornerName = cornerDef.name;
+          }
+        }
+        galleryPhotos.push({
+          id: `${rec.id}-photo-${idx}`,
+          url: imgUrl,
+          date: `${rec.dateStart} ~ ${rec.dateEnd}`,
+          recordId: rec.id,
+          studentName: rec.studentName,
+          className: rec.className,
+          seatNumber: rec.seatNumber,
+          teacherComment: rec.teacherComment,
+          stamp: rec.stamp,
+          sourceType: 'learningRecord',
+          cornerName,
+        });
+      });
+    }
+  });
+
+  if (contactBooks && contactBooks.length > 0) {
+    const studentCBs = contactBooks.filter((cb) => cb.studentId === selectedStudentId);
+    studentCBs.forEach((cb) => {
+      if (cb.photoUrls && cb.photoUrls.length > 0) {
+        cb.photoUrls.forEach((pUrl, pIdx) => {
+          galleryPhotos.push({
+            id: `${cb.id}-cbphoto-${pIdx}`,
+            url: pUrl,
+            date: cb.date,
+            recordId: cb.id,
+            studentName: cb.studentName,
+            className: cb.className,
+            seatNumber: cb.seatNumber,
+            teacherComment: cb.teacherMessage,
+            sourceType: 'contactBook',
+            cornerName: '聯絡簿照片',
+          });
+        });
+      }
+    });
+  }
+
+  // Filter Photos by selected Corner Area
+  const filteredGalleryPhotos = galleryPhotos.filter((p) => {
+    if (galleryCornerFilter === 'all') return true;
+    return p.cornerName.includes(galleryCornerFilter);
+  });
 
   const handlePrintSingle = () => {
     const printArea = document.getElementById('printable-area');
@@ -497,29 +593,80 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     blocks: '#8D6E63',     // 積木區
   };
 
+  const renderPieLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, percentage } = props;
+    if (percent < 0.04) return null;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#FFFFFF"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="text-[10px] font-black pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+      >
+        {`${percentage}%`}
+      </text>
+    );
+  };
+
   const computeCornerPieData = () => {
     const targetRecords = pieMode === 'cumulative' ? studentRecords : (activeRecord ? [activeRecord] : []);
-    if (targetRecords.length === 0) return [];
-
+    
     const counts: Record<string, number> = {};
     CORNER_AREAS.forEach((area) => {
       counts[area.id] = 0;
     });
 
-    targetRecords.forEach((rec) => {
-      const checked = rec.checkedItems || {};
-      CORNER_AREAS.forEach((area) => {
-        const itemsCount = (checked[area.id] || []).length;
-        const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
-        counts[area.id] += itemsCount + noteCount;
+    if (targetRecords.length > 0) {
+      targetRecords.forEach((rec) => {
+        const checked = rec.checkedItems || {};
+        CORNER_AREAS.forEach((area) => {
+          const itemsCount = (checked[area.id] || []).length;
+          const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
+          counts[area.id] += itemsCount + noteCount;
+        });
       });
-    });
+    }
 
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
+    // If student has records with data, return actual calculated values
+    if (total > 0) {
+      return CORNER_AREAS.map((area) => {
+        const val = counts[area.id] || 0;
+        const percentage = Math.round((val / total) * 100);
+        return {
+          name: area.name,
+          id: area.id,
+          value: val,
+          percentage,
+          color: CORNER_COLORS[area.id] || '#FFA726',
+        };
+      }).filter((item) => item.value > 0);
+    }
+
+    // Default sample values for new / empty records so Pie chart remains clear & informative
+    const demoWeights: Record<string, number> = {
+      brain: 4,      // 益智區
+      language: 3,   // 語文區
+      blocks: 3,     // 積木區
+      art: 2,        // 美勞區
+      science: 2,    // 科學區
+      beads: 2,      // 拼豆區
+      watercolor: 1, // 水彩區
+      puzzle: 1,     // 拼圖/建構區
+    };
+    const demoTotal = Object.values(demoWeights).reduce((a, b) => a + b, 0);
+
     return CORNER_AREAS.map((area) => {
-      const val = counts[area.id] || 0;
-      const percentage = total > 0 ? Math.round((val / total) * 100) : 0;
+      const val = demoWeights[area.id] || 1;
+      const percentage = Math.round((val / demoTotal) * 100);
       return {
         name: area.name,
         id: area.id,
@@ -527,7 +674,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         percentage,
         color: CORNER_COLORS[area.id] || '#FFA726',
       };
-    }).filter((item) => item.value > 0);
+    });
   };
 
   const chartData = computeDomainStats(activeRecord);
@@ -541,6 +688,31 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {/* Top Filter & Print Controls (Hidden on Print) */}
       <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-4 sm:p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Class Filter Dropdown */}
+          <div className="flex-1 sm:flex-none min-w-[160px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1">班級篩選:</label>
+            <select
+              value={reportClassFilter}
+              onChange={(e) => {
+                const newFilter = e.target.value as ClassFilterOption;
+                setReportClassFilter(newFilter);
+                const filtered = students.filter(
+                  (s) => newFilter === '全部班級' || s.className === newFilter
+                );
+                if (filtered.length > 0) {
+                  setSelectedStudentId(filtered[0].id);
+                }
+              }}
+              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              <option value="全部班級">🏫 全部班級</option>
+              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+            </select>
+          </div>
+
           <div className="flex-1 sm:flex-none min-w-[200px]">
             <label className="block text-xs font-black text-[#5D4037] mb-1">快速選擇學生:</label>
             <select
@@ -552,11 +724,15 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               }}
               className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
             >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name}
-                </option>
-              ))}
+              {filteredReportStudents.length > 0 ? (
+                filteredReportStudents.map((stu) => (
+                  <option key={stu.id} value={stu.id}>
+                    {stu.className} - {stu.seatNumber}號 {stu.name}
+                  </option>
+                ))
+              ) : (
+                <option value="">該班級尚無學生</option>
+              )}
             </select>
           </div>
 
@@ -604,8 +780,176 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
       </div>
 
+      {/* View Mode Switcher Sub-Header Bar */}
+      <div className="print:hidden bg-white border-4 border-[#5D4037] rounded-2xl p-2.5 mb-6 shadow-[4px_4px_0px_#5D4037] flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setActiveTabMode('all')}
+            className={`px-3.5 py-2 rounded-xl border-2 border-[#5D4037] font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTabMode === 'all'
+                ? 'bg-[#FFE082] text-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                : 'bg-[#FFFBF0] text-[#5D4037]/70 hover:bg-[#FFF59D]'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-[#FF8A65]" /> 全部整合視圖
+          </button>
+
+          <button
+            onClick={() => setActiveTabMode('gallery')}
+            className={`px-3.5 py-2 rounded-xl border-2 border-[#5D4037] font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTabMode === 'gallery'
+                ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037]'
+                : 'bg-[#FFFBF0] text-[#5D4037]/70 hover:bg-[#FFE0B2]'
+            }`}
+          >
+            <Camera className="w-4 h-4" /> 📸 學習照片記錄牆 (瀑布流)
+            <span className="bg-white text-[#5D4037] text-[10px] px-2 py-0.5 rounded-full font-black ml-1 border border-[#5D4037]">
+              {galleryPhotos.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTabMode('analytics')}
+            className={`px-3.5 py-2 rounded-xl border-2 border-[#5D4037] font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTabMode === 'analytics'
+                ? 'bg-[#4FC3F7] text-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                : 'bg-[#FFFBF0] text-[#5D4037]/70 hover:bg-[#E1F5FE]'
+            }`}
+          >
+            <PieIcon className="w-4 h-4 text-[#0288D1]" /> 📊 各角落統計與雷達圖
+          </button>
+
+          <button
+            onClick={() => setActiveTabMode('printable')}
+            className={`px-3.5 py-2 rounded-xl border-2 border-[#5D4037] font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTabMode === 'printable'
+                ? 'bg-[#C8E6C9] text-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+                : 'bg-[#FFFBF0] text-[#5D4037]/70 hover:bg-[#E8F5E9]'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-[#388E3C]" /> 📄 A4 官方觀察報告
+          </button>
+        </div>
+
+        <div className="text-xs font-black text-[#5D4037] px-2 flex items-center gap-1">
+          <span>目前檢視學生：</span>
+          <span className="bg-[#FFE082] px-2.5 py-1 rounded-full border border-[#5D4037] text-[#5D4037]">
+            🌸 {selectedStudent.className} {selectedStudent.seatNumber}號 {selectedStudent.name}
+          </span>
+        </div>
+      </div>
+
+      {/* 
+        ===================================================================
+        PHOTO GALLERY MASONRY WALL (學習照片記錄牆)
+        ===================================================================
+      */}
+      {(activeTabMode === 'all' || activeTabMode === 'gallery') && (
+        <div className="print:hidden bg-[#FFF3E0] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFB74D] mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5 border-b-2 border-[#5D4037]/20 pb-4">
+            <div>
+              <h3 className="text-lg sm:text-xl font-black text-[#5D4037] flex items-center gap-2 italic">
+                <Camera className="w-6 h-6 text-[#FF8A65]" />
+                📸 {selectedStudent.name} 的學習照片記錄牆 (瀑布流展覽)
+              </h3>
+              <p className="text-xs font-bold text-[#5D4037]/80 mt-1">
+                記錄孩子在角落活動過程中的藝術手作、建構作品與學習亮點
+              </p>
+            </div>
+
+            {/* Corner Filter Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-black text-[#5D4037] flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-[#FF8A65]" /> 篩選角落:
+              </span>
+              <button
+                onClick={() => setGalleryCornerFilter('all')}
+                className={`px-2.5 py-1 rounded-full border-2 border-[#5D4037] text-xs font-black transition-all cursor-pointer ${
+                  galleryCornerFilter === 'all'
+                    ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037]'
+                    : 'bg-white text-[#5D4037] hover:bg-[#FFE082]'
+                }`}
+              >
+                全部 ({galleryPhotos.length})
+              </button>
+              {CORNER_AREAS.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setGalleryCornerFilter(c.name)}
+                  className={`px-2.5 py-1 rounded-full border-2 border-[#5D4037] text-xs font-black transition-all cursor-pointer ${
+                    galleryCornerFilter === c.name
+                      ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037]'
+                      : 'bg-white text-[#5D4037] hover:bg-[#FFE082]'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Masonry Waterfall Layout */}
+          {filteredGalleryPhotos.length > 0 ? (
+            <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+              {filteredGalleryPhotos.map((photo, idx) => (
+                <div
+                  key={photo.id}
+                  onClick={() => setLightboxIndex(idx)}
+                  className="break-inside-avoid bg-white rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[6px_6px_0px_#FF8A65] hover:-translate-y-1 transition-all group overflow-hidden cursor-pointer relative flex flex-col mb-4"
+                >
+                  <div className="relative overflow-hidden bg-[#FFFBF0]">
+                    <img
+                      src={photo.url}
+                      alt={photo.studentName}
+                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <span className="absolute top-2 left-2 bg-[#5D4037]/85 backdrop-blur-md text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-white/40 shadow-sm">
+                      📅 {photo.date}
+                    </span>
+                    <div className="absolute top-2 right-2 bg-white/90 text-[#5D4037] p-1.5 rounded-full border border-[#5D4037] opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+
+                  <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="bg-[#FFE082] text-[#5D4037] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]">
+                          🏷️ {photo.cornerName}
+                        </span>
+                        {photo.stamp && (
+                          <span className="text-[10px] font-black text-[#D81B60] bg-[#FCE4EC] px-1.5 py-0.5 rounded border border-[#D81B60]/30">
+                            💮 {photo.stamp}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#5D4037] font-bold leading-snug line-clamp-3">
+                        {photo.teacherComment || '學習成長觀察紀錄照片'}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-dashed border-[#5D4037]/20 flex items-center justify-between text-[10px] font-black text-[#5D4037]/70">
+                      <span>{photo.className} {photo.studentName}</span>
+                      <span className="text-[#0288D1] flex items-center gap-0.5 group-hover:underline">
+                        <Maximize2 className="w-2.5 h-2.5" /> 點擊放大
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white p-8 rounded-2xl border-2 border-[#5D4037] text-center text-[#5D4037]">
+              <ImageIcon className="w-10 h-10 text-[#FF8A65] mx-auto mb-2" />
+              <p className="font-black text-sm">目前尚無符合「{galleryCornerFilter}」的歷程照片</p>
+              <p className="text-xs font-bold text-[#5D4037]/70 mt-1">您可以點擊「新增角落學習區紀錄」或聯絡簿中上傳照片或貼上圖片 URL。</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Development Domain & Corner Category Analytics Card (Hidden on Print) */}
-      {activeRecord && (
+      {(activeTabMode === 'all' || activeTabMode === 'analytics') && activeRecord && (
         <div className="print:hidden bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b-2 border-[#5D4037]/20 pb-3">
             <h3 className="text-base sm:text-lg font-black text-[#5D4037] flex items-center gap-2 italic">
@@ -689,6 +1033,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                         outerRadius={75}
                         paddingAngle={3}
                         dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.id} fill={entry.color} stroke="#5D4037" strokeWidth={1.5} />
@@ -774,26 +1120,134 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         PRINTABLE A4 OFFICIAL FORM REPLICA - "桃園市私立 愛愛幼兒園 大班角落學習區紀錄表"
         ===================================================================
       */}
-      {activeRecord ? (
-        <>
-          <div id="printable-area">
-            <SingleReportCard record={activeRecord} students={students} />
-          </div>
+      {(activeTabMode === 'all' || activeTabMode === 'printable') && (
+        activeRecord ? (
+          <>
+            <div id="printable-area">
+              <SingleReportCard record={activeRecord} students={students} />
+            </div>
 
-          {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
-          <div id="all-printable-reports" className="hidden">
-            {learningRecords.map((rec) => (
-              <div key={rec.id} className="a4-page-break mb-8">
-                <SingleReportCard record={rec} students={students} isBatch={true} />
-              </div>
-            ))}
+            {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
+            <div id="all-printable-reports" className="hidden">
+              {learningRecords.map((rec) => (
+                <div key={rec.id} className="a4-page-break mb-8">
+                  <SingleReportCard record={rec} students={students} isBatch={true} />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-12 text-center text-[#5D4037] shadow-[6px_6px_0px_#FFD54F]">
+            <BookOpen className="w-12 h-12 text-[#FF8A65] mx-auto mb-3" />
+            <h3 className="font-black text-lg text-[#5D4037]">尚無學習區紀錄</h3>
+            <p className="text-xs font-bold mt-1">請先於「大班角落學習區紀錄表」為學生建立觀察紀錄。</p>
           </div>
-        </>
-      ) : (
-        <div className="bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-12 text-center text-[#5D4037] shadow-[6px_6px_0px_#FFD54F]">
-          <BookOpen className="w-12 h-12 text-[#FF8A65] mx-auto mb-3" />
-          <h3 className="font-black text-lg text-[#5D4037]">尚無學習區紀錄</h3>
-          <p className="text-xs font-bold mt-1">請先於「大班角落學習區紀錄表」為學生建立觀察紀錄。</p>
+        )
+      )}
+
+      {/* Lightbox Modal for Photo Gallery */}
+      {lightboxIndex !== null && filteredGalleryPhotos[lightboxIndex] && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-4xl w-full bg-white border-4 border-[#5D4037] rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+            {/* Lightbox Image View */}
+            <div className="flex-1 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-[450px] p-2">
+              <img
+                src={filteredGalleryPhotos[lightboxIndex].url}
+                alt="放大照片"
+                className="max-h-[75vh] w-auto object-contain rounded-lg"
+              />
+              {/* Navigation Arrows */}
+              {lightboxIndex > 0 && (
+                <button
+                  onClick={() => setLightboxIndex(lightboxIndex - 1)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#5D4037] p-2 rounded-full border-2 border-[#5D4037] shadow-lg cursor-pointer transition-all"
+                  title="上一張"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
+              {lightboxIndex < filteredGalleryPhotos.length - 1 && (
+                <button
+                  onClick={() => setLightboxIndex(lightboxIndex + 1)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#5D4037] p-2 rounded-full border-2 border-[#5D4037] shadow-lg cursor-pointer transition-all"
+                  title="下一張"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+
+            {/* Lightbox Sidebar Info */}
+            <div className="w-full md:w-80 bg-[#FFFDE7] p-5 flex flex-col justify-between border-t-4 md:border-t-0 md:border-l-4 border-[#5D4037]">
+              <div>
+                <div className="flex items-center justify-between mb-3 border-b-2 border-[#5D4037]/20 pb-2">
+                  <div>
+                    <span className="text-[10px] font-black bg-[#FF8A65] text-white px-2 py-0.5 rounded-full border border-[#5D4037]">
+                      {filteredGalleryPhotos[lightboxIndex].className}
+                    </span>
+                    <h4 className="text-base font-black text-[#5D4037] mt-1">
+                      {filteredGalleryPhotos[lightboxIndex].studentName} 的學習歷程照片
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setLightboxIndex(null)}
+                    className="bg-[#FF5252] hover:bg-[#FF1744] text-white p-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs font-bold text-[#5D4037]">
+                  <div>
+                    <span className="text-[10px] text-[#5D4037]/70 font-black block">紀錄日期區間：</span>
+                    <p className="text-xs font-black text-[#0288D1]">📅 {filteredGalleryPhotos[lightboxIndex].date}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-[#5D4037]/70 font-black block">角落 / 觀察類別：</span>
+                    <span className="inline-block bg-[#FFE082] px-2.5 py-0.5 rounded-full border border-[#5D4037] font-black text-xs mt-0.5">
+                      🏷️ {filteredGalleryPhotos[lightboxIndex].cornerName}
+                    </span>
+                  </div>
+
+                  {filteredGalleryPhotos[lightboxIndex].teacherComment && (
+                    <div>
+                      <span className="text-[10px] text-[#5D4037]/70 font-black block">教師觀察心得與評估：</span>
+                      <p className="bg-white p-2.5 rounded-xl border border-[#5D4037] leading-relaxed text-[#5D4037] mt-0.5 shadow-inner">
+                        {filteredGalleryPhotos[lightboxIndex].teacherComment}
+                      </p>
+                    </div>
+                  )}
+
+                  {filteredGalleryPhotos[lightboxIndex].stamp && (
+                    <div className="pt-2">
+                      <span className="inline-block bg-[#FCE4EC] border-2 border-[#D81B60] text-[#D81B60] font-black px-3 py-1 rounded-full text-xs shadow-sm">
+                        💮 印章：{filteredGalleryPhotos[lightboxIndex].stamp}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t-2 border-[#5D4037]/20 flex items-center justify-between gap-2 mt-4">
+                <a
+                  href={filteredGalleryPhotos[lightboxIndex].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={`愛愛幼兒園_學習照片_${filteredGalleryPhotos[lightboxIndex].studentName}`}
+                  className="flex-1 bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> 下載高解析照片
+                </a>
+                <button
+                  onClick={() => setLightboxIndex(null)}
+                  className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                >
+                  關閉
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
