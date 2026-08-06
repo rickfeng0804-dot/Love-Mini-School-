@@ -188,27 +188,26 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in overflow-y-auto">
-      <div className="bg-white border-4 border-emerald-300 rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[88vh] sm:max-h-[90vh] overflow-y-auto no-scrollbar">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white border-4 border-emerald-300 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors z-10 cursor-pointer touch-manipulation"
-          title="關閉視窗"
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-2.5 sm:gap-3 mb-4 pr-8">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 border-2 border-emerald-400 rounded-2xl flex items-center justify-center text-emerald-700 shadow-xs shrink-0">
-            <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-emerald-100 border-2 border-emerald-400 rounded-2xl flex items-center justify-center text-emerald-700 shadow-xs">
+            <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg sm:text-xl font-extrabold text-gray-800 leading-tight flex items-center gap-1.5">
+            <h3 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
               Google Sheet 後端連線與管理
             </h3>
-            <p className="text-[11px] sm:text-xs text-gray-500">將學生的學習歷程與家長聯絡簿記錄於 Google 試算表</p>
+            <p className="text-xs text-gray-500">將學生的學習歷程與家長聯絡簿記錄於 Google 試算表</p>
           </div>
         </div>
 
@@ -328,26 +327,6 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         </div>
 
         {/* Step 3 / Alternative Option: Export CSV for Google Sheets */}
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-3 mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h5 className="text-xs font-black text-purple-900 flex items-center gap-1">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" /> 學生名冊預設 Google Sheet 網址
-            </h5>
-            <p className="text-[11px] text-purple-800 font-mono font-bold truncate max-w-xs sm:max-w-md">
-              {sheetConfig.studentSheetUrl || 'https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing'}
-            </p>
-          </div>
-          <a
-            href={sheetConfig.studentSheetUrl || 'https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing'}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-xl shrink-0 shadow-xs transition-colors flex items-center gap-1"
-          >
-            開啟 Sheet ↗
-          </a>
-        </div>
-
-        {/* Step 4 / Alternative Option: Export CSV for Google Sheets */}
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 mb-4 flex items-center justify-between gap-3">
           <div>
             <h5 className="text-xs font-black text-amber-900 flex items-center gap-1">
@@ -384,11 +363,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
       {/* Mandatory User Confirmation Modal for Mutating/Destructive operations */}
       {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-3 sm:p-4 z-[60] animate-fade-in overflow-y-auto">
-          <div className="bg-white border-2 border-amber-400 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl my-auto max-h-[88vh] overflow-y-auto no-scrollbar">
-            <div className="flex items-center gap-2.5 text-amber-600 mb-2.5">
-              <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7 shrink-0" />
-              <h4 className="font-extrabold text-base sm:text-lg text-gray-800 leading-snug">{confirmModal.title}</h4>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-60 animate-fade-in">
+          <div className="bg-white border-2 border-amber-400 rounded-3xl max-w-md w-full p-5 shadow-2xl">
+            <div className="flex items-center gap-3 text-amber-600 mb-3">
+              <AlertTriangle className="w-7 h-7 shrink-0" />
+              <h4 className="font-extrabold text-lg text-gray-800">{confirmModal.title}</h4>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed mb-5">
               {confirmModal.message}

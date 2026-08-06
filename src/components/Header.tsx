@@ -2,7 +2,9 @@ import React from 'react';
 import { 
   RoleMode, 
   SheetConfig, 
-  Student 
+  Student,
+  ClassFilterOption,
+  CLASS_FILTER_OPTIONS
 } from '../types';
 import { 
   ClipboardList, 
@@ -18,7 +20,8 @@ import {
   Download,
   Layers,
   RefreshCw,
-  Type
+  Type,
+  Filter
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -36,6 +39,8 @@ interface HeaderProps {
   setSelectedStudentId: (id: string) => void;
   fontSize: 'normal' | 'large' | 'xlarge';
   setFontSize: (size: 'normal' | 'large' | 'xlarge') => void;
+  selectedClassFilter: ClassFilterOption;
+  setSelectedClassFilter: (filter: ClassFilterOption) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -53,7 +58,13 @@ export const Header: React.FC<HeaderProps> = ({
   setSelectedStudentId,
   fontSize,
   setFontSize,
+  selectedClassFilter,
+  setSelectedClassFilter,
 }) => {
+  const filteredStudents = students.filter(
+    (s) => selectedClassFilter === '全部班級' || s.className === selectedClassFilter
+  );
+
   return (
     <header className="bg-[#FFD54F] border-b-4 border-[#5D4037] shadow-sm sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
@@ -66,18 +77,21 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xl sm:text-2xl">🌸</span>
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] sm:text-xs bg-[#5D4037] text-white font-black px-2 py-0.2 rounded-full tracking-wider">
                     桃園市私立
                   </span>
                   <span className="text-[10px] sm:text-xs text-[#5D4037] font-bold bg-white/90 px-2 py-0.2 rounded-full border border-[#5D4037]">
                     あいあいようちえん
                   </span>
+                  <span className="text-[10px] sm:text-xs bg-[#FFE082] text-[#5D4037] font-black px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1">
+                    👑 園長 黃雅琦 Rachel
+                  </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2 flex-wrap">
                   愛愛幼兒園
                   <span className="text-[10px] sm:text-xs text-[#5D4037] font-extrabold hidden md:inline-block bg-white px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-                    大班角落學習區與聯絡簿
+                    角落學習區與聯絡簿
                   </span>
                 </h1>
               </div>
@@ -94,44 +108,46 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right Action Bar: Role Switch, CSV Export & Google Sheet Sync */}
-          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar touch-pan-x shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
             {/* Instant Sync Button */}
             <button
               onClick={onInstantSync}
               disabled={isSyncing}
               title={sheetConfig.lastSyncedAt ? `上次同步時間：${sheetConfig.lastSyncedAt}` : '立即同步最新資料'}
-              className={`shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 isSyncing
                   ? 'bg-amber-100 text-[#5D4037] cursor-wait'
                   : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20]'
               }`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
-              <span className="whitespace-nowrap">{isSyncing ? '同步中' : '立即同步'}</span>
+              <span>{isSyncing ? '同步中' : '立即同步'}</span>
             </button>
 
             {/* CSV Export Button */}
             <button
               onClick={onOpenCsvModal}
-              className="shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="whitespace-nowrap">匯出 CSV</span>
+              <span>匯出 CSV</span>
             </button>
 
             {/* Google Sheets Status Badge */}
             <button
               onClick={onOpenSheetModal}
-              className={`shrink-0 flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 sheetConfig.isConnected
                   ? 'bg-[#C8E6C9] text-[#2E7D32] hover:bg-[#A5D6A7]'
                   : 'bg-[#FFE082] text-[#5D4037] hover:bg-[#FFCA28] animate-pulse'
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span className="whitespace-nowrap">
-                {sheetConfig.isConnected ? 'Sheet 已連線' : '設定 Sheet'}
-              </span>
+              {sheetConfig.isConnected ? (
+                <span>Sheet 已連線</span>
+              ) : (
+                <span>設定 Sheet</span>
+              )}
             </button>
 
             {/* Font Size Selector */}
@@ -143,10 +159,10 @@ export const Header: React.FC<HeaderProps> = ({
                   setFontSize(next);
                 }}
                 title="點擊切換字體大小 (標準 / 大 / 特大)"
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFE082] text-[#5D4037] hover:bg-[#FFD54F] border border-[#5D4037] cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFE082] text-[#5D4037] hover:bg-[#FFD54F] border border-[#5D4037] cursor-pointer"
               >
                 <Type className="w-3.5 h-3.5 text-[#5D4037]" />
-                <span>字體: {fontSize === 'normal' ? '標準' : fontSize === 'large' ? '大' : '特大'}</span>
+                <span>字體: {fontSize === 'normal' ? '標準' : fontSize === 'large' ? '大 🔍' : '特大 🔍+'}</span>
               </button>
             </div>
 
@@ -154,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="bg-white p-0.5 sm:p-1 rounded-full border-2 border-[#5D4037] flex items-center shadow-[2px_2px_0px_#5D4037] shrink-0">
               <button
                 onClick={() => setRoleMode('teacher')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'teacher'
                     ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#FFF3E0]'
@@ -164,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={() => setRoleMode('parent')}
-                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-black transition-all ${
                   roleMode === 'parent'
                     ? 'bg-[#81D4FA] text-[#0277BD] border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037]'
                     : 'text-[#5D4037] hover:bg-[#E1F5FE]'
@@ -176,26 +192,52 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Parent Mode Quick Student Select */}
-        {roleMode === 'parent' && (
-          <div className="bg-[#E1F5FE] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
+        {/* Class Filter Bar & Parent Mode Student Select */}
+        <div className="bg-[#FFF8E1] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
+          {/* Class Filter Dropdown */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="flex items-center gap-1.5 text-[#5D4037] font-black shrink-0">
-              <Sparkles className="w-4 h-4 text-[#0288D1]" />
-              <span className="hidden sm:inline">請選擇孩子：</span>
+              <Filter className="w-4 h-4 text-[#FF8A65]" />
+              <span>班級篩選：</span>
             </div>
             <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-extrabold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] w-full sm:w-auto"
+              value={selectedClassFilter}
+              onChange={(e) => setSelectedClassFilter(e.target.value as ClassFilterOption)}
+              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer w-full sm:w-auto"
             >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name} ({stu.parentName})
-                </option>
-              ))}
+              <option value="全部班級">🏫 全部班級 (全校幼童)</option>
+              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
             </select>
           </div>
-        )}
+
+          {/* Parent Mode Student Select */}
+          {roleMode === 'parent' && (
+            <div className="flex items-center gap-1.5 w-full sm:w-auto border-t sm:border-t-0 border-[#5D4037]/20 pt-1.5 sm:pt-0">
+              <div className="flex items-center gap-1 text-[#5D4037] font-black shrink-0">
+                <Sparkles className="w-3.5 h-3.5 text-[#0288D1]" />
+                <span>選擇孩子：</span>
+              </div>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] w-full sm:w-auto cursor-pointer"
+              >
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((stu) => (
+                    <option key={stu.id} value={stu.id}>
+                      {stu.className} - {stu.seatNumber}號 {stu.name} ({stu.parentName})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">該班級尚無學生紀錄</option>
+                )}
+              </select>
+            </div>
+          )}
+        </div>
 
         {/* Navigation Tabs (Desktop & Tablet) */}
         <nav className="hidden md:flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">

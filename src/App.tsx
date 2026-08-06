@@ -4,7 +4,8 @@ import {
   Student, 
   LearningRecord, 
   ContactBook, 
-  SheetConfig 
+  SheetConfig,
+  ClassFilterOption
 } from './types';
 import { 
   INITIAL_STUDENTS, 
@@ -20,22 +21,13 @@ import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { 
-  findKindergartenSpreadsheet, 
-  loadAllFromSheet, 
-  fetchFromWebApp, 
-  DEFAULT_WEB_APP_URL, 
-  DEFAULT_LEARNING_WEB_APP_URL,
-  DEFAULT_STUDENT_SPREADSHEET_URL,
-  fetchStudentsFromGoogleSheetUrl
-} from './lib/googleSheets';
+import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
 import { 
   ClipboardList, 
   BookOpenCheck, 
   Heart, 
   Users, 
-  Layers,
-  WifiOff
+  Layers 
 } from 'lucide-react';
 
 export default function App() {
@@ -45,21 +37,9 @@ export default function App() {
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState<boolean>(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
-  // Monitor network online/offline status
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  // Global Class Filter state
+  const [selectedClassFilter, setSelectedClassFilter] = useState<ClassFilterOption>('全部班級');
 
   // Global Font Size scaling state
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>(() => {
@@ -100,9 +80,6 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
         parsed.isConnected = true;
       }
-      if (!parsed.studentSheetUrl) {
-        parsed.studentSheetUrl = DEFAULT_STUDENT_SPREADSHEET_URL;
-      }
       return {
         refreshIntervalMinutes: 5,
         ...parsed,
@@ -110,10 +87,9 @@ export default function App() {
       };
     }
     return {
-      spreadsheetId: '1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84',
-      spreadsheetUrl: DEFAULT_STUDENT_SPREADSHEET_URL,
-      studentSheetUrl: DEFAULT_STUDENT_SPREADSHEET_URL,
-      spreadsheetName: '愛愛幼兒園_學生名冊與學習歷程_資料庫',
+      spreadsheetId: null,
+      spreadsheetUrl: null,
+      spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
       webAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
       isConnected: true,
       lastSyncedAt: null,
@@ -121,22 +97,6 @@ export default function App() {
       autoRefreshEnabled: false,
     };
   });
-
-  // Auto sync student roster from Google Sheet on startup
-  useEffect(() => {
-    const targetUrl = sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL;
-    if (targetUrl) {
-      fetchStudentsFromGoogleSheetUrl(targetUrl)
-        .then((fetchedStudents) => {
-          if (fetchedStudents && fetchedStudents.length > 0) {
-            setStudents(fetchedStudents);
-          }
-        })
-        .catch((err) => {
-          console.warn('Initial student Google Sheet fetch notice:', err?.message || err);
-        });
-    }
-  }, [sheetConfig.studentSheetUrl]);
 
   // Save to LocalStorage whenever state updates safely with try-catch
   useEffect(() => {
@@ -329,16 +289,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-32 md:pb-16 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FFFBF0] font-sans text-[#5D4037] pb-24 md:pb-16 flex flex-col justify-between">
       <div>
-        {/* Offline Mode Floating Alert Banner */}
-        {isOffline && (
-          <div className="sticky top-0 z-50 bg-[#D32F2F] text-white px-3 py-2 text-center text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md border-b-2 border-[#B71C1C] animate-pulse">
-            <WifiOff className="w-4 h-4 shrink-0" />
-            <span>目前為離線模式，聯絡簿與 Sheet 同步功能已暫時停用</span>
-          </div>
-        )}
-
         {/* Sync Toast Notification */}
         {syncToast && (
           <div
@@ -368,6 +320,8 @@ export default function App() {
           setSelectedStudentId={setSelectedStudentId}
           fontSize={fontSize}
           setFontSize={setFontSize}
+          selectedClassFilter={selectedClassFilter}
+          setSelectedClassFilter={setSelectedClassFilter}
         />
 
         {/* Main Content Area */}
@@ -412,6 +366,8 @@ export default function App() {
               learningRecords={learningRecords}
               contactBooks={contactBooks}
               sheetConfig={sheetConfig}
+              selectedClassFilter={selectedClassFilter}
+              setSelectedClassFilter={setSelectedClassFilter}
             />
           )}
 
@@ -432,7 +388,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-12 py-3 bg-[#5D4037] text-white flex flex-col sm:flex-row items-center justify-center text-xs gap-3 tracking-widest font-mono border-t-4 border-[#3E2723]">
-        <span className="opacity-80">愛愛幼兒園 | 大班角落學習區與聯絡簿管理系統</span>
+        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習區與聯絡簿管理系統</span>
         <div className="flex items-center gap-2 bg-[#4E342E] px-3 py-1 rounded-full text-[10px]">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>GOOGLE SHEETS SYNC ACTIVE</span>
@@ -440,69 +396,69 @@ export default function App() {
       </footer>
 
       {/* Mobile Fixed Bottom Navigation Bar (App style) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1 py-1 flex items-center justify-around pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1.5 py-1 flex items-center justify-around">
         {roleMode === 'teacher' && (
           <button
             onClick={() => setActiveTab('corner-form')}
-            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-xl text-[10px] font-black transition-all active:scale-95 cursor-pointer min-h-[44px] min-w-[56px] ${
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
               activeTab === 'corner-form'
                 ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
                 : 'text-[#5D4037] hover:bg-white/40'
             }`}
           >
             <ClipboardList className="w-5 h-5 mb-0.5" />
-            <span className="whitespace-nowrap">角落紀錄</span>
+            <span>角落紀錄</span>
           </button>
         )}
 
         <button
           onClick={() => setActiveTab('learning-report')}
-          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-xl text-[10px] font-black transition-all active:scale-95 cursor-pointer min-h-[44px] min-w-[56px] ${
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
             activeTab === 'learning-report'
               ? 'bg-[#FFB74D] text-[#5D4037] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
           <BookOpenCheck className="w-5 h-5 mb-0.5" />
-          <span className="whitespace-nowrap">學習歷程</span>
+          <span>學習歷程</span>
         </button>
 
         <button
           onClick={() => setActiveTab('contact-book')}
-          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-xl text-[10px] font-black transition-all active:scale-95 cursor-pointer min-h-[44px] min-w-[56px] ${
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
             activeTab === 'contact-book'
               ? 'bg-[#81D4FA] text-[#01579B] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
           <Heart className="w-5 h-5 mb-0.5" />
-          <span className="whitespace-nowrap">聯絡簿</span>
+          <span>聯絡簿</span>
         </button>
 
         {roleMode === 'teacher' && (
           <button
             onClick={() => setActiveTab('roster')}
-            className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-xl text-[10px] font-black transition-all active:scale-95 cursor-pointer min-h-[44px] min-w-[56px] ${
+            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
               activeTab === 'roster'
                 ? 'bg-[#CE93D8] text-[#4A148C] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
                 : 'text-[#5D4037] hover:bg-white/40'
             }`}
           >
             <Users className="w-5 h-5 mb-0.5" />
-            <span className="whitespace-nowrap">學生名冊</span>
+            <span>學生名冊</span>
           </button>
         )}
 
         <button
           onClick={() => setActiveTab('system-design')}
-          className={`flex flex-col items-center justify-center px-2 py-1.5 rounded-xl text-[10px] font-black transition-all active:scale-95 cursor-pointer min-h-[44px] min-w-[56px] ${
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
             activeTab === 'system-design'
               ? 'bg-[#FFF3E0] text-[#E65100] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
           <Layers className="w-5 h-5 mb-0.5" />
-          <span className="whitespace-nowrap">設定/Sheet</span>
+          <span>設定/Sheet</span>
         </button>
       </div>
 

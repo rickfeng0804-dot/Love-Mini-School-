@@ -2,23 +2,6 @@
 
 html {
   font-size: 18.5px;
-  overflow-x: hidden;
-  width: 100%;
-}
-
-@media (max-width: 639px) {
-  html {
-    font-size: 14.5px;
-  }
-  html[data-font-size="normal"] {
-    font-size: 13.5px;
-  }
-  html[data-font-size="large"] {
-    font-size: 14.5px;
-  }
-  html[data-font-size="xlarge"] {
-    font-size: 16px;
-  }
 }
 
 html[data-font-size="normal"] {
@@ -37,17 +20,6 @@ html[data-font-size="xlarge"] {
 body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  width: 100%;
-}
-
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 @page {

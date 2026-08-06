@@ -77,9 +77,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ initialImage, onSa
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('touches' in e && e.cancelable) {
-      e.preventDefault();
-    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -103,9 +100,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ initialImage, onSa
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('touches' in e && e.cancelable) {
-      e.preventDefault();
-    }
     if (!isDrawing || selectedStamp) return;
     const canvas = canvasRef.current;
     if (!canvas) return;

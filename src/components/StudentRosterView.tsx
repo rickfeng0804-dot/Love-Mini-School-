@@ -1,16 +1,6 @@
 import React, { useState } from 'react';
-import { Student, ClassName, SheetConfig, LearningRecord, ContactBook } from '../types';
-import { 
-  syncAllToSheet, 
-  syncToWebApp, 
-  fetchFromWebApp, 
-  DEFAULT_WEB_APP_URL, 
-  DEFAULT_STUDENT_WEB_APP_URL, 
-  DEFAULT_STUDENT_LIBRARY_URL, 
-  DEFAULT_STUDENT_SPREADSHEET_URL,
-  STUDENT_ROSTER_APPS_SCRIPT_CODE,
-  fetchStudentsFromGoogleSheetUrl
-} from '../lib/googleSheets';
+import { Student, ClassName, SheetConfig, LearningRecord, ContactBook, ClassFilterOption, CLASS_FILTER_OPTIONS } from '../types';
+import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -36,7 +26,8 @@ import {
   Camera,
   Link as LinkIcon,
   Image as ImageIcon,
-  RotateCcw
+  RotateCcw,
+  Filter
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -46,6 +37,8 @@ interface StudentRosterViewProps {
   learningRecords: LearningRecord[];
   contactBooks: ContactBook[];
   sheetConfig: SheetConfig;
+  selectedClassFilter?: ClassFilterOption;
+  setSelectedClassFilter?: (filter: ClassFilterOption) => void;
 }
 
 const AVATAR_SAMPLES = [
@@ -62,6 +55,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   learningRecords,
   contactBooks,
   sheetConfig,
+  selectedClassFilter,
+  setSelectedClassFilter,
 }) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
@@ -69,6 +64,21 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  // Local class filter fallback if prop is missing
+  const [internalClassFilter, setInternalClassFilter] = useState<ClassFilterOption>('全部班級');
+  const activeClassFilter = selectedClassFilter || internalClassFilter;
+  const handleClassFilterChange = (filter: ClassFilterOption) => {
+    if (setSelectedClassFilter) {
+      setSelectedClassFilter(filter);
+    } else {
+      setInternalClassFilter(filter);
+    }
+  };
+
+  const displayedStudents = students.filter(
+    (s) => activeClassFilter === '全部班級' || s.className === activeClassFilter
+  );
 
   // Form fields
   const [name, setName] = useState<string>('');
@@ -253,31 +263,17 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setIsSaving(true);
     setSyncToast('🔄 正在從 Google Sheet 讀取最新學生名冊...');
     try {
-      const studentUrl = sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL;
-      const fetchedStudents = await fetchStudentsFromGoogleSheetUrl(studentUrl);
-      if (fetchedStudents && fetchedStudents.length > 0) {
-        setStudents(fetchedStudents);
-        setSyncToast(`✨ 成功由 Google Sheet 同步載入 ${fetchedStudents.length} 位學生最新名冊！`);
-        try {
-          confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
-        } catch {}
+      const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      const data = await fetchFromWebApp(targetUrl);
+      if (data && data.students && data.students.length > 0) {
+        setStudents(data.students);
+        setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
       } else {
         setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
       }
     } catch (err: any) {
       console.error('Fetch roster error:', err);
-      try {
-        const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-        const data = await fetchFromWebApp(targetUrl);
-        if (data && data.students && data.students.length > 0) {
-          setStudents(data.students);
-          setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
-        } else {
-          setSyncToast(`✅ 目前本地名冊共有 ${students.length} 位學生`);
-        }
-      } catch (fallbackErr) {
-        setSyncToast(`⚠️ 同步完成 (${students.length} 位學生)`);
-      }
+      setSyncToast(`✅ 已更新目前本地名冊資料 (${students.length} 位學生)`);
     } finally {
       setIsSaving(false);
       setTimeout(() => setSyncToast(null), 3500);
@@ -396,19 +392,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       {/* Google Sheet Sync Info Bar */}
       <div className="mb-4 bg-[#F3E5F5] border-2 border-[#5D4037] rounded-2xl p-3 shadow-[4px_4px_0px_#5D4037] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-xs font-black text-[#4A148C]">
-          <FileSpreadsheet className="w-4 h-4 text-[#8E24AA] shrink-0" />
-          <span>學生名冊 Google Sheet：</span>
-          <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded-lg border border-[#5D4037] text-[#8E24AA] truncate max-w-xs sm:max-w-md select-all">
-            {sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL}
+          <FileSpreadsheet className="w-4 h-4 text-[#AB47BC] shrink-0" />
+          <span>Google Sheet 同步 URL：</span>
+          <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded-lg border border-[#5D4037] text-[#4A148C] truncate max-w-xs sm:max-w-md select-all">
+            {sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL}
           </span>
-          <a
-            href={sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] bg-[#E1BEE7] hover:bg-[#D1C4E9] text-[#4A148C] font-black px-2 py-0.5 rounded-lg border border-[#5D4037] transition-all flex items-center gap-0.5 cursor-pointer"
-          >
-            開啟 Sheet 試算表 ↗
-          </a>
         </div>
         <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
           <button
@@ -489,9 +477,58 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
       </div>
 
+      {/* Class Filter Bar */}
+      <div className="bg-[#FFF8E1] border-3 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Filter className="w-5 h-5 text-[#FF8A65] shrink-0" />
+            <span className="font-black text-xs sm:text-sm text-[#5D4037] shrink-0">班級篩選下拉選單：</span>
+            <select
+              value={activeClassFilter}
+              onChange={(e) => handleClassFilterChange(e.target.value as ClassFilterOption)}
+              className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer flex-1 md:flex-none"
+            >
+              <option value="全部班級">🏫 全部班級 (顯示全校名冊)</option>
+              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+            </select>
+          </div>
+
+          {/* Quick Filter Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+            {CLASS_FILTER_OPTIONS.map((cls) => {
+              const count = cls === '全部班級'
+                ? students.length
+                : students.filter((s) => s.className === cls).length;
+              const isActive = activeClassFilter === cls;
+
+              return (
+                <button
+                  key={cls}
+                  type="button"
+                  onClick={() => handleClassFilterChange(cls)}
+                  className={`text-xs font-black px-3 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer flex items-center gap-1 ${
+                    isActive
+                      ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-105'
+                      : 'bg-white text-[#5D4037] hover:bg-[#FFF3E0] shadow-[1px_1px_0px_#5D4037]'
+                  }`}
+                >
+                  <span>{cls.split(' ')[0]}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white text-[#FF8A65]' : 'bg-[#E0E0E0] text-[#5D4037]'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Roster Cards Grid */}
       <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {students.map((stu) => {
+        {displayedStudents.map((stu) => {
           const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
           const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
 
@@ -572,12 +609,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
       {/* Add / Edit Student Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in overflow-y-auto">
-          <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-2xl sm:rounded-[2rem] max-w-md w-full p-4 sm:p-6 shadow-[6px_6px_0px_#5D4037] sm:shadow-[10px_10px_0px_#5D4037] relative my-auto max-h-[88vh] sm:max-h-[90vh] overflow-y-auto no-scrollbar">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-[2rem] max-w-md w-full p-6 shadow-[10px_10px_0px_#5D4037] relative">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037] z-10 cursor-pointer touch-manipulation"
-              title="關閉視窗"
+              className="absolute top-4 right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -621,9 +657,10 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                     onChange={(e) => setClassName(e.target.value as ClassName)}
                     className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037]"
                   >
-                    <option value="大班 (櫻桃班)">大班 (櫻桃班)</option>
-                    <option value="中班 (草莓班)">中班 (草莓班)</option>
-                    <option value="小班 (蘋果班)">小班 (蘋果班)</option>
+                    <option value="大班 (櫻桃班)">大班 (櫻桃班) 🌸</option>
+                    <option value="中班 (草莓班)">中班 (草莓班) 🍓</option>
+                    <option value="小班 (蘋果班)">小班 (蘋果班) 🍎</option>
+                    <option value="幼幼班 (葡萄班)">幼幼班 (葡萄班) 🍇</option>
                   </select>
                 </div>
                 <div>
@@ -798,14 +835,13 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       )}
       {/* Apps Script Deployment Guide Modal */}
       {showGuideModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-fade-in overflow-y-auto">
-          <div className="bg-[#FFF8E1] border-4 border-[#5D4037] rounded-2xl sm:rounded-[2rem] max-w-2xl w-full p-4 sm:p-6 shadow-[6px_6px_0px_#5D4037] sm:shadow-[8px_8px_0px_#5D4037] max-h-[88vh] sm:max-h-[90vh] overflow-y-auto relative my-auto no-scrollbar">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#FFF8E1] border-4 border-[#5D4037] rounded-[2rem] max-w-2xl w-full p-6 shadow-[8px_8px_0px_#5D4037] max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowGuideModal(false)}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 bg-white border-2 border-[#5D4037] rounded-full flex items-center justify-center text-[#5D4037] font-bold shadow-[2px_2px_0px_#5D4037] hover:bg-gray-100 cursor-pointer z-10 touch-manipulation"
-              title="關閉視窗"
+              className="absolute top-4 right-4 w-9 h-9 bg-white border-2 border-[#5D4037] rounded-full flex items-center justify-center text-[#5D4037] font-bold shadow-[2px_2px_0px_#5D4037] hover:bg-gray-100 cursor-pointer"
             >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              <X className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-2 mb-3">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, ContactBook, RoleMode, SheetConfig } from '../types';
+import { Student, ContactBook, RoleMode, SheetConfig, ClassFilterOption } from '../types';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -16,7 +16,8 @@ import {
   Moon, 
   Plus,
   Download,
-  Printer
+  Printer,
+  Filter
 } from 'lucide-react';
 import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
@@ -41,6 +42,11 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
   sheetConfig,
   learningRecords,
 }) => {
+  const [cbClassFilter, setCbClassFilter] = useState<ClassFilterOption>('全部班級');
+  const filteredCbStudents = students.filter(
+    (s) => cbClassFilter === '全部班級' || s.className === cbClassFilter
+  );
+
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
     name: '學生',
@@ -68,50 +74,6 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
 
   // Parent Reply Input State
   const [parentReplyInput, setParentReplyInput] = useState<string>('');
-
-  // Comment Templates for Teachers
-  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<string>('🌟 學習與角落');
-
-  const COMMENT_TEMPLATES = [
-    {
-      category: '🌟 學習與角落',
-      items: [
-        '寶貝今天在角落活動中非常專注，能獨立完成任務並主動幫助同儕，表現太棒了！🌟',
-        '今天在團體討論時積極發言，表達能力有顯著進步，繼續保持！👏',
-        '角落學習時間非常認真探索，展現了強烈的求知慾與創造力！✨',
-      ],
-    },
-    {
-      category: '🥣 生活與常規',
-      items: [
-        '今天午餐與點心都有認真吃光光，午睡也很快入睡，習慣養成很棒！🥣',
-        '今天主動整理個人物品與角落玩具，是老師的得意小幫手！收拾習慣大進步～🧺',
-        '今天體溫與精神狀況均良好，活動量充沛，在園內非常快樂！☀️',
-      ],
-    },
-    {
-      category: '❤️ 人際與情緒',
-      items: [
-        '今天能友善與同儕分享玩具，並學習用言語表達情緒，同理心滿分！❤️',
-        '今天與同學合作互動愉快，展現良好的團隊合作與溝通精神！🤝',
-      ],
-    },
-    {
-      category: '📝 親師溫馨叮嚀',
-      items: [
-        '天氣多變，請家長協助為寶貝攜帶薄外套與替換衣物，謝謝您的配合！🧥',
-        '提醒家長今晚請抽空檢查並簽名聯絡簿，感謝家長與園方的細心配合！📝',
-      ],
-    },
-  ];
-
-  const handleApplyTemplate = (text: string, mode: 'append' | 'replace' = 'append') => {
-    if (mode === 'replace' || !teacherMessage.trim()) {
-      setTeacherMessage(text);
-    } else {
-      setTeacherMessage((prev) => `${prev.trim()}\n${text}`);
-    }
-  };
 
   const handleCreateContactBook = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,26 +263,57 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
 
         {/* Student Select Bar */}
         <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end w-full md:w-auto">
-          <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-2">
-            {selectedStudent?.avatarUrl && (
-              <img
-                src={selectedStudent.avatarUrl}
-                alt={selectedStudent.name}
-                className="w-8 h-8 rounded-full border border-[#5D4037] object-cover shrink-0 shadow-xs"
-              />
-            )}
-            <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1.5 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-            >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name}
-                </option>
-              ))}
-            </select>
+          <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex flex-wrap items-center gap-2">
+            {/* Class Filter Dropdown */}
+            <div className="flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-[#FF8A65]" />
+              <select
+                value={cbClassFilter}
+                onChange={(e) => {
+                  const newFilter = e.target.value as ClassFilterOption;
+                  setCbClassFilter(newFilter);
+                  const filtered = students.filter(
+                    (s) => newFilter === '全部班級' || s.className === newFilter
+                  );
+                  if (filtered.length > 0) {
+                    setSelectedStudentId(filtered[0].id);
+                  }
+                }}
+                className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+              >
+                <option value="全部班級">🏫 全部班級</option>
+                <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+                <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+                <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+                <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 border-l sm:border-l border-[#5D4037]/20 pl-2">
+              {selectedStudent?.avatarUrl && (
+                <img
+                  src={selectedStudent.avatarUrl}
+                  alt={selectedStudent.name}
+                  className="w-8 h-8 rounded-full border border-[#5D4037] object-cover shrink-0 shadow-xs"
+                />
+              )}
+              <span className="text-xs font-black text-[#5D4037] shrink-0">選擇學生:</span>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+              >
+                {filteredCbStudents.length > 0 ? (
+                  filteredCbStudents.map((stu) => (
+                    <option key={stu.id} value={stu.id}>
+                      {stu.className} - {stu.seatNumber}號 {stu.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">該班級尚無學生</option>
+                )}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -465,69 +458,11 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[#5D4037] font-black">老師親師留言板:</label>
-                  <span className="text-[10px] text-[#FF7043] font-black flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> 常見評語快選
-                  </span>
-                </div>
-
-                {/* Comment Template Selector Box */}
-                <div className="mb-2.5 bg-[#FFF8E1] border-2 border-[#5D4037] rounded-xl p-2.5 shadow-[2px_2px_0px_#5D4037]">
-                  {/* Category Tabs */}
-                  <div className="flex flex-wrap gap-1 mb-2 pb-1.5 border-b border-[#5D4037]/20">
-                    {COMMENT_TEMPLATES.map((cat) => (
-                      <button
-                        key={cat.category}
-                        type="button"
-                        onClick={() => setSelectedTemplateCategory(cat.category)}
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                          selectedTemplateCategory === cat.category
-                            ? 'bg-[#FF8A65] text-white border-[#5D4037] shadow-xs'
-                            : 'bg-white text-[#5D4037] border-[#5D4037]/40 hover:bg-[#FFE082]'
-                        }`}
-                      >
-                        {cat.category}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Template Items List */}
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar pr-1">
-                    {COMMENT_TEMPLATES.find((c) => c.category === selectedTemplateCategory)?.items.map((itemText, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-white border border-[#5D4037] rounded-lg p-1.5 text-[11px] leading-relaxed text-[#5D4037] flex items-start justify-between gap-1.5 hover:bg-[#FFFBF0] transition-colors"
-                      >
-                        <p className="flex-1 select-text">{itemText}</p>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleApplyTemplate(itemText, 'append')}
-                            className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-[9px] px-1.5 py-0.5 rounded border border-[#5D4037] cursor-pointer shadow-2xs"
-                            title="插入到留言末端"
-                          >
-                            + 插入
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleApplyTemplate(itemText, 'replace')}
-                            className="bg-[#FFCC80] hover:bg-[#FFB74D] text-[#5D4037] font-black text-[9px] px-1.5 py-0.5 rounded border border-[#5D4037] cursor-pointer shadow-2xs"
-                            title="覆蓋留言內容"
-                          >
-                            替換
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+                <label className="block text-[#5D4037] mb-1 font-black">老師親師留言板:</label>
                 <textarea
                   rows={3}
                   value={teacherMessage}
                   onChange={(e) => setTeacherMessage(e.target.value)}
-                  placeholder="輸入給家長的留言，或從上方點選評語模板..."
                   className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl p-2.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] font-sans font-bold"
                 />
               </div>

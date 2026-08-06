@@ -10,11 +10,9 @@ import {
   DEFAULT_STUDENT_LIBRARY_URL,
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
-  DEFAULT_STUDENT_SPREADSHEET_URL,
   fetchFromWebApp, 
   syncToWebApp,
-  normalizeWebAppUrl,
-  fetchStudentsFromGoogleSheetUrl
+  normalizeWebAppUrl
 } from '../lib/googleSheets';
 import { 
   FileSpreadsheet, 
@@ -63,9 +61,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
   const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || '');
-  const [studentSheetUrlInput, setStudentSheetUrlInput] = useState(
-    sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL
-  );
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
     sheetConfig.refreshIntervalMinutes ?? 5
   );
@@ -80,7 +75,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   // Sync state changes with sheetConfig
   useEffect(() => {
     setWebAppInput(sheetConfig.webAppUrl || '');
-    setStudentSheetUrlInput(sheetConfig.studentSheetUrl || DEFAULT_STUDENT_SPREADSHEET_URL);
     setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
   }, [sheetConfig]);
@@ -90,42 +84,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     navigator.clipboard.writeText(codeText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-  };
-
-  // Dedicated Student Roster Google Sheet Fetch
-  const handleFetchStudentRoster = async () => {
-    const rawUrl = studentSheetUrlInput.trim() || DEFAULT_STUDENT_SPREADSHEET_URL;
-    setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: `正在由 Google Sheet (${rawUrl}) 讀取學生名冊...` });
-
-    try {
-      const fetchedStudents = await fetchStudentsFromGoogleSheetUrl(rawUrl);
-      if (fetchedStudents && fetchedStudents.length > 0) {
-        setStudents(fetchedStudents);
-        const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        setSheetConfig((prev) => ({
-          ...prev,
-          studentSheetUrl: rawUrl,
-          spreadsheetUrl: rawUrl,
-          isConnected: true,
-          lastSyncedAt: nowStr,
-        }));
-        setStatusMessage({
-          type: 'success',
-          text: `✨ 成功從 Google Sheet 同步載入 ${fetchedStudents.length} 位學生名冊！`
-        });
-      } else {
-        setStatusMessage({ type: 'error', text: '取得的學生名冊資料為空' });
-      }
-    } catch (err: any) {
-      console.error(err);
-      setStatusMessage({
-        type: 'error',
-        text: `學生名冊同步失敗: ${err.message || '請確認 Google Sheet 共用設定為「知道連結的人皆可存取」'}`
-      });
-    } finally {
-      setIsSyncing(false);
-    }
   };
 
   // Test / Connect to Web App URL
@@ -142,11 +100,12 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     }
 
     setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App 並同步名冊...' });
+    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App...' });
 
     try {
-      // 1. Fetch main Web App data
       const data = await fetchFromWebApp(normalized);
+      
+      // Update local state if spreadsheet returns data
       if (data.students && data.students.length > 0) {
         setStudents(data.students);
       }
@@ -157,24 +116,11 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
         setContactBooks(data.contactBooks);
       }
 
-      // 2. Also attempt fetching Google Sheet Student Roster if configured
-      if (studentSheetUrlInput.trim()) {
-        try {
-          const fetchedStudents = await fetchStudentsFromGoogleSheetUrl(studentSheetUrlInput.trim());
-          if (fetchedStudents && fetchedStudents.length > 0) {
-            setStudents(fetchedStudents);
-          }
-        } catch (e) {
-          console.warn('Student sheet fetch notice during test:', e);
-        }
-      }
-
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       setSheetConfig((prev) => ({
         ...prev,
         webAppUrl: normalized,
-        studentSheetUrl: studentSheetUrlInput.trim() || DEFAULT_STUDENT_SPREADSHEET_URL,
         isConnected: true,
         lastSyncedAt: nowStr,
         refreshIntervalMinutes: intervalMinutes,
@@ -183,7 +129,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
       setStatusMessage({
         type: 'success',
-        text: `連線成功！已由 Google Sheet 同步最新學生名冊、${data.learningRecords.length} 筆角落紀錄與 ${data.contactBooks.length} 筆聯絡簿！`
+        text: `連線成功！已由 Google Sheet 載入 ${data.students.length} 位學生名冊、${data.learningRecords.length} 筆角落紀錄與 ${data.contactBooks.length} 筆聯絡簿！`
       });
     } catch (err: any) {
       console.error(err);
@@ -203,17 +149,15 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     if (normalized !== rawInput) {
       setWebAppInput(normalized);
     }
-    const studentUrl = studentSheetUrlInput.trim() || DEFAULT_STUDENT_SPREADSHEET_URL;
 
     setSheetConfig((prev) => ({
       ...prev,
       webAppUrl: normalized,
-      studentSheetUrl: studentUrl,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
-      isConnected: Boolean(normalized || studentUrl),
+      isConnected: Boolean(normalized),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定（學生名冊與 Google Sheet 網址）已成功儲存並生效！' });
+    setStatusMessage({ type: 'success', text: '系統設定已儲存並生效！' });
     setTimeout(() => setStatusMessage(null), 3500);
   };
 
@@ -567,59 +511,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 推送更新至 Google Sheet
               </button>
-            </div>
-
-            {/* Student Roster Google Sheet URL Card */}
-            <div className="mt-4 pt-4 border-t-2 border-dashed border-[#5D4037]/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#8E24AA]" />
-                  學生名冊 Google Sheet 同步網址設定:
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStudentSheetUrlInput(DEFAULT_STUDENT_SPREADSHEET_URL);
-                    setStatusMessage({ type: 'info', text: '已自動帶入學生名冊預設 Google Sheet 網址！' });
-                  }}
-                  className="bg-[#F3E5F5] hover:bg-[#E1BEE7] text-[#8E24AA] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#8E24AA]/50 cursor-pointer transition-all"
-                >
-                  帶入學生名冊預設 URL
-                </button>
-              </div>
-
-              <input
-                type="url"
-                value={studentSheetUrlInput}
-                onChange={(e) => setStudentSheetUrlInput(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/1x2DkkIuh3kp3k5YLjz2S065gDKdMFSb5O4CnJrHCn84/edit?usp=sharing"
-                className="w-full bg-white border-2 border-[#8E24AA] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#8E24AA]"
-              />
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] text-[#5D4037]/70 font-bold">
-                  預設: <code className="text-[#8E24AA] font-mono">.../d/1x2DkkIuh.../edit</code>
-                </span>
-                <div className="flex gap-2">
-                  <a
-                    href={studentSheetUrlInput || DEFAULT_STUDENT_SPREADSHEET_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] font-black text-[#00838F] hover:underline flex items-center gap-1"
-                  >
-                    開啟 Sheet 試算表 ↗
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleFetchStudentRoster}
-                    disabled={isSyncing}
-                    className="bg-[#8E24AA] hover:bg-[#7B1FA2] text-white font-black text-[11px] px-3 py-1 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                    即時同步學生名冊
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 

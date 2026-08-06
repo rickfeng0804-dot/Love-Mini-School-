@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, LearningRecord, CornerAreaId } from '../types';
+import { Student, LearningRecord, CornerAreaId, ClassFilterOption } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
 import { 
   Printer, 
@@ -263,8 +263,8 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
 
       {/* Footer Sign-off */}
       <div className="flex justify-between items-center text-[10px] text-[#5D4037] mt-3 font-mono font-bold">
-        <span>幼兒園導師簽章：__________________</span>
-        <span>園長簽章：__________________</span>
+        <span>班級導師簽章：__________________</span>
+        <span>園長：黃雅琦 Rachel (簽章：__________________)</span>
         <span>家長查閱簽章：__________________</span>
       </div>
     </div>
@@ -277,6 +277,11 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   selectedStudentId,
   setSelectedStudentId,
 }) => {
+  const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
+  const filteredReportStudents = students.filter(
+    (s) => reportClassFilter === '全部班級' || s.className === reportClassFilter
+  );
+
   const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
   const [activeRecordId, setActiveRecordId] = useState<string>('');
   const [pieMode, setPieMode] = useState<'week' | 'cumulative'>('week');
@@ -497,29 +502,80 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     blocks: '#8D6E63',     // 積木區
   };
 
+  const renderPieLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, percentage } = props;
+    if (percent < 0.04) return null;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#FFFFFF"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="text-[10px] font-black pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+      >
+        {`${percentage}%`}
+      </text>
+    );
+  };
+
   const computeCornerPieData = () => {
     const targetRecords = pieMode === 'cumulative' ? studentRecords : (activeRecord ? [activeRecord] : []);
-    if (targetRecords.length === 0) return [];
-
+    
     const counts: Record<string, number> = {};
     CORNER_AREAS.forEach((area) => {
       counts[area.id] = 0;
     });
 
-    targetRecords.forEach((rec) => {
-      const checked = rec.checkedItems || {};
-      CORNER_AREAS.forEach((area) => {
-        const itemsCount = (checked[area.id] || []).length;
-        const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
-        counts[area.id] += itemsCount + noteCount;
+    if (targetRecords.length > 0) {
+      targetRecords.forEach((rec) => {
+        const checked = rec.checkedItems || {};
+        CORNER_AREAS.forEach((area) => {
+          const itemsCount = (checked[area.id] || []).length;
+          const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
+          counts[area.id] += itemsCount + noteCount;
+        });
       });
-    });
+    }
 
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
+    // If student has records with data, return actual calculated values
+    if (total > 0) {
+      return CORNER_AREAS.map((area) => {
+        const val = counts[area.id] || 0;
+        const percentage = Math.round((val / total) * 100);
+        return {
+          name: area.name,
+          id: area.id,
+          value: val,
+          percentage,
+          color: CORNER_COLORS[area.id] || '#FFA726',
+        };
+      }).filter((item) => item.value > 0);
+    }
+
+    // Default sample values for new / empty records so Pie chart remains clear & informative
+    const demoWeights: Record<string, number> = {
+      brain: 4,      // 益智區
+      language: 3,   // 語文區
+      blocks: 3,     // 積木區
+      art: 2,        // 美勞區
+      science: 2,    // 科學區
+      beads: 2,      // 拼豆區
+      watercolor: 1, // 水彩區
+      puzzle: 1,     // 拼圖/建構區
+    };
+    const demoTotal = Object.values(demoWeights).reduce((a, b) => a + b, 0);
+
     return CORNER_AREAS.map((area) => {
-      const val = counts[area.id] || 0;
-      const percentage = total > 0 ? Math.round((val / total) * 100) : 0;
+      const val = demoWeights[area.id] || 1;
+      const percentage = Math.round((val / demoTotal) * 100);
       return {
         name: area.name,
         id: area.id,
@@ -527,7 +583,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         percentage,
         color: CORNER_COLORS[area.id] || '#FFA726',
       };
-    }).filter((item) => item.value > 0);
+    });
   };
 
   const chartData = computeDomainStats(activeRecord);
@@ -541,6 +597,31 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {/* Top Filter & Print Controls (Hidden on Print) */}
       <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-4 sm:p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Class Filter Dropdown */}
+          <div className="flex-1 sm:flex-none min-w-[160px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1">班級篩選:</label>
+            <select
+              value={reportClassFilter}
+              onChange={(e) => {
+                const newFilter = e.target.value as ClassFilterOption;
+                setReportClassFilter(newFilter);
+                const filtered = students.filter(
+                  (s) => newFilter === '全部班級' || s.className === newFilter
+                );
+                if (filtered.length > 0) {
+                  setSelectedStudentId(filtered[0].id);
+                }
+              }}
+              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              <option value="全部班級">🏫 全部班級</option>
+              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
+              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
+              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
+              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+            </select>
+          </div>
+
           <div className="flex-1 sm:flex-none min-w-[200px]">
             <label className="block text-xs font-black text-[#5D4037] mb-1">快速選擇學生:</label>
             <select
@@ -552,11 +633,15 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               }}
               className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
             >
-              {students.map((stu) => (
-                <option key={stu.id} value={stu.id}>
-                  {stu.className} - {stu.seatNumber}號 {stu.name}
-                </option>
-              ))}
+              {filteredReportStudents.length > 0 ? (
+                filteredReportStudents.map((stu) => (
+                  <option key={stu.id} value={stu.id}>
+                    {stu.className} - {stu.seatNumber}號 {stu.name}
+                  </option>
+                ))
+              ) : (
+                <option value="">該班級尚無學生</option>
+              )}
             </select>
           </div>
 
@@ -689,6 +774,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                         outerRadius={75}
                         paddingAngle={3}
                         dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
                       >
                         {pieData.map((entry) => (
                           <Cell key={entry.id} fill={entry.color} stroke="#5D4037" strokeWidth={1.5} />
