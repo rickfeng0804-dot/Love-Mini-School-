@@ -281,7 +281,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 桃園市私立 愛愛幼兒園
               </span>
               <span className="bg-[#FF8A65] text-white border-2 border-[#5D4037] font-black text-xs px-3 py-1 rounded-full shadow-[2px_2px_0px_#5D4037]">
-                大班角落學習區記錄表
+                校園學習紀錄表
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-[#5D4037] flex items-center gap-2 italic">

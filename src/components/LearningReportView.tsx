@@ -61,7 +61,7 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
           <div>
             <span className="text-[11px] block font-black text-[#5D4037]">桃園市私立</span>
             <h2 className="text-xl md:text-2xl font-black tracking-wider text-[#5D4037]">
-              愛愛幼兒園 <span className="text-base font-black ml-2 text-[#FF8A65]">大班角落學習區紀錄表</span>
+              愛愛幼兒園 <span className="text-base font-black ml-2 text-[#FF8A65]">校園學習紀錄表</span>
             </h2>
           </div>
         </div>

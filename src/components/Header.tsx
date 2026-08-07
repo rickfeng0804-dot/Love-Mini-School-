@@ -250,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'bg-white text-[#5D4037] hover:bg-[#FFF3E0] shadow-[2px_2px_0px_#5D4037]'
               }`}
             >
-              <ClipboardList className="w-4 h-4" /> 大班角落學習區紀錄表
+              <ClipboardList className="w-4 h-4" /> 校園學習紀錄表
             </button>
           )}
 
