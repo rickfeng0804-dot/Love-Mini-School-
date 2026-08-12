@@ -21,7 +21,7 @@ import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL } from './lib/googleSheets';
+import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from './lib/googleSheets';
 import { 
   ClipboardList, 
   BookOpenCheck, 
@@ -80,8 +80,12 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
         parsed.isConnected = true;
       }
+      if (!parsed.mediaFolderUrl || parsed.mediaFolderUrl.includes('drive_link')) {
+        parsed.mediaFolderUrl = DEFAULT_MEDIA_FOLDER_URL;
+      }
       return {
         refreshIntervalMinutes: 5,
+        mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
         ...parsed,
         autoRefreshEnabled: false,
       };
@@ -91,6 +95,7 @@ export default function App() {
       spreadsheetUrl: null,
       spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
       webAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
+      mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
       isConnected: true,
       lastSyncedAt: null,
       refreshIntervalMinutes: 5,
@@ -343,6 +348,7 @@ export default function App() {
               learningRecords={learningRecords}
               selectedStudentId={selectedStudentId}
               setSelectedStudentId={setSelectedStudentId}
+              sheetConfig={sheetConfig}
             />
           )}
 

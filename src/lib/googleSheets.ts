@@ -7,6 +7,7 @@ export const DEFAULT_STUDENT_LIBRARY_URL = 'https://script.google.com/macros/lib
 export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwj9uSMKO1_Me0A1H3G3AuMnAaEg3cehrGlgXnv4hDczdbf_wh16bp7jnYBCMp02eON/exec';
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
+export const DEFAULT_MEDIA_FOLDER_URL = 'https://drive.google.com/drive/u/0/folders/1HmKXkl-xbLMaaCq663RMRINAsdavttJp';
 export const DEFAULT_WEB_APP_URL = DEFAULT_LEARNING_WEB_APP_URL;
 
 export interface SyncedData {
@@ -187,6 +188,87 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
 }
 
 /**
+ * Upload image or video file to specified Google Drive Folder via Web App URL
+ */
+export async function uploadPhotoToGoogleDrive(
+  webAppUrl: string,
+  base64Data: string,
+  fileName: string,
+  folderUrl?: string,
+  contentType: string = 'image/jpeg'
+): Promise<{ status: string; fileId?: string; fileUrl?: string; downloadUrl?: string; message?: string }> {
+  try {
+    const normalizedUrl = normalizeWebAppUrl(webAppUrl);
+    if (!normalizedUrl) {
+      throw new Error('未設定有效的 Google Sheet Web App URL');
+    }
+
+    const payload = {
+      action: 'uploadFile',
+      base64Data,
+      fileName,
+      folderUrl: folderUrl || DEFAULT_MEDIA_FOLDER_URL,
+      contentType: contentType || 'image/jpeg',
+    };
+
+    const jsonString = JSON.stringify(payload);
+
+    // 1. Send via beacon if available
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      try {
+        const formData = new FormData();
+        formData.append('payload', jsonString);
+        navigator.sendBeacon(normalizedUrl, formData);
+      } catch (bErr) {
+        console.warn('sendBeacon upload warning:', bErr);
+      }
+    }
+
+    // 2. Send via hidden form helper
+    sendViaHiddenForm(normalizedUrl, payload);
+
+    // 3. Send fetch request
+    const params = new URLSearchParams();
+    params.append('payload', jsonString);
+
+    const response = await fetch(normalizedUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params,
+    });
+
+    if (!response.ok && response.type !== 'opaque') {
+      throw new Error(`HTTP 錯誤 ${response.status}`);
+    }
+
+    if (response.type === 'opaque') {
+      return {
+        status: 'success',
+        message: '照片已透過背景連線同步傳送至 Google Drive 雲端資料夾',
+      };
+    }
+
+    const text = await response.text();
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        return data;
+      } catch (e) {}
+    }
+
+    return { status: 'success', message: '照片已成功傳送至 Google Drive 資料夾' };
+  } catch (error: any) {
+    console.warn('Google Drive photo upload notice:', error);
+    return {
+      status: 'error',
+      message: error.message || '無法連線至 Google Drive Web App',
+    };
+  }
+}
+
+/**
  * Sync all current state back to Google Sheet (bulk overwrite or append)
  */
 export async function syncAllToSheet(
@@ -336,6 +418,41 @@ function doPost(e) {
       contents = JSON.parse(e.postData.contents);
     } else {
       contents = {};
+    }
+
+    // Google Drive 上傳照片與媒體檔案功能
+    if (contents.action === "uploadFile" || contents.action === "uploadMedia") {
+      var folderId = "1HmKXkl-xbLMaaCq663RMRINAsdavttJp"; // 預設雲端資料夾 ID
+      if (contents.folderUrl) {
+        var match = contents.folderUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+        if (match) folderId = match[1];
+      }
+      try {
+        var folder = DriveApp.getFolderById(folderId);
+        var base64 = contents.base64Data;
+        if (base64.indexOf(",") > -1) {
+          base64 = base64.split(",")[1];
+        }
+        var contentType = contents.contentType || "image/jpeg";
+        var bytes = Utilities.base64Decode(base64);
+        var fileName = contents.fileName || ("photo_" + new Date().getTime() + ".jpg");
+        var blob = Utilities.newBlob(bytes, contentType, fileName);
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          fileId: file.getId(),
+          fileUrl: file.getUrl(),
+          downloadUrl: "https://lh3.googleusercontent.com/d/" + file.getId(),
+          message: "照片已成功上傳至指定 Google Drive 雲端資料夾！"
+        })).setMimeType(ContentService.MimeType.JSON);
+      } catch(fileErr) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          message: "Google Drive 上傳錯誤: " + fileErr.toString()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -602,6 +719,41 @@ function doPost(e) {
       contents = JSON.parse(e.postData.contents);
     } else {
       contents = {};
+    }
+
+    // Google Drive 上傳照片與媒體檔案功能
+    if (contents.action === "uploadFile" || contents.action === "uploadMedia") {
+      var folderId = "1HmKXkl-xbLMaaCq663RMRINAsdavttJp"; // 預設雲端資料夾 ID
+      if (contents.folderUrl) {
+        var match = contents.folderUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+        if (match) folderId = match[1];
+      }
+      try {
+        var folder = DriveApp.getFolderById(folderId);
+        var base64 = contents.base64Data;
+        if (base64.indexOf(",") > -1) {
+          base64 = base64.split(",")[1];
+        }
+        var contentType = contents.contentType || "image/jpeg";
+        var bytes = Utilities.base64Decode(base64);
+        var fileName = contents.fileName || ("photo_" + new Date().getTime() + ".jpg");
+        var blob = Utilities.newBlob(bytes, contentType, fileName);
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          fileId: file.getId(),
+          fileUrl: file.getUrl(),
+          downloadUrl: "https://lh3.googleusercontent.com/d/" + file.getId(),
+          message: "照片已成功上傳至指定 Google Drive 雲端資料夾！"
+        })).setMimeType(ContentService.MimeType.JSON);
+      } catch(fileErr) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          message: "Google Drive 上傳錯誤: " + fileErr.toString()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();

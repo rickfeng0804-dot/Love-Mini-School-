@@ -10,6 +10,7 @@ import {
   DEFAULT_STUDENT_LIBRARY_URL,
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
+  DEFAULT_MEDIA_FOLDER_URL,
   fetchFromWebApp, 
   syncToWebApp,
   normalizeWebAppUrl
@@ -34,7 +35,11 @@ import {
   AlertCircle,
   HelpCircle,
   MessageSquare,
-  Shapes
+  Shapes,
+  Folder,
+  FolderOpen,
+  Camera,
+  Video
 } from 'lucide-react';
 
 interface SystemDesignViewProps {
@@ -61,6 +66,9 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
   const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || '');
+  const [mediaFolderInput, setMediaFolderInput] = useState(
+    sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL
+  );
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
     sheetConfig.refreshIntervalMinutes ?? 5
   );
@@ -75,6 +83,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   // Sync state changes with sheetConfig
   useEffect(() => {
     setWebAppInput(sheetConfig.webAppUrl || '');
+    setMediaFolderInput(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL);
     setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
   }, [sheetConfig]);
@@ -150,14 +159,17 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       setWebAppInput(normalized);
     }
 
+    const rawMedia = mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL;
+
     setSheetConfig((prev) => ({
       ...prev,
       webAppUrl: normalized,
+      mediaFolderUrl: rawMedia,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
       isConnected: Boolean(normalized),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定已儲存並生效！' });
+    setStatusMessage({ type: 'success', text: '系統設定（含照片影片雲端資料夾連結）已成功儲存並生效！' });
     setTimeout(() => setStatusMessage(null), 3500);
   };
 
@@ -579,6 +591,67 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             >
               <Check className="w-4 h-4" /> 儲存更新時間與 URL 設定
             </button>
+          </div>
+
+          {/* Media Folder Sub-card: Google Drive Upload Link */}
+          <div className="lg:col-span-2 bg-[#E1F5FE] border-2 border-[#5D4037] rounded-2xl p-5 shadow-[4px_4px_0px_#5D4037] space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#5D4037]/30 pb-2">
+              <h4 className="font-black text-sm text-[#01579B] flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-[#0288D1]" />
+                照片影片上傳雲端資料夾連結 URL (Google Drive Media Folder)
+              </h4>
+              <span className="bg-[#81D4FA] text-[#01579B] border border-[#0288D1] text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                多媒體與作品雲端備份
+              </span>
+            </div>
+
+            <p className="text-xs text-[#01579B]/80 font-bold">
+              可在系統設定中自由修改照片與影片的上傳資料夾連結。教師記錄角落學習區與聯絡簿時，可一鍵開啟此 Google Drive 雲端資料夾上傳作品照片或影片檔。
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <div className="relative flex-1">
+                <input
+                  type="url"
+                  value={mediaFolderInput}
+                  onChange={(e) => setMediaFolderInput(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaFolderInput(DEFAULT_MEDIA_FOLDER_URL);
+                    setStatusMessage({ type: 'info', text: '已自動帶入預設照片影片 Google Drive 雲端資料夾網址！請記得點擊「儲存網址設定」。' });
+                  }}
+                  className="bg-[#B3E5FC] hover:bg-[#81D4FA] text-[#01579B] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> 恢復預設網址
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> 儲存網址設定
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white/90 p-2.5 rounded-xl border border-[#0288D1]/30 text-[11px] text-[#01579B] font-bold flex items-center justify-between">
+              <span className="truncate">📂 當前儲存的雲端資料夾網址: <code className="font-mono text-[#0288D1] ml-1">{sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL}</code></span>
+              <button
+                type="button"
+                onClick={() => handleCopyCode(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL)}
+                className="bg-[#E0F7FA] hover:bg-[#B2EBF2] text-[#00838F] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#00838F] cursor-pointer shrink-0 ml-2"
+              >
+                複製連結
+              </button>
+            </div>
           </div>
         </div>
       </div>

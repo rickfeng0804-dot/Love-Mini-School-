@@ -250,7 +250,7 @@ export const INITIAL_LEARNING_RECORDS: LearningRecord[] = [
     },
     drawingImage: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
     photoImages: [
-      'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
+      '/kindergarten_campus.svg',
       'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&auto=format&fit=crop&q=80',
     ],
     teacherComment: '小花本週在角落學習時間表現非常優異！特別是在美勞區與水彩區，展示了豐富的繪畫想像力與高超的手眼協調。能主動照顧同桌的小朋友，收拾習慣也維持得非常好！',

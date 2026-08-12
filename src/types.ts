@@ -98,6 +98,7 @@ export interface SheetConfig {
   spreadsheetUrl: string | null;
   spreadsheetName: string;
   webAppUrl?: string;
+  mediaFolderUrl?: string;
   isConnected: boolean;
   lastSyncedAt: string | null;
   refreshIntervalMinutes?: number; // 0 (Manual), 1, 5, 15, 30, 60

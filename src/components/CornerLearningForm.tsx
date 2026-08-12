@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig, ClassFilterOption } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
-import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
+import { syncAllToSheet, syncToWebApp, uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
+import { uploadReportToGoogleDrive } from '../lib/reportExport';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -25,7 +26,9 @@ import {
   Video,
   CheckCircle2,
   AlertCircle,
-  Filter
+  Filter,
+  FolderOpen,
+  ExternalLink
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -111,7 +114,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   };
 
   const [photoImages, setPhotoImages] = useState<string[]>([
-    'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop&q=80',
+    '/kindergarten_campus.svg',
   ]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [teacherComment, setTeacherComment] = useState<string>(
@@ -119,6 +122,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   );
   const [stamp, setStamp] = useState<string>('たいへんよくできました');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const handleToggleCheck = (areaId: CornerAreaId, item: string) => {
@@ -139,53 +143,155 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const file = files[0];
 
-    if (!file.type.startsWith('image/')) {
-      alert('請選擇有效的圖片檔案 (JPG, PNG, WEBP)');
-      e.target.value = '';
-      return;
-    }
+    (Array.from(files) as File[]).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (!result) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (!result) return;
 
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const maxWidth = 800;
-          let width = img.width;
-          let height = img.height;
+        const img = new Image();
+        img.onload = async () => {
+          let compressedData = result;
+          try {
+            const canvas = document.createElement('canvas');
+            const maxWidth = 800;
+            let width = img.width;
+            let height = img.height;
 
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              compressedData = canvas.toDataURL('image/jpeg', 0.8);
+            }
+          } catch (err) {
+            console.warn('Photo compression error, using original:', err);
           }
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressed = canvas.toDataURL('image/jpeg', 0.8);
-            setPhotoImages((prev) => [...prev, compressed]);
-          } else {
-            setPhotoImages((prev) => [...prev, result]);
+          // Set image locally for immediate display
+          setPhotoImages((prev) => [...prev, compressedData]);
+
+          // Upload to Google Drive Cloud Folder asynchronously
+          const targetFolder = sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
+          const targetWebApp = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+
+          if (targetWebApp) {
+            setIsUploadingPhoto(true);
+            setSyncStatus({
+              type: 'info',
+              message: `☁️ 正在上傳照片「${file.name}」至 Google Drive 指定資料夾...`,
+            });
+
+            const studentTag = selectedStudent ? `${selectedStudent.className}_${selectedStudent.name}` : '校園紀錄';
+            const fileName = `${studentTag}_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+            const uploadRes = await uploadPhotoToGoogleDrive(targetWebApp, compressedData, fileName, targetFolder);
+
+            setIsUploadingPhoto(false);
+            if (uploadRes.status === 'success') {
+              setSyncStatus({
+                type: 'success',
+                message: `✅ 照片已成功備份至指定 Google Drive 雲端資料夾！`,
+              });
+              if (uploadRes.downloadUrl) {
+                setPhotoImages((prev) => {
+                  const copy = [...prev];
+                  const idx = copy.indexOf(compressedData);
+                  if (idx !== -1) {
+                    copy[idx] = uploadRes.downloadUrl || compressedData;
+                  }
+                  return copy;
+                });
+              }
+            } else {
+              setSyncStatus({
+                type: 'info',
+                message: `📷 照片已儲存於本機記錄。`,
+              });
+            }
+            setTimeout(() => setSyncStatus(null), 5000);
           }
-        } catch (err) {
-          console.warn('Photo compression error, using original:', err);
+        };
+        img.onerror = () => {
           setPhotoImages((prev) => [...prev, result]);
+        };
+        img.src = result;
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    (Array.from(files) as File[]).forEach((file) => {
+      if (!file.type.startsWith('video/')) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const result = event.target?.result as string;
+        if (!result) return;
+
+        const targetFolder = sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
+        const targetWebApp = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+
+        // Add local preview
+        setVideoUrls((prev) => [...prev, result]);
+
+        if (targetWebApp) {
+          setIsUploadingPhoto(true);
+          setSyncStatus({
+            type: 'info',
+            message: `☁️ 正在上傳影片「${file.name}」至 Google Drive 指定資料夾...`,
+          });
+
+          const studentTag = selectedStudent ? `${selectedStudent.className}_${selectedStudent.name}` : '校園紀錄';
+          const fileName = `${studentTag}_${Date.now()}_video.mp4`;
+          const uploadRes = await uploadPhotoToGoogleDrive(
+            targetWebApp,
+            result,
+            fileName,
+            targetFolder,
+            file.type || 'video/mp4'
+          );
+
+          setIsUploadingPhoto(false);
+          if (uploadRes.status === 'success') {
+            setSyncStatus({
+              type: 'success',
+              message: `✅ 影片已成功備份至指定 Google Drive 雲端資料夾！`,
+            });
+            if (uploadRes.downloadUrl) {
+              setVideoUrls((prev) => {
+                const copy = [...prev];
+                const idx = copy.indexOf(result);
+                if (idx !== -1) {
+                  copy[idx] = uploadRes.downloadUrl || result;
+                }
+                return copy;
+              });
+            }
+          } else {
+            setSyncStatus({
+              type: 'info',
+              message: `📹 影片已儲存於本機記錄。`,
+            });
+          }
+          setTimeout(() => setSyncStatus(null), 5000);
         }
       };
-      img.onerror = () => {
-        setPhotoImages((prev) => [...prev, result]);
-      };
-      img.src = result;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
     e.target.value = '';
   };
 
@@ -194,7 +300,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     if (!selectedStudent) return;
 
     setIsSaving(true);
-    setSyncStatus({ type: 'info', message: '正在儲存紀錄並準備產生報告...' });
+    setSyncStatus({ type: 'info', message: '正在儲存紀錄並上傳檔案至 Google Drive 雲端...' });
 
     const newRecord: LearningRecord = {
       id: `rec-${Date.now()}`,
@@ -235,7 +341,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     setIsSaving(false);
     setSyncStatus({
       type: 'success',
-      message: `🎉 已成功儲存 ${selectedStudent.name} 的角落觀察紀錄！已立即產生學習歷程報告，背景正在同步更新至 Google Sheet...`,
+      message: `🎉 已成功儲存 ${selectedStudent.name} 的紀錄！已立即產生學習歷程報告，背景同步上傳檔案至 Google Drive...`,
     });
 
     // Jump immediately to report view after short delay so user doesn't wait
@@ -243,22 +349,94 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       onSavedRecord(newRecord.id);
     }, 200);
 
-    // Asynchronous background sync to Google Sheet & Web App
+    // Asynchronous background upload of files to Google Drive & sync to Web App & Sheet
     (async () => {
       const webAppTarget = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
+      const targetFolder = sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
+
+      let currentRecord = { ...newRecord };
+      let recordChanged = false;
+
+      // 1. Upload base64 photos to Google Drive
+      if (webAppTarget && currentRecord.photoImages && currentRecord.photoImages.length > 0) {
+        const updatedPhotos = [...currentRecord.photoImages];
+        for (let i = 0; i < updatedPhotos.length; i++) {
+          const imgUrl = updatedPhotos[i];
+          if (imgUrl.startsWith('data:')) {
+            try {
+              const studentTag = `${selectedStudent.className}_${selectedStudent.name}`;
+              const fileName = `${studentTag}_${Date.now()}_photo_${i + 1}.jpg`;
+              const res = await uploadPhotoToGoogleDrive(webAppTarget, imgUrl, fileName, targetFolder, 'image/jpeg');
+              if (res.status === 'success' && res.downloadUrl) {
+                updatedPhotos[i] = res.downloadUrl;
+                recordChanged = true;
+              }
+            } catch (err) {
+              console.warn('Background photo upload error:', err);
+            }
+          }
+        }
+        currentRecord.photoImages = updatedPhotos;
+      }
+
+      // 2. Upload base64 videos to Google Drive
+      if (webAppTarget && currentRecord.videoUrls && currentRecord.videoUrls.length > 0) {
+        const updatedVideos = [...currentRecord.videoUrls];
+        for (let i = 0; i < updatedVideos.length; i++) {
+          const vidUrl = updatedVideos[i];
+          if (vidUrl.startsWith('data:')) {
+            try {
+              const studentTag = `${selectedStudent.className}_${selectedStudent.name}`;
+              const fileName = `${studentTag}_${Date.now()}_video_${i + 1}.mp4`;
+              const res = await uploadPhotoToGoogleDrive(webAppTarget, vidUrl, fileName, targetFolder, 'video/mp4');
+              if (res.status === 'success' && res.downloadUrl) {
+                updatedVideos[i] = res.downloadUrl;
+                recordChanged = true;
+              }
+            } catch (err) {
+              console.warn('Background video upload error:', err);
+            }
+          }
+        }
+        currentRecord.videoUrls = updatedVideos;
+      }
+
+      // If files were uploaded to Drive, update local state & storage
+      const finalRecords = recordChanged
+        ? updatedRecords.map((r) => (r.id === currentRecord.id ? currentRecord : r))
+        : updatedRecords;
+
+      if (recordChanged) {
+        setLearningRecords(finalRecords);
+        try {
+          localStorage.setItem('kindergarten_learning_records', JSON.stringify(finalRecords));
+        } catch (e) {}
+      }
+
+      // 3. Upload generated Student Learning History Report PDF file to Google Drive
       if (webAppTarget) {
         try {
-          await syncToWebApp(webAppTarget, students, updatedRecords, contactBooks);
+          await uploadReportToGoogleDrive(webAppTarget, currentRecord, selectedStudent, targetFolder);
+        } catch (err) {
+          console.warn('Background report file upload error:', err);
+        }
+      }
+
+      // 4. Sync all data to Web App
+      if (webAppTarget) {
+        try {
+          await syncToWebApp(webAppTarget, students, finalRecords, contactBooks);
         } catch (err) {
           console.warn('Corner record Web App background sync warning:', err);
         }
       }
 
+      // 5. Sync to Google Sheets
       if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
         try {
           const token = getAccessToken();
           if (token) {
-            await syncAllToSheet(token, sheetConfig.spreadsheetId, students, updatedRecords, contactBooks);
+            await syncAllToSheet(token, sheetConfig.spreadsheetId, students, finalRecords, contactBooks);
           }
         } catch (err) {
           console.warn('Auto sync to sheet failed:', err);
@@ -505,20 +683,34 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         {/* Activity Photos & Videos Section */}
         <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] flex flex-col justify-between">
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
-                <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
-                  影像與作品照片紀錄 (可上傳作品與活動照片)
-                </h4>
+                <div>
+                  <h4 className="font-black text-[#5D4037] text-sm md:text-base italic">
+                    影像與作品照片紀錄
+                  </h4>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex flex-wrap items-center gap-2">
                 <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
                   <Camera className="w-3.5 h-3.5" /> 上傳照片
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                </label>
+                <label className="cursor-pointer bg-[#7E57C2] hover:bg-[#673AB7] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
+                  <Video className="w-3.5 h-3.5" /> 上傳影片
+                  <input type="file" accept="video/*" multiple onChange={handleVideoUpload} className="hidden" />
                 </label>
               </div>
             </div>
+
+            {isUploadingPhoto && (
+              <div className="bg-[#B3E5FC] text-[#01579B] p-2 rounded-xl border border-[#0288D1] text-xs font-black flex items-center gap-2 mb-3 animate-pulse">
+                <Sparkles className="w-4 h-4 text-[#0288D1]" />
+                <span>☁️ 正在連線同步上傳照片至指定 Google Drive 雲端資料夾...</span>
+              </div>
+            )}
 
             {/* Photo Gallery Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
