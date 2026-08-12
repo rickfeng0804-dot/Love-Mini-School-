@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Student, LearningRecord, CornerAreaId, ClassFilterOption, SheetConfig } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
-import { uploadReportToGoogleDrive, downloadLearningReportPdf } from '../lib/reportExport';
+import { uploadReportToGoogleDrive } from '../lib/reportExport';
 import { DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
 import { 
   Printer, 
@@ -19,16 +19,7 @@ import {
   FileSpreadsheet,
   PieChart as PieIcon,
   CloudUpload,
-  FolderOpen,
-  Activity,
-  Brain,
-  Users,
-  MessageSquare,
-  TrendingUp,
-  Target,
-  Zap,
-  CheckCircle2,
-  Layers
+  FolderOpen
 } from 'lucide-react';
 import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
@@ -42,14 +33,7 @@ import {
   Pie,
   Cell,
   Tooltip, 
-  Legend,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  AreaChart,
-  Area
+  Legend
 } from 'recharts';
 
 interface LearningReportViewProps {
@@ -263,41 +247,6 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
           </div>
         </div>
 
-      {/* 5 Developmental Domains Summary Section */}
-      <div className="border-2 border-[#5D4037] p-2.5 rounded-2xl bg-[#FFFDE7] shadow-[3px_3px_0px_#5D4037] print:shadow-none mb-3 text-xs">
-        <div className="flex items-center justify-between border-b border-[#5D4037]/30 pb-1 mb-2 font-black text-[11px] text-[#5D4037]">
-          <span>📊 幼兒發展五大領域評估指標 (體能．認知．社會．情緒．語言)</span>
-          <span className="text-[10px] text-[#FF8A65]">自動運算成長雷達</span>
-        </div>
-        <div className="grid grid-cols-5 gap-1.5 text-center">
-          <div className="bg-white border border-[#5D4037] p-1.5 rounded-xl">
-            <div className="text-[10px] font-black text-[#FF7043]">🏃‍♂️ 體能發展</div>
-            <div className="text-sm font-black text-[#5D4037] my-0.5">80 <span className="text-[9px] text-[#8D6E63]">分</span></div>
-            <div className="text-[9px] text-[#FF7043] font-bold">大小肌肉協調</div>
-          </div>
-          <div className="bg-white border border-[#5D4037] p-1.5 rounded-xl">
-            <div className="text-[10px] font-black text-[#0288D1]">🧩 認知思考</div>
-            <div className="text-sm font-black text-[#5D4037] my-0.5">85 <span className="text-[9px] text-[#8D6E63]">分</span></div>
-            <div className="text-[9px] text-[#0288D1] font-bold">數理邏輯探究</div>
-          </div>
-          <div className="bg-white border border-[#5D4037] p-1.5 rounded-xl">
-            <div className="text-[10px] font-black text-[#388E3C]">🤝 社會互動</div>
-            <div className="text-sm font-black text-[#5D4037] my-0.5">78 <span className="text-[9px] text-[#8D6E63]">分</span></div>
-            <div className="text-[9px] text-[#388E3C] font-bold">團隊合作溝通</div>
-          </div>
-          <div className="bg-white border border-[#5D4037] p-1.5 rounded-xl">
-            <div className="text-[10px] font-black text-[#7B1FA2]">💖 情緒調節</div>
-            <div className="text-sm font-black text-[#5D4037] my-0.5">82 <span className="text-[9px] text-[#8D6E63]">分</span></div>
-            <div className="text-[9px] text-[#7B1FA2] font-bold">持續專注抗挫</div>
-          </div>
-          <div className="bg-white border border-[#5D4037] p-1.5 rounded-xl">
-            <div className="text-[10px] font-black text-[#C2185B]">💬 語言表達</div>
-            <div className="text-sm font-black text-[#5D4037] my-0.5">88 <span className="text-[9px] text-[#8D6E63]">分</span></div>
-            <div className="text-[9px] text-[#C2185B] font-bold">口語敘事溝通</div>
-          </div>
-        </div>
-      </div>
-
       {/* Teacher Review & Official Red Anime Stamp */}
       <div className="border-2 border-[#5D4037] p-3 rounded-2xl flex items-center justify-between gap-4 bg-[#FFF3E0] shadow-[3px_3px_0px_#5D4037] print:shadow-none">
         <div className="flex-1">
@@ -383,7 +332,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     setIsUploading(true);
     setUploadToast({
       type: 'info',
-      message: `☁️ 正在生成並上傳「${selectedStudent.name}」的學習歷程 PDF 報告至 Google Drive...`,
+      message: `☁️ 正在上傳「${selectedStudent.name}」的學習歷程報告至 Google Drive...`,
     });
 
     try {
@@ -392,19 +341,19 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       if (res.status === 'success') {
         setUploadToast({
           type: 'success',
-          message: `✅ 已成功將「${selectedStudent.name}」的學習歷程 PDF 報告檔上傳至指定 Google Drive 雲端資料夾！`,
+          message: `✅ 已成功將「${selectedStudent.name}」的學習歷程報告上傳至指定 Google Drive 雲端資料夾！`,
         });
       } else {
         setUploadToast({
           type: 'info',
-          message: `📄 學習歷程 PDF 報告檔已生成。若是第一次使用 Google Apps Script 雲端上傳，請確認已部署 Web App URL。`,
+          message: `📄 學習歷程報告已生成。若是第一次使用 Google Apps Script 雲端上傳，請確認已部署 Web App。`,
         });
       }
     } catch (err) {
       setIsUploading(false);
       setUploadToast({
         type: 'error',
-        message: `❌ 上傳發生錯誤，請確認網路連線或稍後再試。`,
+        message: `❌ 上傳發生錯誤，請稍後再試。`,
       });
     }
 
@@ -434,7 +383,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
 
       setUploadToast({
         type: 'info',
-        message: `☁️ 正在批次生成並上傳 PDF 報告至 Google Drive (${i + 1}/${targetRecords.length})：${rec.studentName}...`,
+        message: `☁️ 正在批次上傳學習歷程報告至 Google Drive (${i + 1}/${targetRecords.length})：${rec.studentName}...`,
       });
 
       try {
@@ -618,158 +567,23 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     setTimeout(() => { window.print(); }, 100);
   };
 
-  const computeFiveDomainScores = (record?: LearningRecord) => {
-    if (!record) {
-      return { '體能': 75, '認知': 80, '社會': 78, '情緒': 82, '語言': 85 };
-    }
+  const computeDomainStats = (record?: LearningRecord) => {
+    if (!record) return [];
     const checked: Record<string, string[]> = record.checkedItems || {};
 
-    const countKw = (cId: CornerAreaId, keywords?: string[]) => {
-      const items = checked[cId] || [];
-      if (!keywords || keywords.length === 0) return items.length;
-      return items.filter(it => keywords.some(kw => it.includes(kw))).length;
-    };
+    let motorSkills = (checked['watercolor']?.length || 0) + (checked['art']?.length || 0) + (checked['beads']?.length || 0);
+    let logicScience = (checked['science']?.length || 0) + (checked['brain']?.length || 0) + (checked['puzzle']?.length || 0);
+    let artCreative = (checked['watercolor']?.length || 0) + (checked['art']?.length || 0) + (checked['blocks']?.length || 0);
+    let socialLanguage = (checked['language']?.length || 0) + (checked['blocks']?.length || 0) + (checked['brain']?.length || 0);
+    let focusPersistence = (checked['beads']?.length || 0) + (checked['puzzle']?.length || 0) + (checked['language']?.length || 0);
 
-    // 1. 體能 (Physical / Motor Development)
-    const physical =
-      countKw('watercolor', ['手眼協調', '精細動作']) +
-      countKw('art', ['精細動作', '手眼協調']) +
-      countKw('beads', ['精細動作', '小肌肉']) +
-      countKw('puzzle', ['手眼協調']) +
-      countKw('blocks', ['動作', '精細', '粗大']) +
-      countKw('brain', ['協調', '視覺']);
-
-    // 2. 認知 (Cognitive / Logic & Science)
-    const cognition =
-      countKw('science') +
-      countKw('brain', ['認知', '空間', '邏輯', '思維', '辨識']) +
-      countKw('puzzle', ['辨識', '空間', '邏輯', '推理']) +
-      countKw('art', ['色彩', '空間', '構圖', '認知', '解決']) +
-      countKw('beads', ['視覺認知', '空間']) +
-      countKw('blocks', ['認知', '數理', '邏輯', '解決']);
-
-    // 3. 社會 (Social Interaction & Teamwork)
-    const social =
-      countKw('blocks', ['團隊', '合作', '衝突', '解決']) +
-      countKw('brain', ['社會', '輪流', '分享', '交往']) +
-      countKw('science', ['交流', '表達', '紀錄']) +
-      countKw('watercolor', ['常規', '自理', '生活']) +
-      countKw('beads', ['習慣', '收拾', '工作']);
-
-    // 4. 情緒 (Emotional Control & Persistence)
-    const emotional =
-      countKw('beads', ['挫折', '專注', '容忍']) +
-      countKw('brain', ['挫折', '專注', '持續']) +
-      countKw('watercolor', ['抗挫', '專注']) +
-      countKw('puzzle', ['持續', '專注', '抗挫']) +
-      countKw('language', ['專注']);
-
-    // 5. 語言 (Language & Expression)
-    const language =
-      countKw('language') +
-      countKw('blocks', ['語言', '敘事', '表達', '想像力']) +
-      countKw('art', ['符號', '創造力', '想像力']) +
-      countKw('watercolor', ['符號', '美感', '創造']);
-
-    const toScore = (cnt: number) => Math.min(100, Math.max(35, 45 + cnt * 11));
-
-    return {
-      '體能': toScore(physical),
-      '認知': toScore(cognition),
-      '社會': toScore(social),
-      '情緒': toScore(emotional),
-      '語言': toScore(language),
-    };
-  };
-
-  const getFiveDomainsRadarData = (record?: LearningRecord, allRecords?: LearningRecord[]) => {
-    const current = computeFiveDomainScores(record);
-    let avg = { ...current };
-    if (allRecords && allRecords.length > 0) {
-      const sums = { '體能': 0, '認知': 0, '社會': 0, '情緒': 0, '語言': 0 };
-      allRecords.forEach(r => {
-        const s = computeFiveDomainScores(r);
-        sums['體能'] += s['體能'];
-        sums['認知'] += s['認知'];
-        sums['社會'] += s['社會'];
-        sums['情緒'] += s['情緒'];
-        sums['語言'] += s['語言'];
-      });
-      avg = {
-        '體能': Math.round(sums['體能'] / allRecords.length),
-        '認知': Math.round(sums['認知'] / allRecords.length),
-        '社會': Math.round(sums['社會'] / allRecords.length),
-        '情緒': Math.round(sums['情緒'] / allRecords.length),
-        '語言': Math.round(sums['語言'] / allRecords.length),
-      };
-    }
-
-    const domainMeta = [
-      { subject: '體能', name: '🏃‍♂️ 體能發展', color: '#FF7043', desc: '大小肌肉控制與肢體協調' },
-      { subject: '認知', name: '🧩 認知思考', color: '#29B6F6', desc: '邏輯推理與數理科學探究' },
-      { subject: '社會', name: '🤝 社會互動', color: '#66BB6A', desc: '團隊合作、輪流與衝突解決' },
-      { subject: '情緒', name: '💖 情緒調節', color: '#AB47BC', desc: '持續專注力與挫折容忍度' },
-      { subject: '語言', name: '💬 語言表達', color: '#EC407A', desc: '口語表達敘事與聽覺理解' },
+    return [
+      { subject: '精細與手眼協調', score: Math.min(100, motorSkills * 15 + 30), fullMark: 100 },
+      { subject: '邏輯與數理探索', score: Math.min(100, logicScience * 18 + 25), fullMark: 100 },
+      { subject: '藝術美感與創造', score: Math.min(100, artCreative * 16 + 30), fullMark: 100 },
+      { subject: '社會溝通與團隊', score: Math.min(100, socialLanguage * 17 + 25), fullMark: 100 },
+      { subject: '持續專注與抗挫', score: Math.min(100, focusPersistence * 16 + 20), fullMark: 100 },
     ];
-
-    return domainMeta.map(item => ({
-      ...item,
-      score: current[item.subject as keyof typeof current],
-      avgScore: avg[item.subject as keyof typeof avg],
-      fullMark: 100,
-    }));
-  };
-
-  const getFiveDomainsTrendData = (records: LearningRecord[]) => {
-    if (!records || records.length === 0) return [];
-    const sorted = [...records].sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
-
-    if (sorted.length === 1) {
-      const single = sorted[0];
-      const cur = computeFiveDomainScores(single);
-      return [
-        {
-          week: 'W1 (初期點)',
-          date: '入學初期',
-          '體能': Math.max(35, cur['體能'] - 15),
-          '認知': Math.max(35, cur['認知'] - 12),
-          '社會': Math.max(35, cur['社會'] - 10),
-          '情緒': Math.max(35, cur['情緒'] - 14),
-          '語言': Math.max(35, cur['語言'] - 8),
-        },
-        {
-          week: 'W2 (發展期)',
-          date: '中期觀察',
-          '體能': Math.max(40, cur['體能'] - 7),
-          '認知': Math.max(40, cur['認知'] - 5),
-          '社會': Math.max(40, cur['社會'] - 4),
-          '情緒': Math.max(40, cur['情緒'] - 6),
-          '語言': Math.max(40, cur['語言'] - 3),
-        },
-        {
-          week: `W3 (${single.dateStart.slice(5)})`,
-          date: single.dateStart,
-          '體能': cur['體能'],
-          '認知': cur['認知'],
-          '社會': cur['社會'],
-          '情緒': cur['情緒'],
-          '語言': cur['語言'],
-        },
-      ];
-    }
-
-    return sorted.map((r, idx) => {
-      const cur = computeFiveDomainScores(r);
-      return {
-        week: `W${idx + 1} (${r.dateStart.slice(5)})`,
-        date: r.dateStart,
-        '體能': cur['體能'],
-        '認知': cur['認知'],
-        '社會': cur['社會'],
-        '情緒': cur['情緒'],
-        '語言': cur['語言'],
-      };
-    });
   };
 
   const CORNER_COLORS: Record<string, string> = {
@@ -873,8 +687,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     });
   };
 
-  const fiveDomainsRadarData = getFiveDomainsRadarData(activeRecord, studentRecords);
-  const fiveDomainsTrendData = getFiveDomainsTrendData(studentRecords);
+  const chartData = computeDomainStats(activeRecord);
   const cornerFrequencyData = computeCornerFrequencyData();
   const pieData = cornerFrequencyData.filter((item) => item.value > 0);
   const topCorner = cornerFrequencyData.length > 0
@@ -956,39 +769,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={async () => {
-              if (!activeRecord) return;
-              try {
-                await downloadLearningReportPdf(activeRecord, selectedStudent);
-              } catch (e) {
-                console.error('PDF download error:', e);
-              }
-            }}
-            className="flex-1 sm:flex-none justify-center bg-[#26A69A] hover:bg-[#00897B] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="將此學習歷程報告直接下載為 PDF 檔案"
-          >
-            <Download className="w-4 h-4" /> 下載 PDF 報表
-          </button>
-
-          <button
-            onClick={handleUploadSingleReport}
-            disabled={isUploading}
-            className="flex-1 sm:flex-none justify-center bg-[#0288D1] hover:bg-[#01579B] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="將此學習歷程報告以 PDF 檔案格式上傳至指定 Google Drive 資料夾"
-          >
-            <CloudUpload className="w-4 h-4" /> 上傳 PDF 至雲端
-          </button>
-
-          <button
-            onClick={handleUploadBatchReports}
-            disabled={isUploading}
-            className="flex-1 sm:flex-none justify-center bg-[#7E57C2] hover:bg-[#673AB7] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="批次將當前班級的所有學習歷程報告生成 PDF 並上傳至 Google Drive 雲端資料夾"
-          >
-            <CloudUpload className="w-4 h-4" /> 批次上傳全班 PDF
-          </button>
-
-          <button
             onClick={() => {
               const csv = generateLearningRecordsCsv(studentRecords.length > 0 ? studentRecords : learningRecords);
               downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent.name}.csv`, csv);
@@ -996,6 +776,24 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
             <Download className="w-4 h-4" /> 匯出 CSV
+          </button>
+
+          <button
+            onClick={handleUploadSingleReport}
+            disabled={isUploading}
+            className="flex-1 sm:flex-none justify-center bg-[#0288D1] hover:bg-[#01579B] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
+            title="將此學習歷程報告以 HTML 檔格式上傳至指定 Google Drive 資料夾"
+          >
+            <CloudUpload className="w-4 h-4" /> 上傳報告至雲端
+          </button>
+
+          <button
+            onClick={handleUploadBatchReports}
+            disabled={isUploading}
+            className="flex-1 sm:flex-none justify-center bg-[#7E57C2] hover:bg-[#673AB7] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
+            title="批次將當前班級的所有學習歷程報告上傳至 Google Drive 雲端資料夾"
+          >
+            <CloudUpload className="w-4 h-4" /> 批次上傳全班報告
           </button>
 
           <button
@@ -1029,76 +827,78 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
       )}
 
-      {/* Learning Corner & Domain Analytics Section (Hidden on Print) */}
+      {/* Learning Corner Distribution Analytics Card (Hidden on Print) */}
       {activeRecord && (
-        <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFD54F] mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 border-b-2 border-[#5D4037]/20 pb-3">
+        <div className="print:hidden bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b-2 border-[#5D4037]/20 pb-3">
             <div>
               <h3 className="text-base sm:text-lg font-black text-[#5D4037] flex items-center gap-2 italic">
-                <TrendingUp className="w-5 h-5 text-[#FF7043]" />
-                {selectedStudent.name} 幼兒發展與角落學習分析報告
+                <BarChart3 className="w-5 h-5 text-[#FF8A65]" />
+                {selectedStudent.name} 的學習分布圖（各角落活動頻率分析）
               </h3>
               <p className="text-[11px] font-bold text-[#5D4037]/80 mt-0.5">
-                自動運算「體能、認知、社會、情緒、語言」五大領域成長趨勢與 8 大角落活動頻率
+                依據各角落觀察勾選指標與紀錄次數，自動生成 8 大學習區活動頻率雷達圖與圓餅圖
               </p>
             </div>
 
-            {/* View Mode Selectors */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* View Mode & Time Scope Selectors */}
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+              {/* Chart Mode Toggle */}
               <div className="flex items-center gap-1 bg-white p-1 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
                 <button
                   type="button"
                   onClick={() => setChartViewMode('dual')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     chartViewMode === 'dual'
-                      ? 'bg-[#FF7043] text-white shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#0288D1] text-white shadow-[1px_1px_0px_#5D4037]'
                       : 'text-[#5D4037] hover:bg-[#FFE082]'
                   }`}
                 >
-                  🎯 5大領域雷達
+                  📊 雙圖對照
                 </button>
                 <button
                   type="button"
                   onClick={() => setChartViewMode('radar')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     chartViewMode === 'radar'
-                      ? 'bg-[#FF7043] text-white shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#0288D1] text-white shadow-[1px_1px_0px_#5D4037]'
                       : 'text-[#5D4037] hover:bg-[#FFE082]'
                   }`}
                 >
-                  📈 歷程成長趨勢
+                  🎯 頻率雷達圖
                 </button>
                 <button
                   type="button"
                   onClick={() => setChartViewMode('pie')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     chartViewMode === 'pie'
-                      ? 'bg-[#FF7043] text-white shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#0288D1] text-white shadow-[1px_1px_0px_#5D4037]'
                       : 'text-[#5D4037] hover:bg-[#FFE082]'
                   }`}
                 >
-                  🧩 8角落頻率圓餅
+                  🥧 比例圓餅圖
                 </button>
               </div>
 
+              {/* Time Scope Toggle */}
               <div className="flex items-center gap-1 bg-white p-1 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
                 <button
                   type="button"
                   onClick={() => setPieMode('week')}
                   className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     pieMode === 'week'
-                      ? 'bg-[#0288D1] text-white shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#FF8A65] text-white shadow-[1px_1px_0px_#5D4037]'
                       : 'text-[#5D4037] hover:bg-[#FFE082]'
                   }`}
                 >
-                  📅 本週數據
+                  📅 本週觀察
                 </button>
                 <button
                   type="button"
                   onClick={() => setPieMode('cumulative')}
                   className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     pieMode === 'cumulative'
-                      ? 'bg-[#0288D1] text-white shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#FF8A65] text-white shadow-[1px_1px_0px_#5D4037]'
                       : 'text-[#5D4037] hover:bg-[#FFE082]'
                   }`}
                 >
@@ -1108,72 +908,34 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             </div>
           </div>
 
-          {/* 5 Developmental Domains Cards (Top Overview) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mb-5">
-            {fiveDomainsRadarData.map((d) => (
-              <div
-                key={d.subject}
-                className="bg-white rounded-2xl p-3 border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-black text-xs" style={{ color: d.color }}>
-                    {d.name}
-                  </span>
-                  <span className="text-[10px] font-black bg-[#FFF3E0] px-1.5 py-0.5 rounded-md text-[#FF7043] border border-[#FF7043]/30">
-                    ↗ 成長中
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1 my-1">
-                  <span className="text-xl font-black text-[#5D4037]">{d.score}</span>
-                  <span className="text-[10px] font-bold text-[#8D6E63]">/ 100 分</span>
-                </div>
-                <div className="w-full bg-[#E0E0E0] h-2 rounded-full overflow-hidden border border-[#5D4037]/30 my-1">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${d.score}%`, backgroundColor: d.color }}
-                  />
-                </div>
-                <p className="text-[9px] font-bold text-[#5D4037]/80 mt-1 line-clamp-1">{d.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts Grid */}
+          {/* Grid of Analytics Panels */}
           <div className={`grid gap-5 mb-4 ${chartViewMode === 'dual' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Chart 1: 5-Domain Radar Chart */}
+            {/* Panel 1: Radar Chart (8-Corner Activity Frequency Radar) */}
             {(chartViewMode === 'dual' || chartViewMode === 'radar') && (
               <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
-                    <Target className="w-4 h-4 text-[#FF7043]" /> 學習領域雷達圖 (體能・認知・社會・情緒・語言)
+                    <span className="text-base">🎯</span> 8 大學習區活動頻率分布 (雷達圖)
                   </span>
                   <span className="text-[10px] bg-[#FFE082] px-2 py-0.5 rounded-full font-black text-[#5D4037] border border-[#5D4037]">
-                    幼兒五大領域指標
+                    各角落參與次數
                   </span>
                 </div>
-
-                <div className="h-[270px] w-full flex items-center justify-center">
+                <div className="h-[250px] w-full flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="68%" data={fiveDomainsRadarData}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="68%" data={cornerFrequencyData}>
                       <PolarGrid stroke="#5D4037" strokeDasharray="3 3" />
                       <PolarAngleAxis
-                        dataKey="name"
-                        tick={{ fill: '#5D4037', fontSize: 11, fontWeight: 'bold' }}
+                        dataKey="subject"
+                        tick={{ fill: '#5D4037', fontSize: 10, fontWeight: 'bold' }}
                       />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#5D4037" />
+                      <PolarRadiusAxis angle={30} stroke="#5D4037" />
                       <Radar
-                        name={`${selectedStudent.name} (個人指標)`}
-                        dataKey="score"
+                        name={selectedStudent.name}
+                        dataKey="count"
                         stroke="#FF7043"
                         fill="#FF7043"
                         fillOpacity={0.5}
-                      />
-                      <Radar
-                        name="班級平均參考"
-                        dataKey="avgScore"
-                        stroke="#0288D1"
-                        fill="#0288D1"
-                        fillOpacity={0.2}
                       />
                       <Tooltip
                         content={({ active, payload }) => {
@@ -1181,129 +943,55 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                             const data = payload[0].payload;
                             return (
                               <div className="bg-[#FFFBF0] border-2 border-[#5D4037] p-2.5 rounded-xl shadow-[3px_3px_0px_#5D4037] text-xs font-black text-[#5D4037] z-50">
-                                <p className="text-sm font-black mb-1" style={{ color: data.color }}>
-                                  {data.name}
-                                </p>
-                                <p className="text-[11px] font-bold text-[#5D4037]/90 space-y-0.5">
-                                  <span>個人得分：<strong className="text-[#FF7043]">{data.score} 分</strong></span>
-                                </p>
-                                <p className="text-[10px] text-[#8D6E63] mt-1">{data.desc}</p>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="w-2.5 h-2.5 rounded-full inline-block border border-[#5D4037]" style={{ backgroundColor: data.color }} />
+                                  <span>{data.subject}</span>
+                                </div>
+                                <div className="text-[11px] font-bold text-[#5D4037]/90 space-y-0.5">
+                                  <p>活動頻率：<span className="text-[#FF8A65]">{data.count} 次</span></p>
+                                  <p>角落佔比：<span className="text-[#0288D1]">{data.percentage}%</span></p>
+                                </div>
                               </div>
                             );
                           }
                           return null;
                         }}
                       />
-                      <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px' }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* Domain Badges Footer */}
+                {/* Corner Frequency Legend Badges */}
                 <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2.5 border-t border-[#5D4037]/10">
-                  {fiveDomainsRadarData.map((item) => (
+                  {cornerFrequencyData.map((item) => (
                     <div
-                      key={item.subject}
+                      key={item.id}
                       className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]/30 bg-[#FFFBF0]"
                     >
                       <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: item.color }} />
-                      <span className="text-[#5D4037]">{item.subject}</span>
-                      <span className="text-[#FF7043] font-mono">{item.score}分</span>
+                      <span className="text-[#5D4037]">{item.name}</span>
+                      <span className="text-[#0288D1] font-mono">{item.count}次</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Chart 2: Multi-Week Growth Trend Line Chart */}
-            {(chartViewMode === 'dual' || chartViewMode === 'radar') && (
+            {/* Panel 2: Pie Chart (Corner Categories Distribution) */}
+            {(chartViewMode === 'dual' || chartViewMode === 'pie') && (
               <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
-                    <TrendingUp className="w-4 h-4 text-[#0288D1]" /> 五大領域歷程成長趨勢圖 (跨週觀察)
+                    <PieIcon className="w-4 h-4 text-[#0288D1]" /> 各角落投入比例 (圓餅圖)
                   </span>
-                  <span className="text-[10px] bg-[#E1F5FE] text-[#0288D1] px-2 py-0.5 rounded-full font-black border border-[#0288D1]">
-                    連續追蹤趨勢
-                  </span>
-                </div>
-
-                <div className="h-[270px] w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={fiveDomainsTrendData} margin={{ top: 10, right: 15, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                      <XAxis dataKey="week" tick={{ fill: '#5D4037', fontSize: 10, fontWeight: 'bold' }} />
-                      <YAxis domain={[30, 100]} tick={{ fill: '#5D4037', fontSize: 10, fontWeight: 'bold' }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#FFFBF0',
-                          border: '2px solid #5D4037',
-                          borderRadius: '12px',
-                          boxShadow: '3px 3px 0px #5D4037',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                      <Line type="monotone" dataKey="體能" stroke="#FF7043" strokeWidth={3} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="認知" stroke="#29B6F6" strokeWidth={3} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="社會" stroke="#66BB6A" strokeWidth={3} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="情緒" stroke="#AB47BC" strokeWidth={3} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="語言" stroke="#EC407A" strokeWidth={3} dot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="pt-2 border-t border-[#5D4037]/10 text-[10px] text-center font-bold text-[#8D6E63]">
-                  💡 數據來源：結合歷次角落觀察紀錄與幼兒評估指標，自動運算跨週成長曲線
-                </div>
-              </div>
-            )}
-
-            {/* Chart 3: 8 Corner Activity Frequency Radar & Pie Chart */}
-            {(chartViewMode === 'pie') && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 col-span-full">
-                <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
-                      <span className="text-base">🎯</span> 8 大學習區活動頻率雷達圖
+                  {topCorner && (
+                    <span className="text-[10px] bg-[#E1F5FE] text-[#0288D1] px-2 py-0.5 rounded-full font-black border border-[#0288D1]">
+                      🏆 最熱衷：{topCorner.name} ({topCorner.percentage}%)
                     </span>
-                    <span className="text-[10px] bg-[#FFE082] px-2 py-0.5 rounded-full font-black text-[#5D4037] border border-[#5D4037]">
-                      各角落參與次數
-                    </span>
-                  </div>
-                  <div className="h-[250px] w-full flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="68%" data={cornerFrequencyData}>
-                        <PolarGrid stroke="#5D4037" strokeDasharray="3 3" />
-                        <PolarAngleAxis
-                          dataKey="subject"
-                          tick={{ fill: '#5D4037', fontSize: 10, fontWeight: 'bold' }}
-                        />
-                        <PolarRadiusAxis angle={30} stroke="#5D4037" />
-                        <Radar
-                          name={selectedStudent.name}
-                          dataKey="count"
-                          stroke="#FF7043"
-                          fill="#FF7043"
-                          fillOpacity={0.5}
-                        />
-                        <Tooltip />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  )}
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-black text-xs text-[#5D4037] flex items-center gap-1.5">
-                      <PieIcon className="w-4 h-4 text-[#0288D1]" /> 各角落投入比例 (圓餅圖)
-                    </span>
-                    {topCorner && (
-                      <span className="text-[10px] bg-[#E1F5FE] text-[#0288D1] px-2 py-0.5 rounded-full font-black border border-[#0288D1]">
-                        🏆 最熱衷：{topCorner.name} ({topCorner.percentage}%)
-                      </span>
-                    )}
-                  </div>
+                {pieData.length > 0 ? (
                   <div className="h-[250px] w-full flex items-center justify-center relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -1322,32 +1010,75 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                             <Cell key={entry.id} fill={entry.color} stroke="#5D4037" strokeWidth={1.5} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-[#FFFBF0] border-2 border-[#5D4037] p-2.5 rounded-xl shadow-[3px_3px_0px_#5D4037] text-xs font-black text-[#5D4037] z-50">
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="w-2.5 h-2.5 rounded-full inline-block border border-[#5D4037]" style={{ backgroundColor: data.color }} />
+                                    <span>{data.name}</span>
+                                  </div>
+                                  <div className="text-[11px] font-bold text-[#5D4037]/90 space-y-0.5">
+                                    <p>活動紀錄：<span className="text-[#FF8A65]">{data.value} 次</span></p>
+                                    <p>投入比例：<span className="text-[#0288D1]">{data.percentage}%</span></p>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
+
+                    {/* Center Donut Label */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                      <span className="text-[10px] font-black text-[#5D4037]/70">總活動紀錄</span>
+                      <span className="text-sm font-black text-[#FF8A65]">
+                        {totalActivityCount} 次
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="h-[250px] flex items-center justify-center text-xs font-bold text-[#5D4037]/70 italic">
+                    此區間尚無角落觀察指標紀錄
+                  </div>
+                )}
+
+                {/* Pie Chart Legend Chips */}
+                {pieData.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2.5 border-t border-[#5D4037]/10">
+                    {pieData.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]/30 bg-[#FFFBF0]"
+                      >
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: item.color }} />
+                        <span className="text-[#5D4037]">{item.name}</span>
+                        <span className="text-[#FF8A65] font-mono">{item.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Insights Summary Cards */}
+          {/* Bottom Insights Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
-              <span className="font-black text-[#FF8A65] flex items-center gap-1 mb-1">
-                🌟 發展領域與角落表現分析：
-              </span>
+              <span className="font-black text-[#FF8A65] block mb-1">🌟 各角落活動頻率亮點分析：</span>
               <p className="text-[#5D4037] font-bold leading-relaxed">
-                {selectedStudent.name} 在{pieMode === 'cumulative' ? '全學期累積觀察中' : '本週學習紀錄中'}，於「言語與口語表達」與「認知思考」領域表現最為突出，分數維持在 80 分以上的高階水準！角落探索中以「{topCorner?.name || '益智區/語文區'}」參與最為活躍。
+                {selectedStudent.name} 在{pieMode === 'cumulative' ? '全學期累積觀察中' : '本週角落學習期間'}，共於 8 大學習區留下{' '}
+                <strong className="text-[#FF8A65]">{totalActivityCount}</strong>{' '}
+                次活動紀錄。{topCorner ? `其中以「${topCorner.name}」參與頻率最高 (${topCorner.count}次，佔比 ${topCorner.percentage}%)！` : '展現廣泛且均衡的角落探索興趣！'}
               </p>
             </div>
             <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
-              <span className="font-black text-[#0288D1] flex items-center gap-1 mb-1">
-                💮 教師輔導引導建議：
-              </span>
-              <p className="text-[#5D4037] font-bold leading-relaxed">
-                {activeRecord.teacherComment || '建議持續鼓勵幼兒跨區探索，並在積木區或科學區中增加同儕合作任務，促進社會溝通與團隊協調發展。'}
-              </p>
+              <span className="font-black text-[#0288D1] block mb-1">💮 老師指導建議：</span>
+              <p className="text-[#5D4037] font-bold leading-relaxed">{activeRecord.teacherComment || '學習態度非常良好，樂於探索與分享。'}</p>
             </div>
           </div>
         </div>

@@ -80,9 +80,6 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
         parsed.isConnected = true;
       }
-      if (!parsed.mediaFolderUrl || parsed.mediaFolderUrl.includes('drive_link')) {
-        parsed.mediaFolderUrl = DEFAULT_MEDIA_FOLDER_URL;
-      }
       return {
         refreshIntervalMinutes: 5,
         mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,

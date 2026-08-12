@@ -413,7 +413,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         } catch (e) {}
       }
 
-      // 3. Upload generated Student Learning History Report PDF file to Google Drive
+      // 3. Upload generated Student Learning History Report HTML file to Google Drive
       if (webAppTarget) {
         try {
           await uploadReportToGoogleDrive(webAppTarget, currentRecord, selectedStudent, targetFolder);

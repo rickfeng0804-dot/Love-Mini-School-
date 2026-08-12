@@ -1,7 +1,6 @@
 import { LearningRecord, Student } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
-import { uploadPhotoToGoogleDrive, DEFAULT_MEDIA_FOLDER_URL } from './googleSheets';
-import html2pdf from 'html2pdf.js';
+import { uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from './googleSheets';
 
 /**
  * Generate a complete standalone HTML string for a Student Learning History Report.
@@ -105,41 +104,6 @@ export function generateLearningReportHtml(record: LearningRecord, student?: Stu
       ${cornerBoxesHtml}
     </div>
 
-    <!-- 5 Developmental Domains Summary -->
-    <div style="border:2px solid #5D4037; background:#FFF3E0; border-radius:12px; padding:10px; margin-bottom:12px;">
-      <div style="font-weight:900; font-size:12px; color:#5D4037; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-        <span>📊 幼兒發發展五大領域評估指標 (體能．認知．社會．情緒．語言)</span>
-        <span style="font-size:10px; color:#FF8A65;">學習歷程成長趨勢分析</span>
-      </div>
-      <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; text-align:center;">
-        <div style="background:white; border:1px solid #5D4037; padding:6px; border-radius:8px;">
-          <div style="font-size:10px; font-weight:900; color:#FF7043;">🏃‍♂️ 體能發展</div>
-          <div style="font-size:14px; font-weight:900; color:#5D4037; margin:2px 0;">80 <span style="font-size:9px; color:#8D6E63;">分</span></div>
-          <div style="font-size:9px; color:#FF7043; font-weight:bold;">大小肌肉動作</div>
-        </div>
-        <div style="background:white; border:1px solid #5D4037; padding:6px; border-radius:8px;">
-          <div style="font-size:10px; font-weight:900; color:#29B6F6;">🧩 認知思考</div>
-          <div style="font-size:14px; font-weight:900; color:#5D4037; margin:2px 0;">85 <span style="font-size:9px; color:#8D6E63;">分</span></div>
-          <div style="font-size:9px; color:#0288D1; font-weight:bold;">數理邏輯探究</div>
-        </div>
-        <div style="background:white; border:1px solid #5D4037; padding:6px; border-radius:8px;">
-          <div style="font-size:10px; font-weight:900; color:#66BB6A;">🤝 社會互動</div>
-          <div style="font-size:14px; font-weight:900; color:#5D4037; margin:2px 0;">78 <span style="font-size:9px; color:#8D6E63;">分</span></div>
-          <div style="font-size:9px; color:#388E3C; font-weight:bold;">團隊合作溝通</div>
-        </div>
-        <div style="background:white; border:1px solid #5D4037; padding:6px; border-radius:8px;">
-          <div style="font-size:10px; font-weight:900; color:#AB47BC;">💖 情緒調節</div>
-          <div style="font-size:14px; font-weight:900; color:#5D4037; margin:2px 0;">82 <span style="font-size:9px; color:#8D6E63;">分</span></div>
-          <div style="font-size:9px; color:#7B1FA2; font-weight:bold;">持續專注抗挫</div>
-        </div>
-        <div style="background:white; border:1px solid #5D4037; padding:6px; border-radius:8px;">
-          <div style="font-size:10px; font-weight:900; color:#EC407A;">💬 語言表達</div>
-          <div style="font-size:14px; font-weight:900; color:#5D4037; margin:2px 0;">88 <span style="font-size:9px; color:#8D6E63;">分</span></div>
-          <div style="font-size:9px; color:#C2185B; font-weight:bold;">口語敘事溝通</div>
-        </div>
-      </div>
-    </div>
-
     <div class="media-box">
       <div style="font-weight:900; font-size:12px; margin-bottom:6px; color:#01579B;">📷 影像與 🎥 影片紀錄</div>
       <div style="display:flex; flex-wrap:wrap; align-items:center;">
@@ -171,98 +135,7 @@ export function generateLearningReportHtml(record: LearningRecord, student?: Stu
 }
 
 /**
- * Generate PDF Data URI for a Student Learning Report using html2pdf
- */
-export async function generateLearningReportPdfBase64(record: LearningRecord, student?: Student): Promise<string> {
-  const stuName = record.studentName || student?.name || '學生';
-  const className = record.className || student?.className || '大班';
-  const seatNum = record.seatNumber || student?.seatNumber || '1';
-  const pdfFileName = `${className}_${seatNum}號_${stuName}_${record.dateStart}_學習歷程報告.pdf`;
-
-  let printEl = document.getElementById('printable-area');
-  let tempDiv: HTMLElement | null = null;
-
-  if (!printEl) {
-    const htmlContent = generateLearningReportHtml(record, student);
-    tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '-9999px';
-    tempDiv.style.width = '800px';
-    tempDiv.style.background = '#FFFBF0';
-    tempDiv.innerHTML = htmlContent;
-    document.body.appendChild(tempDiv);
-    printEl = tempDiv;
-  }
-
-  const opt = {
-    margin: [6, 6, 6, 6] as [number, number, number, number],
-    filename: pdfFileName,
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-  };
-
-  try {
-    const pdfDataUri = await html2pdf().set(opt).from(printEl).outputPdf('datauristring');
-    if (tempDiv && tempDiv.parentNode) {
-      tempDiv.parentNode.removeChild(tempDiv);
-    }
-    return pdfDataUri;
-  } catch (err) {
-    if (tempDiv && tempDiv.parentNode) {
-      tempDiv.parentNode.removeChild(tempDiv);
-    }
-    console.warn('html2pdf generation error, fallback to HTML base64:', err);
-    const htmlContent = generateLearningReportHtml(record, student);
-    return 'data:text/html;base64,' + btoa(unescape(encodeURIComponent(htmlContent)));
-  }
-}
-
-/**
- * Download Student Learning Report as a local PDF file directly
- */
-export async function downloadLearningReportPdf(record: LearningRecord, student?: Student): Promise<void> {
-  const stuName = record.studentName || student?.name || '學生';
-  const className = record.className || student?.className || '大班';
-  const seatNum = record.seatNumber || student?.seatNumber || '1';
-  const pdfFileName = `${className}_${seatNum}號_${stuName}_${record.dateStart}_學習歷程報告.pdf`;
-
-  let printEl = document.getElementById('printable-area');
-  let tempDiv: HTMLElement | null = null;
-
-  if (!printEl) {
-    const htmlContent = generateLearningReportHtml(record, student);
-    tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '-9999px';
-    tempDiv.style.width = '800px';
-    tempDiv.style.background = '#FFFBF0';
-    tempDiv.innerHTML = htmlContent;
-    document.body.appendChild(tempDiv);
-    printEl = tempDiv;
-  }
-
-  const opt = {
-    margin: [6, 6, 6, 6] as [number, number, number, number],
-    filename: pdfFileName,
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-  };
-
-  try {
-    await html2pdf().set(opt).from(printEl).save();
-  } finally {
-    if (tempDiv && tempDiv.parentNode) {
-      tempDiv.parentNode.removeChild(tempDiv);
-    }
-  }
-}
-
-/**
- * Upload a Student Learning Report PDF file to Google Drive.
+ * Upload a Student Learning Report HTML file to Google Drive.
  */
 export async function uploadReportToGoogleDrive(
   webAppUrl: string,
@@ -270,31 +143,19 @@ export async function uploadReportToGoogleDrive(
   student?: Student,
   folderUrl?: string
 ) {
+  const htmlContent = generateLearningReportHtml(record, student);
+  const base64Data = 'data:text/html;base64,' + btoa(unescape(encodeURIComponent(htmlContent)));
+
   const stuName = record.studentName || student?.name || '學生';
   const className = record.className || student?.className || '大班';
   const seatNum = record.seatNumber || student?.seatNumber || '1';
-  const fileName = `${className}_${seatNum}號_${stuName}_${record.dateStart}_學習歷程報告.pdf`;
-
-  let base64Data: string;
-  let contentType = 'application/pdf';
-
-  try {
-    base64Data = await generateLearningReportPdfBase64(record, student);
-    if (!base64Data.startsWith('data:application/pdf')) {
-      contentType = 'text/html';
-    }
-  } catch (err) {
-    const htmlContent = generateLearningReportHtml(record, student);
-    base64Data = 'data:text/html;base64,' + btoa(unescape(encodeURIComponent(htmlContent)));
-    contentType = 'text/html';
-  }
+  const fileName = `${className}_${seatNum}號_${stuName}_${record.dateStart}_學習歷程報告.html`;
 
   return await uploadPhotoToGoogleDrive(
     webAppUrl,
     base64Data,
     fileName,
     folderUrl || DEFAULT_MEDIA_FOLDER_URL,
-    contentType
+    'text/html'
   );
 }
-
