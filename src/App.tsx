@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  RoleMode, 
   Student, 
   LearningRecord, 
   ContactBook, 
@@ -31,7 +30,6 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [roleMode, setRoleMode] = useState<RoleMode>('teacher');
   const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
@@ -274,14 +272,6 @@ export default function App() {
     }
   };
 
-  // When switching to Parent Mode, default to "learning-report" or "contact-book"
-  const handleRoleChange = (role: RoleMode) => {
-    setRoleMode(role);
-    if (role === 'parent' && (activeTab === 'corner-form' || activeTab === 'roster')) {
-      setActiveTab('learning-report');
-    }
-  };
-
   const handleSavedRecordNav = (recordId: string) => {
     const rec = learningRecords.find((r) => r.id === recordId);
     if (rec && rec.studentId) {
@@ -308,8 +298,6 @@ export default function App() {
 
         {/* Top Header */}
         <Header
-          roleMode={roleMode}
-          setRoleMode={handleRoleChange}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           sheetConfig={sheetConfig}
@@ -328,7 +316,7 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="transition-all duration-300">
-          {activeTab === 'corner-form' && roleMode === 'teacher' && (
+          {activeTab === 'corner-form' && (
             <CornerLearningForm
               students={students}
               learningRecords={learningRecords}
@@ -351,7 +339,6 @@ export default function App() {
 
           {activeTab === 'contact-book' && (
             <ContactBookView
-              roleMode={roleMode}
               students={students}
               contactBooks={contactBooks}
               setContactBooks={setContactBooks}
@@ -362,7 +349,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'roster' && roleMode === 'teacher' && (
+          {activeTab === 'roster' && (
             <StudentRosterView
               students={students}
               setStudents={setStudents}
@@ -391,7 +378,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-12 py-3 bg-[#5D4037] text-white flex flex-col sm:flex-row items-center justify-center text-xs gap-3 tracking-widest font-mono border-t-4 border-[#3E2723]">
-        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習區與聯絡簿管理系統</span>
+        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習紀錄與家長聯絡簿管理系統</span>
         <div className="flex items-center gap-2 bg-[#4E342E] px-3 py-1 rounded-full text-[10px]">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>GOOGLE SHEETS SYNC ACTIVE</span>
@@ -400,19 +387,17 @@ export default function App() {
 
       {/* Mobile Fixed Bottom Navigation Bar (App style) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1.5 py-1 flex items-center justify-around">
-        {roleMode === 'teacher' && (
-          <button
-            onClick={() => setActiveTab('corner-form')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
-              activeTab === 'corner-form'
-                ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
-                : 'text-[#5D4037] hover:bg-white/40'
-            }`}
-          >
-            <ClipboardList className="w-5 h-5 mb-0.5" />
-            <span>角落紀錄</span>
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('corner-form')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+            activeTab === 'corner-form'
+              ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <ClipboardList className="w-5 h-5 mb-0.5" />
+          <span>角落紀錄表</span>
+        </button>
 
         <button
           onClick={() => setActiveTab('learning-report')}
@@ -423,7 +408,7 @@ export default function App() {
           }`}
         >
           <BookOpenCheck className="w-5 h-5 mb-0.5" />
-          <span>學習歷程</span>
+          <span>角落學習紀錄</span>
         </button>
 
         <button
@@ -438,19 +423,17 @@ export default function App() {
           <span>聯絡簿</span>
         </button>
 
-        {roleMode === 'teacher' && (
-          <button
-            onClick={() => setActiveTab('roster')}
-            className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
-              activeTab === 'roster'
-                ? 'bg-[#CE93D8] text-[#4A148C] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
-                : 'text-[#5D4037] hover:bg-white/40'
-            }`}
-          >
-            <Users className="w-5 h-5 mb-0.5" />
-            <span>學生名冊</span>
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('roster')}
+          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+            activeTab === 'roster'
+              ? 'bg-[#CE93D8] text-[#4A148C] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <Users className="w-5 h-5 mb-0.5" />
+          <span>學生名冊</span>
+        </button>
 
         <button
           onClick={() => setActiveTab('system-design')}

@@ -9,7 +9,7 @@ export function generateLearningReportHtml(record: LearningRecord, student?: Stu
   const stuName = record.studentName || student?.name || '幼童';
   const className = record.className || student?.className || '大班';
   const seatNumber = record.seatNumber || student?.seatNumber || 1;
-  const stamp = record.stamp || 'たいへんよくできました';
+  const stamp = record.stamp || '特別優秀';
   const teacherComment = record.teacherComment || '學習態度非常良好，樂於探索與分享。';
 
   // Render 8 Corner Areas
@@ -65,7 +65,7 @@ export function generateLearningReportHtml(record: LearningRecord, student?: Stu
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>愛愛幼兒園 - 學習區紀錄表 - ${stuName}</title>
+  <title>愛愛幼兒園 - 角落學習紀錄表 - ${stuName}</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; background:#f9f6f0; color:#5D4037; padding:20px; margin:0; }
     .card { max-width:850px; margin:0 auto; background:#FFFBF0; border:4px solid #5D4037; border-radius:24px; padding:24px; box-shadow:8px 8px 0px #5D4037; }
@@ -85,11 +85,11 @@ export function generateLearningReportHtml(record: LearningRecord, student?: Stu
     <div class="header">
       <div>
         <div class="subtitle">桃園市私立</div>
-        <div class="title">愛愛幼兒園 <span style="font-size:16px; color:#FF8A65;">校園學習紀錄表</span></div>
+        <div class="title">愛愛幼兒園 <span style="font-size:16px; color:#FF8A65;">角落學習紀錄表</span></div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:20px; font-weight:900;">我的學習紀錄</div>
-        <div class="subtitle">ぼくのぐんぐんきろく</div>
+        <div class="subtitle">幼兒成長觀察記錄</div>
       </div>
     </div>
 

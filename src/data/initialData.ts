@@ -4,7 +4,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'language',
     name: '語文區',
-    jpName: 'ことばのエリア',
+    jpName: '',
     iconName: 'BookOpen',
     color: 'bg-rose-50 border-rose-200 text-rose-700',
     badgeColor: 'bg-rose-400 text-white',
@@ -18,7 +18,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'watercolor',
     name: '水彩區',
-    jpName: 'みずいろのアトリエ',
+    jpName: '',
     iconName: 'Palette',
     color: 'bg-sky-50 border-sky-200 text-sky-700',
     badgeColor: 'bg-sky-400 text-white',
@@ -35,7 +35,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'art',
     name: '美勞區',
-    jpName: 'こうさくのへや',
+    jpName: '',
     iconName: 'Scissors',
     color: 'bg-amber-50 border-amber-200 text-amber-700',
     badgeColor: 'bg-amber-400 text-white',
@@ -50,7 +50,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'beads',
     name: '拼豆區',
-    jpName: 'アイロンビーズ',
+    jpName: '',
     iconName: 'Grid',
     color: 'bg-purple-50 border-purple-200 text-purple-700',
     badgeColor: 'bg-purple-400 text-white',
@@ -67,7 +67,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'science',
     name: '科學區',
-    jpName: 'かがくのラボ',
+    jpName: '',
     iconName: 'Search',
     color: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     badgeColor: 'bg-emerald-400 text-white',
@@ -83,7 +83,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'brain',
     name: '益智區',
-    jpName: 'パズルとパズル',
+    jpName: '',
     iconName: 'Brain',
     color: 'bg-indigo-50 border-indigo-200 text-indigo-700',
     badgeColor: 'bg-indigo-400 text-white',
@@ -99,7 +99,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'puzzle',
     name: '拼圖區',
-    jpName: 'ピースパズル',
+    jpName: '',
     iconName: 'Puzzle',
     color: 'bg-orange-50 border-orange-200 text-orange-700',
     badgeColor: 'bg-orange-400 text-white',
@@ -114,7 +114,7 @@ export const CORNER_AREAS: CornerAreaDef[] = [
   {
     id: 'blocks',
     name: '積木區',
-    jpName: 'つみきのひろば',
+    jpName: '',
     iconName: 'Box',
     color: 'bg-lime-50 border-lime-200 text-lime-700',
     badgeColor: 'bg-lime-500 text-white',
@@ -132,11 +132,11 @@ export const CORNER_AREAS: CornerAreaDef[] = [
 ];
 
 export const JAPANESE_STAMPS = [
-  { id: 'stamp-1', title: 'たいへんよくできました', subtitle: '特別優秀章 💮', color: 'text-rose-600 border-rose-500 bg-rose-50' },
-  { id: 'stamp-2', title: 'すばらしい！', subtitle: '創意無限章 ⭐', color: 'text-amber-600 border-amber-500 bg-amber-50' },
-  { id: 'stamp-3', title: 'よくがんばりました', subtitle: '進步神速章 🌸', color: 'text-emerald-600 border-emerald-500 bg-emerald-50' },
-  { id: 'stamp-4', title: 'ハナマル！', subtitle: '好棒花圓章 💮', color: 'text-sky-600 border-sky-500 bg-sky-50' },
-  { id: 'stamp-5', title: 'ちょうせんマスター', subtitle: '挑戰大師章 👑', color: 'text-purple-600 border-purple-500 bg-purple-50' },
+  { id: 'stamp-1', title: '特別優秀', subtitle: '表現優異 💮', color: 'text-rose-600 border-rose-500 bg-rose-50' },
+  { id: 'stamp-2', title: '創意無限', subtitle: '靈感豐富 ⭐', color: 'text-amber-600 border-amber-500 bg-amber-50' },
+  { id: 'stamp-3', title: '進步神速', subtitle: '努力不懈 🌸', color: 'text-emerald-600 border-emerald-500 bg-emerald-50' },
+  { id: 'stamp-4', title: '好棒滿分', subtitle: '表現亮眼 💯', color: 'text-sky-600 border-sky-500 bg-sky-50' },
+  { id: 'stamp-5', title: '挑戰大師', subtitle: '勇於嘗試 👑', color: 'text-purple-600 border-purple-500 bg-purple-50' },
 ];
 
 export const INITIAL_STUDENTS: Student[] = [
@@ -242,7 +242,7 @@ export const INITIAL_LEARNING_RECORDS: LearningRecord[] = [
       language: '分享故事《彩虹魚》時能認真聆聽並發表感想。',
       watercolor: '嘗試使用三原色調配混合新色彩，繪製夏日花園。',
       art: '使用剪刀沿虛線剪出精緻的小貓圖樣。',
-      beads: '完成立體富士山拼豆圖案，收拾迅速。',
+      beads: '完成立體城堡拼豆圖案，收拾迅速。',
       science: '對顯微鏡下的植物葉脈感到非常好奇。',
       brain: '主動邀請波波一起玩五子棋遊戲。',
       puzzle: '獨立完成了100片的世界地圖拼圖。',
@@ -254,7 +254,7 @@ export const INITIAL_LEARNING_RECORDS: LearningRecord[] = [
       'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&auto=format&fit=crop&q=80',
     ],
     teacherComment: '小花本週在角落學習時間表現非常優異！特別是在美勞區與水彩區，展示了豐富的繪畫想像力與高超的手眼協調。能主動照顧同桌的小朋友，收拾習慣也維持得非常好！',
-    stamp: 'たいへんよくできました',
+    stamp: '特別優秀',
     createdAt: '2026-07-24T16:00:00.000Z',
   },
 ];

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Student, ContactBook, RoleMode, SheetConfig, ClassFilterOption } from '../types';
+import { Student, ContactBook, SheetConfig, ClassFilterOption } from '../types';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -22,7 +22,6 @@ import {
 import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
 interface ContactBookViewProps {
-  roleMode: RoleMode;
   students: Student[];
   contactBooks: ContactBook[];
   setContactBooks: React.Dispatch<React.SetStateAction<ContactBook[]>>;
@@ -33,7 +32,6 @@ interface ContactBookViewProps {
 }
 
 export const ContactBookView: React.FC<ContactBookViewProps> = ({
-  roleMode,
   students,
   contactBooks,
   setContactBooks,
@@ -253,7 +251,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
             </span>
           </div>
           <h2 className="text-2xl md:text-3xl font-black text-[#5D4037] flex items-center gap-2 italic">
-            家長聯絡簿 (れんらくちょう)
+            家長聯絡簿
             <Heart className="w-6 h-6 text-[#FF5252] fill-[#FF5252] animate-pulse" />
           </h2>
           <p className="text-xs text-[#5D4037]/80 font-bold mt-1">
@@ -337,148 +335,146 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Teacher Entry Form (Only visible in Teacher Mode) */}
-        {roleMode === 'teacher' && (
-          <div className="lg:col-span-1 bg-white border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#5D4037]">
-            <h3 className="font-black text-[#5D4037] text-base mb-4 flex items-center gap-2 border-b-2 border-dashed border-[#5D4037]/30 pb-2 italic">
-              <Plus className="w-5 h-5 text-[#FF8A65]" />
-              新增今日聯絡簿紀錄
-            </h3>
+        {/* Left Column: Teacher Entry Form */}
+        <div className="lg:col-span-1 bg-white border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#5D4037]">
+          <h3 className="font-black text-[#5D4037] text-base mb-4 flex items-center gap-2 border-b-2 border-dashed border-[#5D4037]/30 pb-2 italic">
+            <Plus className="w-5 h-5 text-[#FF8A65]" />
+            新增今日聯絡簿紀錄
+          </h3>
 
-            <form onSubmit={handleCreateContactBook} className="space-y-4 text-xs font-bold text-[#5D4037]">
-              <div>
-                <label className="block text-[#5D4037] font-black mb-1">日期:</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                />
-              </div>
+          <form onSubmit={handleCreateContactBook} className="space-y-4 text-xs font-bold text-[#5D4037]">
+            <div>
+              <label className="block text-[#5D4037] font-black mb-1">日期:</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+              />
+            </div>
 
-              {/* Meal Options */}
-              <div className="bg-[#FFF8E1] p-3 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] space-y-2">
-                <span className="text-[#5D4037] font-black flex items-center gap-1 mb-1">
-                  <Utensils className="w-3.5 h-3.5 text-[#FF8A65]" /> 飲食紀錄:
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">早餐</label>
-                    <select
-                      value={breakfast}
-                      onChange={(e) => setBreakfast(e.target.value as any)}
-                      className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
-                    >
-                      <option value="全部吃完">全部吃完</option>
-                      <option value="吃了一半">吃了一半</option>
-                      <option value="食慾較弱">食慾較弱</option>
-                      <option value="未食用">未食用</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">午餐</label>
-                    <select
-                      value={lunch}
-                      onChange={(e) => setLunch(e.target.value as any)}
-                      className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
-                    >
-                      <option value="全部吃完">全部吃完</option>
-                      <option value="吃了一半">吃了一半</option>
-                      <option value="食慾較弱">食慾較弱</option>
-                      <option value="未食用">未食用</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">點心</label>
-                    <select
-                      value={snack}
-                      onChange={(e) => setSnack(e.target.value as any)}
-                      className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
-                    >
-                      <option value="全部吃完">全部吃完</option>
-                      <option value="吃了一半">吃了一半</option>
-                      <option value="食慾較弱">食慾較弱</option>
-                      <option value="未食用">未食用</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nap & Mood & Temp */}
-              <div className="grid grid-cols-2 gap-2">
+            {/* Meal Options */}
+            <div className="bg-[#FFF8E1] p-3 rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] space-y-2">
+              <span className="text-[#5D4037] font-black flex items-center gap-1 mb-1">
+                <Utensils className="w-3.5 h-3.5 text-[#FF8A65]" /> 飲食紀錄:
+              </span>
+              <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-[#5D4037] font-black mb-1 flex items-center gap-1">
-                    <Moon className="w-3.5 h-3.5 text-[#7E57C2]" /> 午睡時間 (分):
-                  </label>
-                  <input
-                    type="number"
-                    value={napMinutes}
-                    onChange={(e) => setNapMinutes(Number(e.target.value))}
-                    className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                  />
+                  <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">早餐</label>
+                  <select
+                    value={breakfast}
+                    onChange={(e) => setBreakfast(e.target.value as any)}
+                    className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
+                  >
+                    <option value="全部吃完">全部吃完</option>
+                    <option value="吃了一半">吃了一半</option>
+                    <option value="食慾較弱">食慾較弱</option>
+                    <option value="未食用">未食用</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-[#5D4037] font-black mb-1 flex items-center gap-1">
-                    <Thermometer className="w-3.5 h-3.5 text-[#FF5252]" /> 體溫:
-                  </label>
-                  <input
-                    type="text"
-                    value={temperature}
-                    onChange={(e) => setTemperature(e.target.value)}
-                    className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                  />
+                  <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">午餐</label>
+                  <select
+                    value={lunch}
+                    onChange={(e) => setLunch(e.target.value as any)}
+                    className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
+                  >
+                    <option value="全部吃完">全部吃完</option>
+                    <option value="吃了一半">吃了一半</option>
+                    <option value="食慾較弱">食慾較弱</option>
+                    <option value="未食用">未食用</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#5D4037]/80 mb-0.5">點心</label>
+                  <select
+                    value={snack}
+                    onChange={(e) => setSnack(e.target.value as any)}
+                    className="w-full bg-white border-2 border-[#5D4037] rounded-lg p-1 text-[11px] font-bold"
+                  >
+                    <option value="全部吃完">全部吃完</option>
+                    <option value="吃了一半">吃了一半</option>
+                    <option value="食慾較弱">食慾較弱</option>
+                    <option value="未食用">未食用</option>
+                  </select>
                 </div>
               </div>
+            </div>
 
+            {/* Nap & Mood & Temp */}
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[#5D4037] font-black mb-1 flex items-center gap-1">
-                  <Smile className="w-3.5 h-3.5 text-[#FFA726]" /> 今日情緒表現:
+                  <Moon className="w-3.5 h-3.5 text-[#7E57C2]" /> 午睡時間 (分):
                 </label>
-                <select
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value as any)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold text-[#5D4037] shadow-[2px_2px_0px_#5D4037]"
-                >
-                  <option value="開心熱情 🌸">開心熱情 🌸</option>
-                  <option value="平靜穩定 ✨">平靜穩定 ✨</option>
-                  <option value="活潑好動 🌟">活潑好動 🌟</option>
-                  <option value="稍微疲倦 💤">稍微疲倦 💤</option>
-                  <option value="情緒敏感 💧">情緒敏感 💧</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[#5D4037] font-black mb-1">健康與活動備註:</label>
                 <input
-                  type="text"
-                  value={healthNotes}
-                  onChange={(e) => setHealthNotes(e.target.value)}
+                  type="number"
+                  value={napMinutes}
+                  onChange={(e) => setNapMinutes(Number(e.target.value))}
                   className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                 />
               </div>
-
               <div>
-                <label className="block text-[#5D4037] mb-1 font-black">老師親師留言板:</label>
-                <textarea
-                  rows={3}
-                  value={teacherMessage}
-                  onChange={(e) => setTeacherMessage(e.target.value)}
-                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl p-2.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] font-sans font-bold"
+                <label className="block text-[#5D4037] font-black mb-1 flex items-center gap-1">
+                  <Thermometer className="w-3.5 h-3.5 text-[#FF5252]" /> 體溫:
+                </label>
+                <input
+                  type="text"
+                  value={temperature}
+                  onChange={(e) => setTemperature(e.target.value)}
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                 />
               </div>
+            </div>
 
-              <button
-                type="submit"
-                className="w-full bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            <div>
+              <label className="block text-[#5D4037] font-black mb-1 flex items-center gap-1">
+                <Smile className="w-3.5 h-3.5 text-[#FFA726]" /> 今日情緒表現:
+              </label>
+              <select
+                value={mood}
+                onChange={(e) => setMood(e.target.value as any)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold text-[#5D4037] shadow-[2px_2px_0px_#5D4037]"
               >
-                <Send className="w-4 h-4" /> 發送今日聯絡簿紀錄
-              </button>
-            </form>
-          </div>
-        )}
+                <option value="開心熱情 🌸">開心熱情 🌸</option>
+                <option value="平靜穩定 ✨">平靜穩定 ✨</option>
+                <option value="活潑好動 🌟">活潑好動 🌟</option>
+                <option value="稍微疲倦 💤">稍微疲倦 💤</option>
+                <option value="情緒敏感 💧">情緒敏感 💧</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[#5D4037] font-black mb-1">健康與活動備註:</label>
+              <input
+                type="text"
+                value={healthNotes}
+                onChange={(e) => setHealthNotes(e.target.value)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#5D4037] mb-1 font-black">老師親師留言板:</label>
+              <textarea
+                rows={3}
+                value={teacherMessage}
+                onChange={(e) => setTeacherMessage(e.target.value)}
+                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl p-2.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] font-sans font-bold"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] hover:shadow-[2px_2px_0px_#5D4037] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Send className="w-4 h-4" /> 發送今日聯絡簿紀錄
+            </button>
+          </form>
+        </div>
 
         {/* Right Column: Postcard Style Contact Book Entries */}
-        <div id="contact-book-list" className={roleMode === 'teacher' ? 'lg:col-span-2 space-y-4' : 'lg:col-span-3 space-y-4'}>
+        <div id="contact-book-list" className="lg:col-span-2 space-y-4">
           <h3 className="font-black text-[#5D4037] text-base mb-2 flex items-center gap-2 italic">
             <MessageSquare className="w-5 h-5 text-[#FF5252]" />
             {selectedStudent.name} 的歷史聯絡簿紀錄
@@ -555,9 +551,9 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                     <span className="font-black text-[#5D4037] block mb-1">👨‍👩‍👧 家長回覆內容 ({selectedStudent.parentName}):</span>
                     <p className="text-[#5D4037] leading-relaxed font-sans font-bold">{entry.parentReply}</p>
                   </div>
-                ) : roleMode === 'parent' ? (
+                ) : (
                   <div className="bg-[#FFF8E1] border-2 border-[#5D4037] rounded-2xl p-3 text-xs space-y-2 shadow-[2px_2px_0px_#5D4037]">
-                    <label className="block font-black text-[#5D4037]">✍️ 寫下給老師的回覆或在家觀察：</label>
+                    <label className="block font-black text-[#5D4037]">✍️ 填寫家長簽署與回覆留言：</label>
                     <textarea
                       rows={2}
                       value={parentReplyInput}
@@ -569,13 +565,13 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                     {/* Cute Sticker Quick Options */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-[10px] text-[#5D4037] font-black">快捷貼圖:</span>
+                        <span className="text-[10px] text-[#5D4037] font-black">快捷回覆:</span>
                         {['❤️ 謝謝老師', '👍 收到了解', '🌸 辛苦了！', '🌟 寶貝真棒'].map((s) => (
                           <button
                             key={s}
                             type="button"
                             onClick={() => setParentReplyInput((prev) => (prev ? `${prev} ${s}` : s))}
-                            className="bg-white border border-[#5D4037] text-[10px] font-black px-2 py-0.5 rounded-lg hover:bg-[#FFF3E0]"
+                            className="bg-white border border-[#5D4037] text-[10px] font-black px-2 py-0.5 rounded-lg hover:bg-[#FFF3E0] cursor-pointer"
                           >
                             {s}
                           </button>
@@ -590,10 +586,6 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                         <Send className="w-3.5 h-3.5" /> 簽署並送出回覆
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-[#5D4037]/60 font-bold italic text-right">
-                    （家長尚未簽署回覆）
                   </div>
                 )}
               </div>

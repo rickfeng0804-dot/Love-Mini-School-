@@ -1,5 +1,3 @@
-export type RoleMode = 'teacher' | 'parent';
-
 export type ClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
 
 export const CLASS_OPTIONS: ClassName[] = [
@@ -26,8 +24,8 @@ export interface Student {
   className: ClassName;
   gender: 'boy' | 'girl';
   avatarUrl: string;
-  parentName: string;
-  parentContact: string;
+  parentName?: string;
+  parentContact?: string;
   notes?: string;
 }
 
@@ -44,7 +42,7 @@ export type CornerAreaId =
 export interface CornerAreaDef {
   id: CornerAreaId;
   name: string;
-  jpName: string;
+  jpName?: string;
   iconName: string;
   color: string; // Tailwind background color / border color accent
   badgeColor: string;
@@ -67,7 +65,7 @@ export interface LearningRecord {
   photoImages: string[];  // Array of image Data URLs or URLs
   videoUrls?: string[];   // Array of video URLs (YouTube, Drive, MP4)
   teacherComment: string;
-  stamp: string; // e.g., 'たいへんよくできました', '好棒章', '特別優秀', '創意無限'
+  stamp: string; // e.g., '特別優秀', '創意無限', '進步神速', '好棒滿分', '挑戰大師'
   createdAt: string;
 }
 

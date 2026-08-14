@@ -160,7 +160,7 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
     drawingImage: row[9] || '',
     photoImages: safeJsonParse(row[10], []),
     teacherComment: row[11] || '',
-    stamp: row[12] || 'たいへんよくできました',
+    stamp: row[12] || '特別優秀',
     createdAt: row[13] || new Date().toISOString(),
   }));
 
@@ -930,7 +930,7 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
     photoImages: typeof r.PhotoImagesJSON === 'string' ? safeJsonParse(r.PhotoImagesJSON, []) : (r.photoImages || []),
     videoUrls: typeof r.VideoUrlsJSON === 'string' ? safeJsonParse(r.VideoUrlsJSON, []) : (r.videoUrls || []),
     teacherComment: r.TeacherComment || r.teacherComment || '',
-    stamp: r.Stamp || r.stamp || 'たいへんよくできました',
+    stamp: r.Stamp || r.stamp || '特別優秀',
     createdAt: r.CreatedAt || r.createdAt || new Date().toISOString(),
   }));
 

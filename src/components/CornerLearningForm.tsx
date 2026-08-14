@@ -120,7 +120,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [teacherComment, setTeacherComment] = useState<string>(
     '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
   );
-  const [stamp, setStamp] = useState<string>('たいへんよくできました');
+  const [stamp, setStamp] = useState<string>('特別優秀');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
@@ -459,7 +459,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 桃園市私立 愛愛幼兒園
               </span>
               <span className="bg-[#FF8A65] text-white border-2 border-[#5D4037] font-black text-xs px-3 py-1 rounded-full shadow-[2px_2px_0px_#5D4037]">
-                校園學習紀錄表
+                角落學習紀錄表
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-[#5D4037] flex items-center gap-2 italic">
@@ -842,7 +842,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
             {/* Praise Stamp Selector */}
             <div>
               <label className="block font-black text-[#5D4037] text-sm mb-2 flex items-center gap-1.5 italic">
-                <Award className="w-4 h-4 text-[#FF8A65]" /> 選擇日式可愛賞識印章:
+                <Award className="w-4 h-4 text-[#FF8A65]" /> 選擇老師鼓勵賞識印章:
               </label>
               <div className="space-y-1.5">
                 {JAPANESE_STAMPS.map((s) => (

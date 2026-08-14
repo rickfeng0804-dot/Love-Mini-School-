@@ -1,6 +1,6 @@
 {
-  "name": "愛愛幼兒園 - 學習歷程與家長聯絡簿",
-  "description": "幼兒園學習狀況記錄、角落學習區記錄表、家長聯絡溝通與學習歷程報告生成系統，支援 Google Sheets 後端同步。",
+  "name": "愛愛幼兒園 - 角落學習紀錄與家長聯絡簿",
+  "description": "幼兒園學習狀況記錄、角落學習紀錄表、家長聯絡溝通與角落學習紀錄報告生成系統，支援 Google Sheets 後端同步。",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

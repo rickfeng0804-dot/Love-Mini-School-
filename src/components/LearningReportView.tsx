@@ -19,7 +19,8 @@ import {
   FileSpreadsheet,
   PieChart as PieIcon,
   CloudUpload,
-  FolderOpen
+  FolderOpen,
+  Type
 } from 'lucide-react';
 import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
@@ -48,15 +49,34 @@ interface SingleReportCardProps {
   record: LearningRecord;
   students?: Student[];
   isBatch?: boolean;
+  fontSize?: number;
 }
 
-const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, isBatch = false }) => {
+const SingleReportCard: React.FC<SingleReportCardProps> = ({ 
+  record, 
+  students, 
+  isBatch = false,
+  fontSize = 18 
+}) => {
   if (!record) return null;
   const matchingStudent = students?.find((s) => s.id === record.studentId || s.name === record.studentName);
   const avatarToDisplay = matchingStudent?.avatarUrl;
 
+  const headerTitleSize = Math.max(20, Math.round(fontSize * 1.35));
+  const subTitleSize = Math.max(12, Math.round(fontSize * 0.8));
+  const infoBarSize = Math.max(13, Math.round(fontSize * 0.95));
+  const cornerHeaderSize = Math.max(13, Math.round(fontSize * 1.05));
+  const cornerItemSize = Math.max(12, Math.round(fontSize * 0.95));
+  const cornerNoteSize = Math.max(11, Math.round(fontSize * 0.85));
+  const commentTitleSize = Math.max(13, Math.round(fontSize * 1.05));
+  const commentTextSize = Math.max(13, Math.round(fontSize * 1.0));
+  const footerSize = Math.max(11, Math.round(fontSize * 0.8));
+
   return (
-    <div className={`bg-[#FFFBF0] border-4 border-[#5D4037] p-6 md:p-8 rounded-[2rem] shadow-[10px_10px_0px_#5D4037] max-w-[1000px] mx-auto text-[#5D4037] font-sans print:shadow-none print:border-4 print:border-[#5D4037] print:p-6 print:bg-white ${isBatch ? 'a4-page-break' : ''}`}>
+    <div 
+      style={{ fontSize: `${fontSize}px` }}
+      className={`bg-[#FFFBF0] border-4 border-[#5D4037] p-6 md:p-8 rounded-[2rem] shadow-[10px_10px_0px_#5D4037] max-w-[1000px] mx-auto text-[#5D4037] font-sans print:shadow-none print:border-4 print:border-[#5D4037] print:p-6 print:bg-white ${isBatch ? 'a4-page-break' : ''}`}
+    >
       {/* Header Row */}
       <div className="flex items-center justify-between border-b-4 border-[#5D4037] pb-3 mb-3">
         <div className="flex items-center gap-3">
@@ -64,9 +84,9 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
             LOVE
           </div>
           <div>
-            <span className="text-[11px] block font-black text-[#5D4037]">桃園市私立</span>
-            <h2 className="text-xl md:text-2xl font-black tracking-wider text-[#5D4037]">
-              愛愛幼兒園 <span className="text-base font-black ml-2 text-[#FF8A65]">校園學習紀錄表</span>
+            <span style={{ fontSize: `${subTitleSize}px` }} className="block font-black text-[#5D4037]">桃園市私立</span>
+            <h2 style={{ fontSize: `${headerTitleSize}px` }} className="font-black tracking-wider text-[#5D4037]">
+              愛愛幼兒園 <span style={{ fontSize: `${Math.round(headerTitleSize * 0.75)}px` }} className="font-black ml-2 text-[#FF8A65]">角落學習紀錄表</span>
             </h2>
           </div>
         </div>
@@ -80,16 +100,16 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
             />
           )}
           <div>
-            <h1 className="text-2xl font-black tracking-widest text-[#5D4037] italic">
+            <h1 style={{ fontSize: `${headerTitleSize}px` }} className="font-black tracking-widest text-[#5D4037] italic">
               我的學習紀錄
             </h1>
-            <span className="text-[10px] text-[#5D4037]/70 font-mono font-bold block">ぼくのぐんぐんきろく</span>
+            <span style={{ fontSize: `${subTitleSize}px` }} className="text-[#5D4037]/75 font-mono font-bold block">幼兒成長觀察記錄</span>
           </div>
         </div>
       </div>
 
       {/* Student Info Bar */}
-      <div className="flex flex-wrap items-center justify-between text-xs font-black border-b-2 border-[#5D4037] pb-2 mb-3">
+      <div style={{ fontSize: `${infoBarSize}px` }} className="flex flex-wrap items-center justify-between font-black border-b-2 border-[#5D4037] pb-2 mb-3">
         <div>
           日期：<u>{record.dateStart}</u> 至 <u>{record.dateEnd}</u>
         </div>
@@ -105,24 +125,24 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
       </div>
 
       {/* 8 Corner Learning Grid Replica */}
-      <div className="grid grid-cols-4 border-2 border-[#5D4037] text-[11px] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none">
+      <div className="grid grid-cols-4 border-2 border-[#5D4037] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none">
         {/* Top 4 Corners */}
         {CORNER_AREAS.slice(0, 4).map((area) => {
           const checkedList = record.checkedItems?.[area.id] || [];
           const note = record.customNotes?.[area.id] || '';
           return (
-            <div key={area.id} className="border-r-2 border-b-2 border-[#5D4037] p-2 flex flex-col justify-between last:border-r-0">
+            <div key={area.id} className="border-r-2 border-b-2 border-[#5D4037] p-2.5 flex flex-col justify-between last:border-r-0">
               <div>
-                <h4 className="font-black text-xs text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082]">
+                <h4 style={{ fontSize: `${cornerHeaderSize}px` }} className="font-black text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082] rounded-md">
                   {area.name}
                 </h4>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {area.items.map((item) => {
                     const isChecked = checkedList.includes(item);
                     return (
-                      <div key={item} className="flex items-start gap-1 leading-snug">
-                        <span className="font-black text-xs">{isChecked ? '☑' : '□'}</span>
-                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/70'}>
+                      <div key={item} style={{ fontSize: `${cornerItemSize}px` }} className="flex items-start gap-1 leading-snug">
+                        <span className="font-black shrink-0">{isChecked ? '☑' : '□'}</span>
+                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/75'}>
                           {item}
                         </span>
                       </div>
@@ -131,7 +151,7 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
                 </div>
               </div>
               {note && (
-                <div className="mt-1 pt-1 border-t border-dashed border-[#5D4037]/50 text-[10px] text-[#5D4037] font-bold">
+                <div style={{ fontSize: `${cornerNoteSize}px` }} className="mt-1.5 pt-1.5 border-t border-dashed border-[#5D4037]/50 text-[#5D4037] font-bold">
                   □ {note}
                 </div>
               )}
@@ -144,18 +164,18 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
           const checkedList = record.checkedItems?.[area.id] || [];
           const note = record.customNotes?.[area.id] || '';
           return (
-            <div key={area.id} className="border-r-2 border-[#5D4037] p-2 flex flex-col justify-between last:border-r-0">
+            <div key={area.id} className="border-r-2 border-[#5D4037] p-2.5 flex flex-col justify-between last:border-r-0">
               <div>
-                <h4 className="font-black text-xs text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082]">
+                <h4 style={{ fontSize: `${cornerHeaderSize}px` }} className="font-black text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082] rounded-md">
                   {area.name}
                 </h4>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {area.items.map((item) => {
                     const isChecked = checkedList.includes(item);
                     return (
-                      <div key={item} className="flex items-start gap-1 leading-snug">
-                        <span className="font-black text-xs">{isChecked ? '☑' : '□'}</span>
-                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/70'}>
+                      <div key={item} style={{ fontSize: `${cornerItemSize}px` }} className="flex items-start gap-1 leading-snug">
+                        <span className="font-black shrink-0">{isChecked ? '☑' : '□'}</span>
+                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/75'}>
                           {item}
                         </span>
                       </div>
@@ -164,7 +184,7 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
                 </div>
               </div>
               {note && (
-                <div className="mt-1 pt-1 border-t border-dashed border-[#5D4037]/50 text-[10px] text-[#5D4037] font-bold">
+                <div style={{ fontSize: `${cornerNoteSize}px` }} className="mt-1.5 pt-1.5 border-t border-dashed border-[#5D4037]/50 text-[#5D4037] font-bold">
                   □ {note}
                 </div>
               )}
@@ -174,16 +194,16 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
       </div>
 
       {/* Photo & Video Section */}
-      <div className="border-2 border-[#5D4037] mb-3 text-xs bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none p-2 min-h-[140px] flex flex-col">
-        <h4 className="font-black text-xs mb-1 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
+      <div className="border-2 border-[#5D4037] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none p-2.5 min-h-[140px] flex flex-col">
+        <h4 style={{ fontSize: `${infoBarSize}px` }} className="font-black mb-1.5 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
           <span>📷 影像與 🎥 影片紀錄</span>
           {record.videoUrls && record.videoUrls.length > 0 && (
-            <span className="text-[10px] bg-[#0288D1] text-white font-black px-1.5 py-0.2 rounded-full">
+            <span style={{ fontSize: `${Math.max(11, Math.round(fontSize * 0.75))}px` }} className="bg-[#0288D1] text-white font-black px-2 py-0.5 rounded-full">
               {record.videoUrls.length} 支影片
             </span>
           )}
         </h4>
-        <div className="flex-1 flex flex-col gap-1.5 p-2 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
+        <div className="flex-1 flex flex-col gap-2 p-2 bg-[#E1F5FE] border border-[#5D4037] rounded-xl overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {record.photoImages && record.photoImages.length > 0 ? (
               record.photoImages.map((img, i) => (
@@ -192,7 +212,7 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
                 </div>
               ))
             ) : (
-              <div className="col-span-2 sm:col-span-4 text-[#5D4037]/50 text-xs flex items-center justify-center italic font-bold py-3">
+              <div style={{ fontSize: `${cornerNoteSize}px` }} className="col-span-2 sm:col-span-4 text-[#5D4037]/60 flex items-center justify-center italic font-bold py-3">
                 （尚無影像紀錄）
               </div>
             )}
@@ -201,8 +221,8 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
           {/* Video Links & Video Player */}
           {record.videoUrls && record.videoUrls.length > 0 && (
             <div className="pt-2 border-t border-dashed border-[#5D4037]/40 space-y-2">
-              <p className="text-[10px] font-black text-[#01579B] flex items-center gap-1">
-                <Video className="w-3 h-3 text-[#0288D1]" /> 活動影片紀錄：
+              <p style={{ fontSize: `${cornerNoteSize}px` }} className="font-black text-[#01579B] flex items-center gap-1">
+                <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 活動影片紀錄：
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {record.videoUrls.map((vUrl, vI) => {
@@ -221,7 +241,7 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
                           controls
                           className="w-full h-32 object-cover rounded-md bg-black"
                         />
-                        <span className="text-[9px] font-black text-[#01579B] block mt-1 truncate">
+                        <span style={{ fontSize: `${cornerNoteSize}px` }} className="font-black text-[#01579B] block mt-1 truncate">
                           🎬 影片檔 #{vI + 1}
                         </span>
                       </div>
@@ -234,40 +254,41 @@ const SingleReportCard: React.FC<SingleReportCardProps> = ({ record, students, i
                       href={vUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-[#5D4037] text-[10px] font-bold text-[#0288D1] hover:underline"
+                      style={{ fontSize: `${cornerNoteSize}px` }}
+                      className="flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-[#5D4037] font-bold text-[#0288D1] hover:underline"
                     >
                       <span className="truncate max-w-[200px]">🎬 {vUrl}</span>
-                      <ExternalLink className="w-2.5 h-2.5 shrink-0 ml-1" />
+                      <ExternalLink className="w-3 h-3 shrink-0 ml-1" />
                     </a>
                   );
                 })}
               </div>
             </div>
           )}
-          </div>
         </div>
+      </div>
 
       {/* Teacher Review & Official Red Anime Stamp */}
-      <div className="border-2 border-[#5D4037] p-3 rounded-2xl flex items-center justify-between gap-4 bg-[#FFF3E0] shadow-[3px_3px_0px_#5D4037] print:shadow-none">
+      <div className="border-2 border-[#5D4037] p-3.5 rounded-2xl flex items-center justify-between gap-4 bg-[#FFF3E0] shadow-[3px_3px_0px_#5D4037] print:shadow-none">
         <div className="flex-1">
-          <h4 className="font-black text-xs text-[#5D4037] mb-1 flex items-center gap-1">
+          <h4 style={{ fontSize: `${commentTitleSize}px` }} className="font-black text-[#5D4037] mb-1.5 flex items-center gap-1.5">
             📝 教師觀察總評：
           </h4>
-          <p className="text-xs text-[#5D4037] leading-relaxed font-bold">
+          <p style={{ fontSize: `${commentTextSize}px` }} className="text-[#5D4037] leading-relaxed font-bold">
             {record.teacherComment || '學習態度非常良好，樂於探索與分享。'}
           </p>
         </div>
 
         {/* Red Ink Stamp */}
-        <div className="w-24 h-24 border-4 border-[#FF5252] rounded-full flex flex-col items-center justify-center p-1 text-[#FF5252] font-black transform rotate-6 shadow-[2px_2px_0px_#5D4037] print:shadow-none shrink-0 select-none bg-white/90">
-          <span className="text-[10px] tracking-widest border-b-2 border-[#FF5252] pb-0.5">愛愛幼兒園</span>
-          <span className="text-xs text-center font-black my-0.5 leading-tight">{record.stamp || 'たいへんよくできました'}</span>
-          <span className="text-[9px] font-mono">2026.07</span>
+        <div className="w-24 h-24 sm:w-28 sm:h-28 border-4 border-[#FF5252] rounded-full flex flex-col items-center justify-center p-1 text-[#FF5252] font-black transform rotate-6 shadow-[2px_2px_0px_#5D4037] print:shadow-none shrink-0 select-none bg-white/90">
+          <span style={{ fontSize: `${Math.max(10, Math.round(fontSize * 0.65))}px` }} className="tracking-widest border-b-2 border-[#FF5252] pb-0.5">愛愛幼兒園</span>
+          <span style={{ fontSize: `${Math.max(12, Math.round(fontSize * 0.85))}px` }} className="text-center font-black my-0.5 leading-tight">{record.stamp || '特別優秀'}</span>
+          <span style={{ fontSize: `${Math.max(9, Math.round(fontSize * 0.6))}px` }} className="font-mono">{record.dateStart ? record.dateStart.substring(0, 7) : '2026.07'}</span>
         </div>
       </div>
 
       {/* Footer Sign-off */}
-      <div className="flex justify-between items-center text-[10px] text-[#5D4037] mt-3 font-mono font-bold">
+      <div style={{ fontSize: `${footerSize}px` }} className="flex justify-between items-center text-[#5D4037] mt-3.5 font-mono font-bold">
         <span>班級導師簽章：__________________</span>
         <span>園長：黃雅琦 Rachel (簽章：__________________)</span>
         <span>家長查閱簽章：__________________</span>
@@ -284,6 +305,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   sheetConfig,
 }) => {
   const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
+  const [reportFontSize, setReportFontSize] = useState<number>(18);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadToast, setUploadToast] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
 
@@ -417,7 +439,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <!DOCTYPE html>
             <html>
               <head>
-                <title>愛愛幼兒園 - 學習區紀錄表 - ${stuName}</title>
+                <title>愛愛幼兒園 - 角落學習紀錄表 - ${stuName}</title>
                 <meta charset="utf-8" />
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
@@ -497,7 +519,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <!DOCTYPE html>
           <html>
             <head>
-              <title>愛愛幼兒園 - 全班學習區紀錄報告書 (全班 A4 批次檔)</title>
+              <title>愛愛幼兒園 - 全班角落學習紀錄表 (全班 A4 批次檔)</title>
               <meta charset="utf-8" />
               <script src="https://cdn.tailwindcss.com"></script>
               <style>
@@ -764,6 +786,46 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               </select>
             </div>
           )}
+
+          {/* Report Font Size Selector */}
+          <div className="flex-1 sm:flex-none min-w-[170px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1 flex items-center gap-1">
+              <Type className="w-3.5 h-3.5 text-[#FF8A65]" />
+              報告字體大小:
+            </label>
+            <div className="flex items-center gap-1.5 bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 shadow-[2px_2px_0px_#5D4037]">
+              <button
+                type="button"
+                onClick={() => setReportFontSize((prev) => Math.max(14, prev - 2))}
+                className="w-7 h-7 rounded-lg bg-[#FFE082] hover:bg-[#FFD54F] border border-[#5D4037] font-black text-xs text-[#5D4037] flex items-center justify-center cursor-pointer transition-all active:scale-90"
+                title="縮小字體"
+              >
+                -
+              </button>
+              <select
+                value={reportFontSize}
+                onChange={(e) => setReportFontSize(Number(e.target.value))}
+                className="flex-1 bg-transparent font-black text-xs text-[#5D4037] text-center focus:outline-none cursor-pointer py-1"
+              >
+                <option value={14}>14 px (標準)</option>
+                <option value={16}>16 px (清晰)</option>
+                <option value={18}>18 px (大字)</option>
+                <option value={20}>20 px (特大)</option>
+                <option value={22}>22 px (超大)</option>
+                <option value={24}>24 px (極大)</option>
+                <option value={26}>26 px (長者友善)</option>
+                <option value={28}>28 px (超醒目)</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setReportFontSize((prev) => Math.min(28, prev + 2))}
+                className="w-7 h-7 rounded-lg bg-[#FFE082] hover:bg-[#FFD54F] border border-[#5D4037] font-black text-xs text-[#5D4037] flex items-center justify-center cursor-pointer transition-all active:scale-90"
+                title="放大字體"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -1092,14 +1154,14 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {activeRecord ? (
         <>
           <div id="printable-area">
-            <SingleReportCard record={activeRecord} students={students} />
+            <SingleReportCard record={activeRecord} students={students} fontSize={reportFontSize} />
           </div>
 
           {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
           <div id="all-printable-reports" className="hidden">
             {learningRecords.map((rec) => (
               <div key={rec.id} className="a4-page-break mb-8">
-                <SingleReportCard record={rec} students={students} isBatch={true} />
+                <SingleReportCard record={rec} students={students} isBatch={true} fontSize={reportFontSize} />
               </div>
             ))}
           </div>
@@ -1107,8 +1169,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       ) : (
         <div className="bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-12 text-center text-[#5D4037] shadow-[6px_6px_0px_#FFD54F]">
           <BookOpen className="w-12 h-12 text-[#FF8A65] mx-auto mb-3" />
-          <h3 className="font-black text-lg text-[#5D4037]">尚無學習區紀錄</h3>
-          <p className="text-xs font-bold mt-1">請先於「大班角落學習區紀錄表」為學生建立觀察紀錄。</p>
+          <h3 className="font-black text-lg text-[#5D4037]">尚無角落學習紀錄</h3>
+          <p className="text-xs font-bold mt-1">請先於「角落學習紀錄表」為學生建立觀察紀錄。</p>
         </div>
       )}
     </div>

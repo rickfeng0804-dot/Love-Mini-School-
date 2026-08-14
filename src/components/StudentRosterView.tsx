@@ -86,8 +86,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const [className, setClassName] = useState<ClassName>('大班 (櫻桃班)');
   const [gender, setGender] = useState<'boy' | 'girl'>('girl');
   const [avatarUrl, setAvatarUrl] = useState<string>(AVATAR_SAMPLES[0]);
-  const [parentName, setParentName] = useState<string>('');
-  const [parentContact, setParentContact] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   const openAddModal = () => {
@@ -97,8 +95,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setClassName('大班 (櫻桃班)');
     setGender('girl');
     setAvatarUrl(AVATAR_SAMPLES[Math.floor(Math.random() * AVATAR_SAMPLES.length)]);
-    setParentName('');
-    setParentContact('');
     setNotes('');
     setShowModal(true);
   };
@@ -110,8 +106,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setClassName(stu.className);
     setGender(stu.gender);
     setAvatarUrl(stu.avatarUrl || AVATAR_SAMPLES[0]);
-    setParentName(stu.parentName);
-    setParentContact(stu.parentContact);
     setNotes(stu.notes || '');
     setShowModal(true);
   };
@@ -176,7 +170,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     if (editingStudent) {
       updated = students.map((s) =>
         s.id === editingStudent.id
-          ? { ...s, name, seatNumber, className, gender, avatarUrl, parentName, parentContact, notes }
+          ? { ...s, name, seatNumber, className, gender, avatarUrl, notes }
           : s
       );
     } else {
@@ -187,8 +181,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         className,
         gender,
         avatarUrl,
-        parentName,
-        parentContact,
         notes,
       };
       updated = [...students, newStu];
@@ -563,7 +555,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                       </span>
                     </h3>
                     <p className="text-xs text-[#5D4037]/80 font-bold flex items-center gap-1 mt-0.5">
-                      <Phone className="w-3 h-3 text-[#0288D1]" /> {stu.parentName} ({stu.parentContact || '暫無'})
+                      <GraduationCap className="w-3.5 h-3.5 text-[#FF8A65]" /> {stu.className} ({stu.seatNumber}號)
                     </p>
                   </div>
                 </div>
@@ -673,29 +665,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                     <option value="girl">女孩 👧</option>
                     <option value="boy">男孩 👦</option>
                   </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[#5D4037] mb-1">家長稱呼:</label>
-                  <input
-                    type="text"
-                    value={parentName}
-                    onChange={(e) => setParentName(e.target.value)}
-                    className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                    placeholder="如: 林媽媽"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#5D4037] mb-1">家長電話:</label>
-                  <input
-                    type="text"
-                    value={parentContact}
-                    onChange={(e) => setParentContact(e.target.value)}
-                    className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                    placeholder="如: 0912-345-678"
-                  />
                 </div>
               </div>
 
