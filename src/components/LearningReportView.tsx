@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Student, LearningRecord, CornerAreaId, ClassFilterOption, SheetConfig } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
-import { uploadReportToGoogleDrive } from '../lib/reportExport';
-import { DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
 import { 
   Printer, 
   Sparkles, 
@@ -18,7 +16,6 @@ import {
   ExternalLink,
   FileSpreadsheet,
   PieChart as PieIcon,
-  CloudUpload,
   FolderOpen,
   Type,
   FileCheck,
@@ -59,8 +56,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
   const [reportFontSize, setReportFontSize] = useState<number>(18);
   const [isPrintInspectionOpen, setIsPrintInspectionOpen] = useState<boolean>(false);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadToast, setUploadToast] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
 
   const filteredReportStudents = students.filter(
     (s) => reportClassFilter === '全部班級' || s.className === reportClassFilter
@@ -94,91 +89,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   };
   const activeRecord =
     learningRecords.find((r) => r.id === activeRecordId) || studentRecords[0] || learningRecords[0];
-
-  const handleUploadSingleReport = async () => {
-    if (!activeRecord) {
-      alert('無可上傳的學習歷程紀錄！');
-      return;
-    }
-
-    const targetWebApp = sheetConfig?.webAppUrl || DEFAULT_WEB_APP_URL;
-    const targetFolder = sheetConfig?.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
-
-    setIsUploading(true);
-    setUploadToast({
-      type: 'info',
-      message: `☁️ 正在上傳「${selectedStudent.name}」的學習歷程報告至 Google Drive...`,
-    });
-
-    try {
-      const res = await uploadReportToGoogleDrive(targetWebApp, activeRecord, selectedStudent, targetFolder);
-      setIsUploading(false);
-      if (res.status === 'success') {
-        setUploadToast({
-          type: 'success',
-          message: `✅ 已成功將「${selectedStudent.name}」的學習歷程報告上傳至指定 Google Drive 雲端資料夾！`,
-        });
-      } else {
-        setUploadToast({
-          type: 'info',
-          message: `📄 學習歷程報告已生成。若是第一次使用 Google Apps Script 雲端上傳，請確認已部署 Web App。`,
-        });
-      }
-    } catch (err) {
-      setIsUploading(false);
-      setUploadToast({
-        type: 'error',
-        message: `❌ 上傳發生錯誤，請稍後再試。`,
-      });
-    }
-
-    setTimeout(() => setUploadToast(null), 5000);
-  };
-
-  const handleUploadBatchReports = async () => {
-    const targetRecords = learningRecords.filter((rec) => {
-      if (reportClassFilter === '全部班級') return true;
-      return rec.className === reportClassFilter;
-    });
-
-    if (targetRecords.length === 0) {
-      alert('當前篩選條件下無可上傳的學習歷程紀錄！');
-      return;
-    }
-
-    const targetWebApp = sheetConfig?.webAppUrl || DEFAULT_WEB_APP_URL;
-    const targetFolder = sheetConfig?.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
-
-    setIsUploading(true);
-    let successCount = 0;
-
-    for (let i = 0; i < targetRecords.length; i++) {
-      const rec = targetRecords[i];
-      const stu = students.find((s) => s.id === rec.studentId || s.name === rec.studentName);
-
-      setUploadToast({
-        type: 'info',
-        message: `☁️ 正在批次上傳學習歷程報告至 Google Drive (${i + 1}/${targetRecords.length})：${rec.studentName}...`,
-      });
-
-      try {
-        const res = await uploadReportToGoogleDrive(targetWebApp, rec, stu, targetFolder);
-        if (res.status === 'success') {
-          successCount++;
-        }
-      } catch (err) {
-        console.warn('Batch report upload error:', err);
-      }
-    }
-
-    setIsUploading(false);
-    setUploadToast({
-      type: 'success',
-      message: `🎉 批次上傳完成！共成功上傳 ${successCount}/${targetRecords.length} 份學習歷程報告至 Google Drive 雲端資料夾。`,
-    });
-
-    setTimeout(() => setUploadToast(null), 6000);
-  };
 
   const handlePrintSingle = () => {
     const printArea = document.getElementById('printable-area');
@@ -602,24 +512,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           </button>
 
           <button
-            onClick={handleUploadSingleReport}
-            disabled={isUploading}
-            className="flex-1 sm:flex-none justify-center bg-[#0288D1] hover:bg-[#01579B] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="將此學習歷程報告以 HTML 檔格式上傳至指定 Google Drive 資料夾"
-          >
-            <CloudUpload className="w-4 h-4" /> 上傳報告至雲端
-          </button>
-
-          <button
-            onClick={handleUploadBatchReports}
-            disabled={isUploading}
-            className="flex-1 sm:flex-none justify-center bg-[#7E57C2] hover:bg-[#673AB7] disabled:opacity-50 text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="批次將當前班級的所有學習歷程報告上傳至 Google Drive 雲端資料夾"
-          >
-            <CloudUpload className="w-4 h-4" /> 批次上傳全班報告
-          </button>
-
-          <button
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
@@ -634,21 +526,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           </button>
         </div>
       </div>
-
-      {uploadToast && (
-        <div
-          className={`print:hidden p-3.5 rounded-2xl border-4 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] text-xs font-black mb-6 flex items-center gap-2 ${
-            uploadToast.type === 'error'
-              ? 'bg-[#FFCDD2] text-[#B71C1C]'
-              : uploadToast.type === 'success'
-              ? 'bg-[#C8E6C9] text-[#1B5E20]'
-              : 'bg-[#B3E5FC] text-[#01579B] animate-pulse'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 shrink-0" />
-          <span>{uploadToast.message}</span>
-        </div>
-      )}
 
       {/* Learning Corner Distribution Analytics Card (Hidden on Print) */}
       {activeRecord && (
