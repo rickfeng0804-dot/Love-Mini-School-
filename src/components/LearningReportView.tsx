@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Student, LearningRecord, CornerAreaId, ClassFilterOption, SheetConfig } from '../types';
+import { 
+  Student, 
+  LearningRecord, 
+  CornerAreaId, 
+  ClassFilterOption, 
+  SheetConfig,
+  GradeFilterOption,
+  GRADE_OPTIONS,
+  getStudentGrade
+} from '../types';
 import { CORNER_AREAS } from '../data/initialData';
 import { 
   Printer, 
@@ -19,7 +28,9 @@ import {
   FolderOpen,
   Type,
   FileCheck,
-  Eye
+  Eye,
+  GraduationCap,
+  Filter
 } from 'lucide-react';
 import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
@@ -29,11 +40,11 @@ import {
   PolarAngleAxis, 
   PolarRadiusAxis, 
   ResponsiveContainer, 
-  PieChart,
-  Pie,
-  Cell,
+  PieChart, 
+  Pie, 
+  Cell, 
   Tooltip, 
-  Legend
+  Legend 
 } from 'recharts';
 import { SingleReportCard } from './SingleReportCard';
 import { PrintInspectionModal } from './PrintInspectionModal';
@@ -53,13 +64,31 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   setSelectedStudentId,
   sheetConfig,
 }) => {
+  const [reportGradeFilter, setReportGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
   const [reportFontSize, setReportFontSize] = useState<number>(18);
   const [isPrintInspectionOpen, setIsPrintInspectionOpen] = useState<boolean>(false);
 
-  const filteredReportStudents = students.filter(
-    (s) => reportClassFilter === '全部班級' || s.className === reportClassFilter
+  // Dynamically compute unique grades
+  const uniqueGradeList = Array.from(
+    new Set(['全部年級', ...GRADE_OPTIONS, ...students.map((s) => getStudentGrade(s)).filter(Boolean)])
   );
+
+  // Available students for selected grade
+  const availableStudentsForGrade = students.filter(
+    (s) => reportGradeFilter === '全部年級' || getStudentGrade(s) === reportGradeFilter
+  );
+
+  // Dynamically compute unique classes for selected grade
+  const uniqueClassList = Array.from(
+    new Set(['全部班級', ...availableStudentsForGrade.map((s) => s.className).filter(Boolean)])
+  );
+
+  const filteredReportStudents = students.filter((s) => {
+    const matchGrade = reportGradeFilter === '全部年級' || getStudentGrade(s) === reportGradeFilter;
+    const matchClass = reportClassFilter === '全部班級' || s.className === reportClassFilter;
+    return matchGrade && matchClass;
+  });
 
   const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
   const [activeRecordId, setActiveRecordId] = useState<string>('');
@@ -385,28 +414,64 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {/* Top Filter & Print Controls (Hidden on Print) */}
       <div className="print:hidden bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-4 sm:p-5 shadow-[6px_6px_0px_#FFD54F] mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Grade Filter Dropdown */}
+          <div className="flex-1 sm:flex-none min-w-[140px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1 flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5 text-[#E65100]" /> 年級篩選:
+            </label>
+            <select
+              value={reportGradeFilter}
+              onChange={(e) => {
+                const newGrade = e.target.value as GradeFilterOption;
+                setReportGradeFilter(newGrade);
+                setReportClassFilter('全部班級');
+                const filtered = students.filter(
+                  (s) => newGrade === '全部年級' || getStudentGrade(s) === newGrade
+                );
+                if (filtered.length > 0) {
+                  setSelectedStudentId(filtered[0].id);
+                  const firstRec = learningRecords.find((r) => r.studentId === filtered[0].id);
+                  if (firstRec) setActiveRecordId(firstRec.id);
+                }
+              }}
+              className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+            >
+              {uniqueGradeList.map((grd) => (
+                <option key={grd} value={grd}>
+                  {grd === '全部年級' ? '🏫 全部年級' : `🎓 ${grd}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Class Filter Dropdown */}
-          <div className="flex-1 sm:flex-none min-w-[160px]">
-            <label className="block text-xs font-black text-[#5D4037] mb-1">班級篩選:</label>
+          <div className="flex-1 sm:flex-none min-w-[140px]">
+            <label className="block text-xs font-black text-[#5D4037] mb-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-[#7B1FA2]" /> 班級篩選:
+            </label>
             <select
               value={reportClassFilter}
               onChange={(e) => {
                 const newFilter = e.target.value as ClassFilterOption;
                 setReportClassFilter(newFilter);
-                const filtered = students.filter(
-                  (s) => newFilter === '全部班級' || s.className === newFilter
-                );
+                const filtered = students.filter((s) => {
+                  const matchGrade = reportGradeFilter === '全部年級' || getStudentGrade(s) === reportGradeFilter;
+                  const matchClass = newFilter === '全部班級' || s.className === newFilter;
+                  return matchGrade && matchClass;
+                });
                 if (filtered.length > 0) {
                   setSelectedStudentId(filtered[0].id);
+                  const firstRec = learningRecords.find((r) => r.studentId === filtered[0].id);
+                  if (firstRec) setActiveRecordId(firstRec.id);
                 }
               }}
               className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
             >
-              <option value="全部班級">🏫 全部班級</option>
-              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+              {uniqueClassList.map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls === '全部班級' ? '🎒 全部班級' : `🎒 ${cls}`}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -424,11 +489,11 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               {filteredReportStudents.length > 0 ? (
                 filteredReportStudents.map((stu) => (
                   <option key={stu.id} value={stu.id}>
-                    {stu.className} - {stu.seatNumber}號 {stu.name}
+                    {stu.grade || getStudentGrade(stu)} · {stu.className} - {stu.seatNumber}號 {stu.name}
                   </option>
                 ))
               ) : (
-                <option value="">該班級尚無學生</option>
+                <option value="">該篩選條件尚無學生</option>
               )}
             </select>
           </div>

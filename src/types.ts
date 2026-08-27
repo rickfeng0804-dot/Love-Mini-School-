@@ -1,3 +1,10 @@
+export type StandardGrade = '大班' | '中班' | '小班' | '幼幼班';
+export type Grade = StandardGrade | string;
+export type GradeFilterOption = '全部年級' | StandardGrade | string;
+
+export const GRADE_OPTIONS: string[] = ['幼幼班', '小班', '中班', '大班'];
+export const GRADE_FILTER_OPTIONS: GradeFilterOption[] = ['全部年級', '幼幼班', '小班', '中班', '大班'];
+
 export type StandardClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
 export type ClassName = StandardClassName | string;
 
@@ -25,6 +32,7 @@ export const CLASS_FILTER_OPTIONS: ClassFilterOption[] = [
 export interface Student {
   id: string;
   name: string;
+  grade?: Grade;
   seatNumber: string;
   className: ClassName;
   gender: 'boy' | 'girl';
@@ -32,6 +40,21 @@ export interface Student {
   parentName?: string;
   parentContact?: string;
   notes?: string;
+}
+
+/**
+ * Helper to get a normalized grade name for a student
+ */
+export function getStudentGrade(s: Partial<Student>): string {
+  if (s.grade && typeof s.grade === 'string' && s.grade.trim()) {
+    return s.grade.trim();
+  }
+  const cls = s.className || '';
+  if (cls.includes('幼幼')) return '幼幼班';
+  if (cls.includes('小班')) return '小班';
+  if (cls.includes('中班')) return '中班';
+  if (cls.includes('大班')) return '大班';
+  return '未分年級';
 }
 
 export type CornerAreaId = 

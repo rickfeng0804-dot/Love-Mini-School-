@@ -135,17 +135,55 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
   const learningRowData = valueRanges[1]?.values || [];
   const contactRowData = valueRanges[2]?.values || [];
 
-  const students: Student[] = studentsRowData.map((row: string[]) => ({
-    id: row[0] || '',
-    name: row[1] || '',
-    seatNumber: row[2] || '',
-    className: (row[3] as any) || '大班 (櫻桃班)',
-    gender: (row[4] as any) || 'girl',
-    avatarUrl: row[5] || '',
-    parentName: row[6] || '',
-    parentContact: row[7] || '',
-    notes: row[8] || '',
-  }));
+  const students: Student[] = studentsRowData.map((row: string[]) => {
+    let grade = '';
+    let seatNumber = '';
+    let className = '大班 (櫻桃班)';
+    let gender: 'boy' | 'girl' = 'girl';
+    let avatarUrl = '';
+    let parentName = '';
+    let parentContact = '';
+    let notes = '';
+
+    if (row.length >= 10) {
+      grade = row[2] || '';
+      seatNumber = row[3] || '';
+      className = row[4] || '大班 (櫻桃班)';
+      gender = (row[5] as any) === 'boy' ? 'boy' : 'girl';
+      avatarUrl = row[6] || '';
+      parentName = row[7] || '';
+      parentContact = row[8] || '';
+      notes = row[9] || '';
+    } else {
+      seatNumber = row[2] || '';
+      className = row[3] || '大班 (櫻桃班)';
+      gender = (row[4] as any) === 'boy' ? 'boy' : 'girl';
+      avatarUrl = row[5] || '';
+      parentName = row[6] || '';
+      parentContact = row[7] || '';
+      notes = row[8] || '';
+    }
+
+    if (!grade) {
+      if (className.includes('幼幼')) grade = '幼幼班';
+      else if (className.includes('小班')) grade = '小班';
+      else if (className.includes('中班')) grade = '中班';
+      else if (className.includes('大班')) grade = '大班';
+    }
+
+    return {
+      id: row[0] || '',
+      name: row[1] || '',
+      grade,
+      seatNumber,
+      className,
+      gender,
+      avatarUrl,
+      parentName,
+      parentContact,
+      notes,
+    };
+  });
 
   const learningRecords: LearningRecord[] = learningRowData.map((row: string[]) => ({
     id: row[0] || '',
@@ -281,12 +319,13 @@ export async function syncAllToSheet(
   const studentValues = students.map(s => [
     s.id,
     s.name,
+    s.grade || '',
     s.seatNumber,
     s.className,
     s.gender,
     s.avatarUrl,
-    s.parentName,
-    s.parentContact,
+    s.parentName || '',
+    s.parentContact || '',
     s.notes || '',
   ]);
 
@@ -550,13 +589,13 @@ function doPost(e) {
     
     sheet.clear();
     sheet.appendRow([
-      "ID", "Name", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"
+      "ID", "Name", "Grade", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"
     ]);
     
     var students = contents.students || [];
     students.forEach(function(s) {
       sheet.appendRow([
-        s.id, s.name, s.seatNumber, s.className, s.gender,
+        s.id, s.name, s.grade || "", s.seatNumber, s.className, s.gender,
         s.avatarUrl || "", s.parentName || "", s.parentContact || "", s.notes || ""
       ]);
     });
@@ -795,9 +834,9 @@ function getSheetDataAsObjects(sheet) {
 function updateStudentsSheet(ss, students) {
   var sheet = ss.getSheetByName("Students") || ss.insertSheet("Students");
   sheet.clear();
-  sheet.appendRow(["ID", "Name", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"]);
+  sheet.appendRow(["ID", "Name", "Grade", "SeatNumber", "ClassName", "Gender", "AvatarUrl", "ParentName", "ParentContact", "Notes"]);
   students.forEach(function(s) {
-    sheet.appendRow([s.id, s.name, s.seatNumber, s.className, s.gender, s.avatarUrl, s.parentName, s.parentContact, s.notes || ""]);
+    sheet.appendRow([s.id, s.name, s.grade || "", s.seatNumber, s.className, s.gender, s.avatarUrl || "", s.parentName || "", s.parentContact || "", s.notes || ""]);
   });
 }
 
@@ -911,6 +950,15 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
     const className = String(s.ClassName || s.className || '大班 (櫻桃班)').trim();
     const name = String(s.Name || s.name || '').trim();
     
+    // Extract or infer Grade
+    let grade = String(s.Grade || s.grade || s.Year || s.year || s['年級'] || '').trim();
+    if (!grade) {
+      if (className.includes('幼幼')) grade = '幼幼班';
+      else if (className.includes('小班')) grade = '小班';
+      else if (className.includes('中班')) grade = '中班';
+      else if (className.includes('大班')) grade = '大班';
+    }
+    
     // Stable clean ID
     const studentId = rawId ? (rawId.startsWith('stu-') ? rawId : `stu-${className ? className.replace(/[\s()]/g, '') + '-' : ''}${rawId}`) : `stu-${idx + 1}`;
     
@@ -925,6 +973,7 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
     return {
       id: studentId,
       name,
+      grade,
       seatNumber: seatNum,
       className,
       gender,

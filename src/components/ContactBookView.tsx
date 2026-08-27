@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Student, ContactBook, SheetConfig, ClassFilterOption } from '../types';
+import { 
+  Student, 
+  ContactBook, 
+  SheetConfig, 
+  ClassFilterOption,
+  GradeFilterOption,
+  GRADE_OPTIONS,
+  getStudentGrade
+} from '../types';
 import { syncAllToSheet, syncToWebApp, DEFAULT_WEB_APP_URL } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -17,7 +25,8 @@ import {
   Plus,
   Download,
   Printer,
-  Filter
+  Filter,
+  GraduationCap
 } from 'lucide-react';
 import { generateContactBooksCsv, downloadCsv } from '../lib/csvExport';
 
@@ -40,10 +49,29 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
   sheetConfig,
   learningRecords,
 }) => {
+  const [cbGradeFilter, setCbGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [cbClassFilter, setCbClassFilter] = useState<ClassFilterOption>('全部班級');
-  const filteredCbStudents = students.filter(
-    (s) => cbClassFilter === '全部班級' || s.className === cbClassFilter
+
+  // Dynamically compute unique grades
+  const uniqueGradeList = Array.from(
+    new Set(['全部年級', ...GRADE_OPTIONS, ...students.map((s) => getStudentGrade(s)).filter(Boolean)])
   );
+
+  // Available students for selected grade
+  const availableStudentsForGrade = students.filter(
+    (s) => cbGradeFilter === '全部年級' || getStudentGrade(s) === cbGradeFilter
+  );
+
+  // Dynamically compute unique classes for selected grade
+  const uniqueClassList = Array.from(
+    new Set(['全部班級', ...availableStudentsForGrade.map((s) => s.className).filter(Boolean)])
+  );
+
+  const filteredCbStudents = students.filter((s) => {
+    const matchGrade = cbGradeFilter === '全部年級' || getStudentGrade(s) === cbGradeFilter;
+    const matchClass = cbClassFilter === '全部班級' || s.className === cbClassFilter;
+    return matchGrade && matchClass;
+  });
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
@@ -262,16 +290,17 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
         {/* Student Select Bar */}
         <div className="flex flex-wrap items-center gap-2 justify-between md:justify-end w-full md:w-auto">
           <div className="w-full sm:w-auto bg-white p-2 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex flex-wrap items-center gap-2">
-            {/* Class Filter Dropdown */}
+            {/* Grade Filter Dropdown */}
             <div className="flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#FF8A65]" />
+              <GraduationCap className="w-3.5 h-3.5 text-[#E65100]" />
               <select
-                value={cbClassFilter}
+                value={cbGradeFilter}
                 onChange={(e) => {
-                  const newFilter = e.target.value as ClassFilterOption;
-                  setCbClassFilter(newFilter);
+                  const newGrade = e.target.value as GradeFilterOption;
+                  setCbGradeFilter(newGrade);
+                  setCbClassFilter('全部班級');
                   const filtered = students.filter(
-                    (s) => newFilter === '全部班級' || s.className === newFilter
+                    (s) => newGrade === '全部年級' || getStudentGrade(s) === newGrade
                   );
                   if (filtered.length > 0) {
                     setSelectedStudentId(filtered[0].id);
@@ -279,11 +308,38 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                 }}
                 className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
               >
-                <option value="全部班級">🏫 全部班級</option>
-                <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-                <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-                <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-                <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+                {uniqueGradeList.map((grd) => (
+                  <option key={grd} value={grd}>
+                    {grd === '全部年級' ? '🏫 全部年級' : `🎓 ${grd}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Class Filter Dropdown */}
+            <div className="flex items-center gap-1 border-l border-[#5D4037]/20 pl-2">
+              <Filter className="w-3.5 h-3.5 text-[#7B1FA2]" />
+              <select
+                value={cbClassFilter}
+                onChange={(e) => {
+                  const newFilter = e.target.value as ClassFilterOption;
+                  setCbClassFilter(newFilter);
+                  const filtered = students.filter((s) => {
+                    const matchGrade = cbGradeFilter === '全部年級' || getStudentGrade(s) === cbGradeFilter;
+                    const matchClass = newFilter === '全部班級' || s.className === newFilter;
+                    return matchGrade && matchClass;
+                  });
+                  if (filtered.length > 0) {
+                    setSelectedStudentId(filtered[0].id);
+                  }
+                }}
+                className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+              >
+                {uniqueClassList.map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls === '全部班級' ? '🎒 全部班級' : `🎒 ${cls}`}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -304,11 +360,11 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                 {filteredCbStudents.length > 0 ? (
                   filteredCbStudents.map((stu) => (
                     <option key={stu.id} value={stu.id}>
-                      {stu.className} - {stu.seatNumber}號 {stu.name}
+                      {stu.grade || getStudentGrade(stu)} · {stu.className} - {stu.seatNumber}號 {stu.name}
                     </option>
                   ))
                 ) : (
-                  <option value="">該班級尚無學生</option>
+                  <option value="">該篩選條件尚無學生</option>
                 )}
               </select>
             </div>

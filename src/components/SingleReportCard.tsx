@@ -1,5 +1,5 @@
 import React from 'react';
-import { Student, LearningRecord } from '../types';
+import { Student, LearningRecord, getStudentGrade } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
 import { Video, ExternalLink } from 'lucide-react';
 
@@ -86,6 +86,11 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
         <div>
           日期：<u>{record.dateStart}</u> 至 <u>{record.dateEnd}</u>
         </div>
+        {matchingStudent && (
+          <div>
+            年級：<u>{matchingStudent.grade || getStudentGrade(matchingStudent)}</u>
+          </div>
+        )}
         <div>
           班級：<u>{record.className}</u>
         </div>

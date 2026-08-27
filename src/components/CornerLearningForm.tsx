@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig, ClassFilterOption, CLASS_OPTIONS } from '../types';
+import { 
+  Student, 
+  LearningRecord, 
+  ContactBook, 
+  CornerAreaId, 
+  SheetConfig, 
+  ClassFilterOption, 
+  CLASS_OPTIONS,
+  GradeFilterOption,
+  GRADE_OPTIONS,
+  getStudentGrade
+} from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { syncAllToSheet, syncToWebApp, uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
 import { uploadReportToGoogleDrive } from '../lib/reportExport';
@@ -28,7 +39,8 @@ import {
   AlertCircle,
   Filter,
   FolderOpen,
-  ExternalLink
+  ExternalLink,
+  GraduationCap
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -59,19 +71,33 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   sheetConfig,
   onSavedRecord,
 }) => {
+  const [formGradeFilter, setFormGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [formClassFilter, setFormClassFilter] = useState<ClassFilterOption>('全部班級');
   
-  const uniqueClassList = Array.from(
-    new Set(['全部班級', ...CLASS_OPTIONS, ...students.map((s) => s.className).filter(Boolean)])
+  // Dynamically compute unique grades
+  const uniqueGradeList = Array.from(
+    new Set(['全部年級', ...GRADE_OPTIONS, ...students.map((s) => getStudentGrade(s)).filter(Boolean)])
   );
 
-  const filteredStudents = students.filter(
-    (s) => formClassFilter === '全部班級' || s.className === formClassFilter
+  // Available students for selected grade
+  const availableStudentsForGrade = students.filter(
+    (s) => formGradeFilter === '全部年級' || getStudentGrade(s) === formGradeFilter
   );
+
+  // Dynamically compute unique classes for selected grade
+  const uniqueClassList = Array.from(
+    new Set(['全部班級', ...availableStudentsForGrade.map((s) => s.className).filter(Boolean)])
+  );
+
+  const filteredStudents = students.filter((s) => {
+    const matchGrade = formGradeFilter === '全部年級' || getStudentGrade(s) === formGradeFilter;
+    const matchClass = formClassFilter === '全部班級' || s.className === formClassFilter;
+    return matchGrade && matchClass;
+  });
 
   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || 'stu-01');
 
-  // When class filter changes, ensure selectedStudentId points to a valid student in that class
+  // When grade/class filter changes, ensure selectedStudentId points to a valid student
   useEffect(() => {
     if (filteredStudents.length > 0) {
       const exists = filteredStudents.some((s) => s.id === selectedStudentId);
@@ -79,7 +105,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         setSelectedStudentId(filteredStudents[0].id);
       }
     }
-  }, [formClassFilter, students]);
+  }, [formGradeFilter, formClassFilter, students]);
   const [dateStart, setDateStart] = useState<string>('2026-07-27');
   const [dateEnd, setDateEnd] = useState<string>('2026-07-31');
 
@@ -478,22 +504,44 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
 
           {/* Student & Date Picker Selector Card */}
           <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
-            {/* Class Filter Bar */}
-            <div className="flex items-center gap-2 pb-2 border-b border-[#5D4037]/20">
-              <span className="flex items-center gap-1 text-xs font-black text-[#5D4037] shrink-0">
-                <Filter className="w-3.5 h-3.5 text-[#FF8A65]" /> 班級篩選：
-              </span>
-              <select
-                value={formClassFilter}
-                onChange={(e) => setFormClassFilter(e.target.value as ClassFilterOption)}
-                className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-              >
-                {uniqueClassList.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls === '全部班級' ? '🏫 全部班級 (顯示所有人)' : `🎒 ${cls}`}
-                  </option>
-                ))}
-              </select>
+            {/* Grade & Class Filter Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b border-[#5D4037]/20">
+              <div className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1 text-xs font-black text-[#5D4037] shrink-0">
+                  <GraduationCap className="w-3.5 h-3.5 text-[#E65100]" /> 年級：
+                </span>
+                <select
+                  value={formGradeFilter}
+                  onChange={(e) => {
+                    setFormGradeFilter(e.target.value as GradeFilterOption);
+                    setFormClassFilter('全部班級');
+                  }}
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                >
+                  {uniqueGradeList.map((grd) => (
+                    <option key={grd} value={grd}>
+                      {grd === '全部年級' ? '🏫 全部年級' : `🎓 ${grd}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1 text-xs font-black text-[#5D4037] shrink-0">
+                  <Filter className="w-3.5 h-3.5 text-[#7B1FA2]" /> 班級：
+                </span>
+                <select
+                  value={formClassFilter}
+                  onChange={(e) => setFormClassFilter(e.target.value as ClassFilterOption)}
+                  className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                >
+                  {uniqueClassList.map((cls) => (
+                    <option key={cls} value={cls}>
+                      {cls === '全部班級' ? '🎒 全部班級' : `🎒 ${cls}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-black text-[#5D4037]">
@@ -504,7 +552,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                   </span>
                   {selectedStudent && (
                     <span className="text-[10px] text-[#5D4037]/80 font-mono font-bold">
-                      {selectedStudent.seatNumber}號 {selectedStudent.gender === 'boy' ? '👦' : '👧'}
+                      {getStudentGrade(selectedStudent)} · {selectedStudent.seatNumber}號 {selectedStudent.gender === 'boy' ? '👦' : '👧'}
                     </span>
                   )}
                 </label>
@@ -525,11 +573,11 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((stu) => (
                         <option key={stu.id} value={stu.id}>
-                          {stu.className} - {stu.seatNumber}號 {stu.name}
+                          {stu.grade || getStudentGrade(stu)} · {stu.className} - {stu.seatNumber}號 {stu.name}
                         </option>
                       ))
                     ) : (
-                      <option value="">該班級尚無學生</option>
+                      <option value="">該篩選條件尚無學生</option>
                     )}
                   </select>
                 </div>

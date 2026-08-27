@@ -38,8 +38,9 @@ export function generateStudentsCsv(students: Student[]): string {
   const headers = [
     '學生ID (Student ID)',
     '姓名 (Name)',
-    '座號 (Seat Number)',
+    '年級 (Grade)',
     '班別 (Class Name)',
+    '座號 (Seat Number)',
     '性別 (Gender)',
     '頭像照片網址 (Avatar Photo URL)',
     '家長姓名 (Parent Name)',
@@ -50,12 +51,13 @@ export function generateStudentsCsv(students: Student[]): string {
   const rows = students.map((s) => [
     s.id,
     s.name,
-    s.seatNumber,
+    s.grade || '',
     s.className,
+    s.seatNumber,
     s.gender === 'boy' ? '男 (Boy)' : '女 (Girl)',
     s.avatarUrl || '',
-    s.parentName,
-    s.parentContact,
+    s.parentName || '',
+    s.parentContact || '',
     s.notes || ''
   ]);
 

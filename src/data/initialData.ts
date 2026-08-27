@@ -143,6 +143,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-01',
     name: '林小花',
+    grade: '大班',
     seatNumber: '01',
     className: '大班 (櫻桃班)',
     gender: 'girl',
@@ -154,6 +155,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-02',
     name: '張阿奇',
+    grade: '大班',
     seatNumber: '02',
     className: '大班 (櫻桃班)',
     gender: 'boy',
@@ -165,6 +167,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-03',
     name: '陳萌萌',
+    grade: '大班',
     seatNumber: '03',
     className: '大班 (櫻桃班)',
     gender: 'girl',
@@ -176,6 +179,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-04',
     name: '黃波波',
+    grade: '大班',
     seatNumber: '04',
     className: '大班 (櫻桃班)',
     gender: 'boy',
@@ -187,6 +191,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-05',
     name: '王小草',
+    grade: '中班',
     seatNumber: '01',
     className: '中班 (草莓班)',
     gender: 'boy',
@@ -198,6 +203,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-06',
     name: '許蘋果',
+    grade: '小班',
     seatNumber: '01',
     className: '小班 (蘋果班)',
     gender: 'girl',
@@ -209,6 +215,7 @@ export const INITIAL_STUDENTS: Student[] = [
   {
     id: 'stu-07',
     name: '周葡萄',
+    grade: '幼幼班',
     seatNumber: '01',
     className: '幼幼班 (葡萄班)',
     gender: 'boy',

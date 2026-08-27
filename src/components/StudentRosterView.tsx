@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { Student, ClassName, SheetConfig, LearningRecord, ContactBook, ClassFilterOption, CLASS_FILTER_OPTIONS, CLASS_OPTIONS } from '../types';
+import { 
+  Student, 
+  ClassName, 
+  SheetConfig, 
+  LearningRecord, 
+  ContactBook, 
+  ClassFilterOption, 
+  CLASS_FILTER_OPTIONS, 
+  CLASS_OPTIONS,
+  GradeFilterOption,
+  GRADE_OPTIONS,
+  GRADE_FILTER_OPTIONS,
+  getStudentGrade
+} from '../types';
 import { syncAllToSheet, syncToWebApp, fetchFromWebApp, fetchStudentRoster, fetchAllKindergartenData, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -27,7 +40,8 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   RotateCcw,
-  Filter
+  Filter,
+  Layers
 } from 'lucide-react';
 import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
@@ -39,6 +53,8 @@ interface StudentRosterViewProps {
   sheetConfig: SheetConfig;
   selectedClassFilter?: ClassFilterOption;
   setSelectedClassFilter?: (filter: ClassFilterOption) => void;
+  selectedGradeFilter?: GradeFilterOption;
+  setSelectedGradeFilter?: (filter: GradeFilterOption) => void;
 }
 
 const AVATAR_SAMPLES = [
@@ -57,6 +73,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   sheetConfig,
   selectedClassFilter,
   setSelectedClassFilter,
+  selectedGradeFilter,
+  setSelectedGradeFilter,
 }) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
@@ -65,9 +83,28 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
+  // Grade filter state
+  const [internalGradeFilter, setInternalGradeFilter] = useState<GradeFilterOption>('全部年級');
+  const activeGradeFilter = selectedGradeFilter || internalGradeFilter;
+
   // Local class filter fallback if prop is missing
   const [internalClassFilter, setInternalClassFilter] = useState<ClassFilterOption>('全部班級');
   const activeClassFilter = selectedClassFilter || internalClassFilter;
+
+  const handleGradeFilterChange = (filter: GradeFilterOption) => {
+    if (setSelectedGradeFilter) {
+      setSelectedGradeFilter(filter);
+    } else {
+      setInternalGradeFilter(filter);
+    }
+    // When changing grade, reset class filter to '全部班級' to show all classes of that grade
+    if (setSelectedClassFilter) {
+      setSelectedClassFilter('全部班級');
+    } else {
+      setInternalClassFilter('全部班級');
+    }
+  };
+
   const handleClassFilterChange = (filter: ClassFilterOption) => {
     if (setSelectedClassFilter) {
       setSelectedClassFilter(filter);
@@ -76,17 +113,33 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     }
   };
 
-  // Dynamically compute all unique classes
-  const uniqueClassList = Array.from(
-    new Set(['全部班級', ...CLASS_OPTIONS, ...students.map((s) => s.className).filter(Boolean)])
+  // Dynamically compute all unique grades from students
+  const uniqueGradeList = Array.from(
+    new Set(['全部年級', ...GRADE_OPTIONS, ...students.map((s) => getStudentGrade(s)).filter(Boolean)])
   );
 
-  const displayedStudents = students.filter(
-    (s) => activeClassFilter === '全部班級' || s.className === activeClassFilter
+  // Filter students for the selected grade first to get available classes
+  const availableStudentsForGrade = students.filter(
+    (s) => activeGradeFilter === '全部年級' || getStudentGrade(s) === activeGradeFilter
   );
+
+  // Dynamically compute unique classes for the current grade
+  const uniqueClassList = Array.from(
+    new Set([
+      '全部班級',
+      ...availableStudentsForGrade.map((s) => s.className).filter(Boolean)
+    ])
+  );
+
+  const displayedStudents = students.filter((s) => {
+    const matchGrade = activeGradeFilter === '全部年級' || getStudentGrade(s) === activeGradeFilter;
+    const matchClass = activeClassFilter === '全部班級' || s.className === activeClassFilter;
+    return matchGrade && matchClass;
+  });
 
   // Form fields
   const [name, setName] = useState<string>('');
+  const [grade, setGrade] = useState<string>('大班');
   const [seatNumber, setSeatNumber] = useState<string>('05');
   const [className, setClassName] = useState<ClassName>('大班 (櫻桃班)');
   const [gender, setGender] = useState<'boy' | 'girl'>('girl');
@@ -96,6 +149,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const openAddModal = () => {
     setEditingStudent(null);
     setName('');
+    setGrade('大班');
     setSeatNumber(`0${students.length + 1}`);
     setClassName('大班 (櫻桃班)');
     setGender('girl');
@@ -107,6 +161,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
   const openEditModal = (stu: Student) => {
     setEditingStudent(stu);
     setName(stu.name);
+    setGrade(stu.grade || getStudentGrade(stu));
     setSeatNumber(stu.seatNumber);
     setClassName(stu.className);
     setGender(stu.gender);
@@ -175,13 +230,14 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     if (editingStudent) {
       updated = students.map((s) =>
         s.id === editingStudent.id
-          ? { ...s, name, seatNumber, className, gender, avatarUrl, notes }
+          ? { ...s, name, grade, seatNumber, className, gender, avatarUrl, notes }
           : s
       );
     } else {
       const newStu: Student = {
         id: `stu-${Date.now()}`,
         name,
+        grade,
         seatNumber,
         className,
         gender,
@@ -484,31 +540,81 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         </div>
       </div>
 
-      {/* Class Filter Bar */}
-      <div className="bg-[#FFF8E1] border-3 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] mb-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter className="w-5 h-5 text-[#FF8A65] shrink-0" />
-            <span className="font-black text-xs sm:text-sm text-[#5D4037] shrink-0">班級篩選下拉選單：</span>
+      {/* Grade & Class Dual Filter Bar */}
+      <div className="bg-[#FFF8E1] border-3 border-[#5D4037] rounded-3xl p-4 sm:p-5 shadow-[4px_4px_0px_#5D4037] mb-6 space-y-4">
+        {/* Row 1: Grade Filter */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b-2 border-dashed border-[#5D4037]/25">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="bg-[#FFE082] text-[#E65100] px-3 py-1 rounded-xl border-2 border-[#5D4037] font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-[2px_2px_0px_#5D4037]">
+              <GraduationCap className="w-4 h-4 text-[#E65100]" /> 1. 年級篩選 (Grade)
+            </span>
             <select
-              value={activeClassFilter}
-              onChange={(e) => handleClassFilterChange(e.target.value as ClassFilterOption)}
-              className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer flex-1 md:flex-none"
+              value={activeGradeFilter}
+              onChange={(e) => handleGradeFilterChange(e.target.value as GradeFilterOption)}
+              className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer lg:hidden"
             >
-              {uniqueClassList.map((cls) => (
-                <option key={cls} value={cls}>
-                  {cls === '全部班級' ? '🏫 全部班級 (顯示全校名冊)' : `🎒 ${cls}`}
+              {uniqueGradeList.map((grd) => (
+                <option key={grd} value={grd}>
+                  {grd === '全部年級' ? '🏫 全部年級 (顯示全校)' : `🎓 ${grd}`}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Quick Filter Badges */}
-          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+          {/* Quick Grade Filter Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+            {uniqueGradeList.map((grd) => {
+              const count = grd === '全部年級'
+                ? students.length
+                : students.filter((s) => getStudentGrade(s) === grd).length;
+              const isActive = activeGradeFilter === grd;
+
+              return (
+                <button
+                  key={grd}
+                  type="button"
+                  onClick={() => handleGradeFilterChange(grd)}
+                  className={`text-xs font-black px-3.5 py-1.5 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-105'
+                      : 'bg-white text-[#5D4037] hover:bg-[#FFE0B2] shadow-[1px_1px_0px_#5D4037]'
+                  }`}
+                >
+                  <span>{grd === '全部年級' ? '全部年級' : `🎓 ${grd}`}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${isActive ? 'bg-white text-[#FF8A65]' : 'bg-[#FFE0B2] text-[#E65100]'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 2: Class Filter */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="bg-[#E1BEE7] text-[#4A148C] px-3 py-1 rounded-xl border-2 border-[#5D4037] font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-[2px_2px_0px_#5D4037]">
+              <Filter className="w-4 h-4 text-[#7B1FA2]" /> 2. 班級篩選 (Class)
+            </span>
+            <select
+              value={activeClassFilter}
+              onChange={(e) => handleClassFilterChange(e.target.value as ClassFilterOption)}
+              className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer lg:hidden"
+            >
+              {uniqueClassList.map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls === '全部班級' ? '🎒 全部班級' : `🎒 ${cls}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quick Class Filter Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
             {uniqueClassList.map((cls) => {
               const count = cls === '全部班級'
-                ? students.length
-                : students.filter((s) => s.className === cls).length;
+                ? availableStudentsForGrade.length
+                : availableStudentsForGrade.filter((s) => s.className === cls).length;
               const isActive = activeClassFilter === cls;
 
               return (
@@ -518,12 +624,12 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                   onClick={() => handleClassFilterChange(cls)}
                   className={`text-xs font-black px-3 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer flex items-center gap-1 ${
                     isActive
-                      ? 'bg-[#FF8A65] text-white shadow-[2px_2px_0px_#5D4037] scale-105'
-                      : 'bg-white text-[#5D4037] hover:bg-[#FFF3E0] shadow-[1px_1px_0px_#5D4037]'
+                      ? 'bg-[#AB47BC] text-white shadow-[2px_2px_0px_#5D4037] scale-105'
+                      : 'bg-white text-[#5D4037] hover:bg-[#F3E5F5] shadow-[1px_1px_0px_#5D4037]'
                   }`}
                 >
-                  <span>{cls.split(' ')[0]}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white text-[#FF8A65]' : 'bg-[#E0E0E0] text-[#5D4037]'}`}>
+                  <span>{cls}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${isActive ? 'bg-white text-[#AB47BC]' : 'bg-[#E1BEE7] text-[#4A148C]'}`}>
                     {count}
                   </span>
                 </button>
@@ -538,6 +644,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
         {displayedStudents.map((stu) => {
           const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
           const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
+          const stuGrade = stu.grade || getStudentGrade(stu);
 
           return (
             <div
@@ -545,12 +652,17 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
               className="bg-white border-2 border-[#5D4037] rounded-3xl p-4 shadow-[4px_4px_0px_#5D4037] hover:shadow-[6px_6px_0px_#5D4037] transition-all flex flex-col justify-between"
             >
               <div>
-                {/* Header Badge */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="bg-[#FFF9C4] text-[#5D4037] text-[11px] font-black px-3 py-0.5 rounded-full border border-[#5D4037]">
-                    {stu.className}
-                  </span>
-                  <span className="text-xs font-black text-[#5D4037] font-mono bg-[#E3F2FD] px-2 py-0.5 rounded-full border border-[#5D4037]">
+                {/* Header Badges: Grade + Class + Seat */}
+                <div className="flex items-center justify-between mb-3 gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="bg-[#FFE082] text-[#E65100] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#5D4037]">
+                      {stuGrade}
+                    </span>
+                    <span className="bg-[#FFF9C4] text-[#5D4037] text-[11px] font-black px-2.5 py-0.5 rounded-full border border-[#5D4037]">
+                      {stu.className}
+                    </span>
+                  </div>
+                  <span className="text-xs font-black text-[#5D4037] font-mono bg-[#E3F2FD] px-2 py-0.5 rounded-full border border-[#5D4037] shrink-0">
                     {stu.seatNumber} 號
                   </span>
                 </div>
@@ -570,7 +682,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                       </span>
                     </h3>
                     <p className="text-xs text-[#5D4037]/80 font-bold flex items-center gap-1 mt-0.5">
-                      <GraduationCap className="w-3.5 h-3.5 text-[#FF8A65]" /> {stu.className} ({stu.seatNumber}號)
+                      <GraduationCap className="w-3.5 h-3.5 text-[#FF8A65]" /> {stuGrade} · {stu.className} ({stu.seatNumber}號)
                     </p>
                   </div>
                 </div>
@@ -598,13 +710,13 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
               <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t-2 border-dashed border-[#5D4037]/30">
                 <button
                   onClick={() => openEditModal(stu)}
-                  className="p-1.5 px-3 rounded-full bg-[#E1BEE7] text-[#4A148C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
+                  className="p-1.5 px-3 rounded-full bg-[#E1BEE7] text-[#4A148C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" /> 編輯
                 </button>
                 <button
                   onClick={() => handleDeleteStudent(stu.id)}
-                  className="p-1.5 px-3 rounded-full bg-[#FFCDD2] text-[#B71C1C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
+                  className="p-1.5 px-3 rounded-full bg-[#FFCDD2] text-[#B71C1C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 刪除
                 </button>
@@ -620,7 +732,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
           <div className="bg-[#FFFBF0] border-4 border-[#5D4037] rounded-[2rem] max-w-md w-full p-6 shadow-[10px_10px_0px_#5D4037] relative">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037]"
+              className="absolute top-4 right-4 p-2 text-[#5D4037] hover:bg-[#FFE082] border-2 border-[#5D4037] rounded-full shadow-[2px_2px_0px_#5D4037] cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -631,8 +743,8 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
             </h3>
 
             <form onSubmit={handleSaveStudent} className="space-y-3 text-xs font-black text-[#5D4037]">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1 sm:col-span-1">
                   <label className="block text-[#5D4037] mb-1">學生姓名:</label>
                   <input
                     type="text"
@@ -642,6 +754,19 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                     className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                     placeholder="如: 林小花"
                   />
+                </div>
+                <div>
+                  <label className="block text-[#5D4037] mb-1">年級 (Grade):</label>
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-2 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037] cursor-pointer"
+                  >
+                    <option value="幼幼班">幼幼班 🍇</option>
+                    <option value="小班">小班 🍎</option>
+                    <option value="中班">中班 🍓</option>
+                    <option value="大班">大班 🌸</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[#5D4037] mb-1">座號:</label>
@@ -658,24 +783,30 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[#5D4037] mb-1">班級:</label>
-                  <select
+                  <label className="block text-[#5D4037] mb-1">班級名稱 (Class):</label>
+                  <input
+                    type="text"
                     value={className}
-                    onChange={(e) => setClassName(e.target.value as ClassName)}
+                    onChange={(e) => setClassName(e.target.value)}
                     className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037]"
-                  >
-                    <option value="大班 (櫻桃班)">大班 (櫻桃班) 🌸</option>
-                    <option value="中班 (草莓班)">中班 (草莓班) 🍓</option>
-                    <option value="小班 (蘋果班)">小班 (蘋果班) 🍎</option>
-                    <option value="幼幼班 (葡萄班)">幼幼班 (葡萄班) 🍇</option>
-                  </select>
+                    placeholder="如: 大班 (櫻桃班) 或 青蘋果班"
+                    list="class-name-suggestions"
+                  />
+                  <datalist id="class-name-suggestions">
+                    <option value="大班 (櫻桃班)" />
+                    <option value="中班 (草莓班)" />
+                    <option value="小班 (蘋果班)" />
+                    <option value="幼幼班 (葡萄班)" />
+                    <option value="青蘋果班" />
+                    <option value="蜜蘋果班" />
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-[#5D4037] mb-1">性別:</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value as 'boy' | 'girl')}
-                    className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037]"
+                    className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-1.5 font-bold shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                   >
                     <option value="girl">女孩 👧</option>
                     <option value="boy">男孩 👦</option>
