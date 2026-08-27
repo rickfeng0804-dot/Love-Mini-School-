@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Student, ClassName, SheetConfig, LearningRecord, ContactBook, ClassFilterOption, CLASS_FILTER_OPTIONS } from '../types';
-import { syncAllToSheet, syncToWebApp, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
+import { Student, ClassName, SheetConfig, LearningRecord, ContactBook, ClassFilterOption, CLASS_FILTER_OPTIONS, CLASS_OPTIONS } from '../types';
+import { syncAllToSheet, syncToWebApp, fetchFromWebApp, fetchStudentRoster, fetchAllKindergartenData, DEFAULT_WEB_APP_URL, DEFAULT_STUDENT_WEB_APP_URL, DEFAULT_STUDENT_LIBRARY_URL, STUDENT_ROSTER_APPS_SCRIPT_CODE } from '../lib/googleSheets';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
@@ -75,6 +75,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       setInternalClassFilter(filter);
     }
   };
+
+  // Dynamically compute all unique classes
+  const uniqueClassList = Array.from(
+    new Set(['全部班級', ...CLASS_OPTIONS, ...students.map((s) => s.className).filter(Boolean)])
+  );
 
   const displayedStudents = students.filter(
     (s) => activeClassFilter === '全部班級' || s.className === activeClassFilter
@@ -255,13 +260,23 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
     setIsSaving(true);
     setSyncToast('🔄 正在從 Google Sheet 讀取最新學生名冊...');
     try {
-      const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-      const data = await fetchFromWebApp(targetUrl);
-      if (data && data.students && data.students.length > 0) {
-        setStudents(data.students);
-        setSyncToast(`✨ 成功載入 ${data.students.length} 位學生最新名冊！`);
+      const targetUrl = sheetConfig.studentWebAppUrl || sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL;
+      const studentsFromCloud = await fetchStudentRoster(targetUrl);
+      if (studentsFromCloud && studentsFromCloud.length > 0) {
+        setStudents(studentsFromCloud);
+        setSyncToast(`✨ 成功載入 ${studentsFromCloud.length} 位學生最新名冊！`);
+        try {
+          confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
+        } catch {}
       } else {
-        setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
+        // Fallback to fetchAllKindergartenData
+        const allData = await fetchAllKindergartenData(sheetConfig);
+        if (allData.students && allData.students.length > 0) {
+          setStudents(allData.students);
+          setSyncToast(`✨ 成功載入 ${allData.students.length} 位學生最新名冊！`);
+        } else {
+          setSyncToast('✅ 已連結 Google Sheet，目前名冊已是最新狀態');
+        }
       }
     } catch (err: any) {
       console.error('Fetch roster error:', err);
@@ -480,17 +495,17 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
               onChange={(e) => handleClassFilterChange(e.target.value as ClassFilterOption)}
               className="bg-white border-2 border-[#5D4037] font-black text-xs sm:text-sm text-[#5D4037] rounded-xl px-3 py-1.5 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer flex-1 md:flex-none"
             >
-              <option value="全部班級">🏫 全部班級 (顯示全校名冊)</option>
-              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+              {uniqueClassList.map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls === '全部班級' ? '🏫 全部班級 (顯示全校名冊)' : `🎒 ${cls}`}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* Quick Filter Badges */}
           <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
-            {CLASS_FILTER_OPTIONS.map((cls) => {
+            {uniqueClassList.map((cls) => {
               const count = cls === '全部班級'
                 ? students.length
                 : students.filter((s) => s.className === cls).length;

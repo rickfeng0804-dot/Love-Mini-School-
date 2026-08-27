@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig, ClassFilterOption } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, SheetConfig, ClassFilterOption, CLASS_OPTIONS } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
 import { syncAllToSheet, syncToWebApp, uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
 import { uploadReportToGoogleDrive } from '../lib/reportExport';
@@ -60,6 +60,11 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   onSavedRecord,
 }) => {
   const [formClassFilter, setFormClassFilter] = useState<ClassFilterOption>('全部班級');
+  
+  const uniqueClassList = Array.from(
+    new Set(['全部班級', ...CLASS_OPTIONS, ...students.map((s) => s.className).filter(Boolean)])
+  );
+
   const filteredStudents = students.filter(
     (s) => formClassFilter === '全部班級' || s.className === formClassFilter
   );
@@ -483,11 +488,11 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 onChange={(e) => setFormClassFilter(e.target.value as ClassFilterOption)}
                 className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
               >
-                <option value="全部班級">🏫 全部班級 (顯示所有人)</option>
-                <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-                <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-                <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-                <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
+                {uniqueClassList.map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls === '全部班級' ? '🏫 全部班級 (顯示所有人)' : `🎒 ${cls}`}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -549,38 +554,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1.5 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Quick Student Photo Avatar Selection Bar */}
-            <div className="pt-2 border-t border-dashed border-[#5D4037]/30">
-              <div className="text-[10px] font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
-                <span>點擊幼兒照片點名快速選擇：</span>
-                <span className="text-[9px] text-[#FF8A65]">共 {students.length} 位幼兒</span>
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                {students.map((stu) => {
-                  const isSelected = stu.id === selectedStudentId;
-                  return (
-                    <button
-                      key={stu.id}
-                      type="button"
-                      onClick={() => setSelectedStudentId(stu.id)}
-                      className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#FFD54F] text-[#5D4037] shadow-[2px_2px_0px_#5D4037] scale-105 font-black'
-                          : 'bg-[#FFFBF0] text-[#5D4037]/80 hover:bg-white hover:scale-100 font-bold'
-                      }`}
-                    >
-                      <img
-                        src={stu.avatarUrl}
-                        alt={stu.name}
-                        className="w-6 h-6 rounded-full border border-[#5D4037] object-cover shrink-0"
-                      />
-                      <span className="text-[11px] whitespace-nowrap">{stu.name}</span>
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </div>

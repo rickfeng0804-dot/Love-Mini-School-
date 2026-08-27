@@ -8,7 +8,7 @@ export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/A
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
 export const DEFAULT_MEDIA_FOLDER_URL = 'https://drive.google.com/drive/folders/1HmKXkl-xbLMaaCq663RMRINAsdavttJp?usp=drive_link';
-export const DEFAULT_WEB_APP_URL = DEFAULT_LEARNING_WEB_APP_URL;
+export const DEFAULT_WEB_APP_URL = DEFAULT_STUDENT_WEB_APP_URL;
 
 export interface SyncedData {
   students: Student[];
@@ -904,17 +904,36 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   const rawLearning = Array.isArray(data.learningRecords) ? data.learningRecords : [];
   const rawContact = Array.isArray(data.contactBooks) ? data.contactBooks : [];
 
-  const students: Student[] = rawStudents.map((s: any) => ({
-    id: String(s.ID || s.id || Math.random()),
-    name: s.Name || s.name || '',
-    seatNumber: String(s.SeatNumber || s.seatNumber || ''),
-    className: s.ClassName || s.className || '大班 (櫻桃班)',
-    gender: s.Gender || s.gender || 'girl',
-    avatarUrl: s.AvatarUrl || s.avatarUrl || '',
-    parentName: s.ParentName || s.parentName || '',
-    parentContact: String(s.ParentContact || s.parentContact || ''),
-    notes: s.Notes || s.notes || '',
-  }));
+  const students: Student[] = rawStudents.map((s: any, idx: number) => {
+    const rawGender = String(s.Gender || s.gender || '').trim();
+    const gender: 'boy' | 'girl' = (rawGender === '男' || rawGender.toLowerCase() === 'boy' || rawGender.toLowerCase() === 'b' || rawGender.includes('男')) ? 'boy' : 'girl';
+    const rawId = s.ID !== undefined && s.ID !== null && s.ID !== '' ? String(s.ID).trim() : (s.id || '');
+    const className = String(s.ClassName || s.className || '大班 (櫻桃班)').trim();
+    const name = String(s.Name || s.name || '').trim();
+    
+    // Stable clean ID
+    const studentId = rawId ? (rawId.startsWith('stu-') ? rawId : `stu-${className ? className.replace(/[\s()]/g, '') + '-' : ''}${rawId}`) : `stu-${idx + 1}`;
+    
+    const seatNum = String(s.SeatNumber || s.seatNumber || (rawId ? String(rawId).padStart(2, '0') : String(idx + 1).padStart(2, '0'))).trim();
+
+    let avatar = String(s.AvatarUrl || s.avatarUrl || '').trim();
+    if (!avatar || !avatar.startsWith('http')) {
+      const seed = encodeURIComponent(name || `child-${idx}`);
+      avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+    }
+
+    return {
+      id: studentId,
+      name,
+      seatNumber: seatNum,
+      className,
+      gender,
+      avatarUrl: avatar,
+      parentName: String(s.ParentName || s.parentName || '').trim(),
+      parentContact: String(s.ParentContact || s.parentContact || '').trim(),
+      notes: String(s.Notes || s.notes || '').trim(),
+    };
+  });
 
   const learningRecords: LearningRecord[] = rawLearning.map((r: any) => ({
     id: String(r.ID || r.id || Math.random()),
@@ -955,6 +974,75 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   }));
 
   return { students, learningRecords, contactBooks };
+}
+
+/**
+ * Specifically fetch student roster from dedicated Student Web App or configured URL
+ */
+export async function fetchStudentRoster(customUrl?: string): Promise<Student[]> {
+  const targetUrl = customUrl ? normalizeWebAppUrl(customUrl) : DEFAULT_STUDENT_WEB_APP_URL;
+  if (!targetUrl) return [];
+
+  const data = await fetchFromWebApp(targetUrl);
+  return data.students || [];
+}
+
+/**
+ * Concurrently fetch from all kindergarten cloud endpoints (Students, Learning, Contact)
+ */
+export async function fetchAllKindergartenData(config?: {
+  webAppUrl?: string;
+  studentWebAppUrl?: string;
+  learningWebAppUrl?: string;
+  contactWebAppUrl?: string;
+}): Promise<SyncedData> {
+  const studentUrl = config?.studentWebAppUrl || (config?.webAppUrl && config.webAppUrl !== DEFAULT_LEARNING_WEB_APP_URL ? config.webAppUrl : DEFAULT_STUDENT_WEB_APP_URL);
+  const learningUrl = config?.learningWebAppUrl || config?.webAppUrl || DEFAULT_LEARNING_WEB_APP_URL;
+  const contactUrl = config?.contactWebAppUrl || (config?.webAppUrl && config.webAppUrl !== DEFAULT_LEARNING_WEB_APP_URL ? config.webAppUrl : DEFAULT_CONTACT_WEB_APP_URL);
+
+  let mergedStudents: Student[] = [];
+  let mergedLearning: LearningRecord[] = [];
+  let mergedContact: ContactBook[] = [];
+
+  const urlsToFetch = [
+    { type: 'student', url: studentUrl },
+    ...(learningUrl !== studentUrl ? [{ type: 'learning', url: learningUrl }] : []),
+    ...(contactUrl !== studentUrl && contactUrl !== learningUrl ? [{ type: 'contact', url: contactUrl }] : [])
+  ];
+
+  const results = await Promise.allSettled(urlsToFetch.map(item => fetchFromWebApp(item.url)));
+
+  results.forEach((res) => {
+    if (res.status === 'fulfilled' && res.value) {
+      if (res.value.students && res.value.students.length > 0 && mergedStudents.length === 0) {
+        mergedStudents = res.value.students;
+      }
+      if (res.value.learningRecords && res.value.learningRecords.length > 0 && mergedLearning.length === 0) {
+        mergedLearning = res.value.learningRecords;
+      }
+      if (res.value.contactBooks && res.value.contactBooks.length > 0 && mergedContact.length === 0) {
+        mergedContact = res.value.contactBooks;
+      }
+    }
+  });
+
+  // Ensure students are fetched from DEFAULT_STUDENT_WEB_APP_URL if still empty
+  if (mergedStudents.length === 0) {
+    try {
+      const studentFallback = await fetchFromWebApp(DEFAULT_STUDENT_WEB_APP_URL);
+      if (studentFallback.students && studentFallback.students.length > 0) {
+        mergedStudents = studentFallback.students;
+      }
+    } catch (fallbackErr) {
+      console.warn('Fallback student fetch warning:', fallbackErr);
+    }
+  }
+
+  return {
+    students: mergedStudents,
+    learningRecords: mergedLearning,
+    contactBooks: mergedContact
+  };
 }
 
 /**

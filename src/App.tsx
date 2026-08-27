@@ -20,7 +20,18 @@ import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
 import { initAuth, getAccessToken } from './lib/firebase';
-import { findKindergartenSpreadsheet, loadAllFromSheet, fetchFromWebApp, DEFAULT_WEB_APP_URL, DEFAULT_LEARNING_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from './lib/googleSheets';
+import { 
+  findKindergartenSpreadsheet, 
+  loadAllFromSheet, 
+  fetchFromWebApp, 
+  fetchAllKindergartenData,
+  DEFAULT_WEB_APP_URL, 
+  DEFAULT_STUDENT_WEB_APP_URL,
+  DEFAULT_LEARNING_WEB_APP_URL, 
+  DEFAULT_CONTACT_WEB_APP_URL,
+  DEFAULT_MEDIA_FOLDER_URL,
+  SyncedData
+} from './lib/googleSheets';
 import { 
   ClipboardList, 
   BookOpenCheck, 
@@ -74,8 +85,17 @@ export default function App() {
     const saved = localStorage.getItem('kindergarten_sheet_config');
     if (saved) {
       const parsed = JSON.parse(saved);
+      if (!parsed.studentWebAppUrl) {
+        parsed.studentWebAppUrl = DEFAULT_STUDENT_WEB_APP_URL;
+      }
+      if (!parsed.learningWebAppUrl) {
+        parsed.learningWebAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
+      }
+      if (!parsed.contactWebAppUrl) {
+        parsed.contactWebAppUrl = DEFAULT_CONTACT_WEB_APP_URL;
+      }
       if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/')) {
-        parsed.webAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
+        parsed.webAppUrl = DEFAULT_STUDENT_WEB_APP_URL;
         parsed.isConnected = true;
       }
       return {
@@ -89,7 +109,10 @@ export default function App() {
       spreadsheetId: null,
       spreadsheetUrl: null,
       spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
-      webAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
+      webAppUrl: DEFAULT_STUDENT_WEB_APP_URL,
+      studentWebAppUrl: DEFAULT_STUDENT_WEB_APP_URL,
+      learningWebAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
+      contactWebAppUrl: DEFAULT_CONTACT_WEB_APP_URL,
       mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
       isConnected: true,
       lastSyncedAt: null,
@@ -131,10 +154,30 @@ export default function App() {
     }
   }, [sheetConfig]);
 
-  // Background Auto-Refresh Effect (Disabled by default; runs ONLY if autoRefreshEnabled is manually turned on)
+  // Initial cloud fetch on app launch / deployment mount
   useEffect(() => {
-    const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-    if (!sheetConfig.autoRefreshEnabled || !targetUrl) {
+    fetchAllKindergartenData(sheetConfig)
+      .then((data) => {
+        if (data.students && data.students.length > 0) {
+          setStudents(data.students);
+        }
+        if (data.learningRecords && data.learningRecords.length > 0) {
+          setLearningRecords(data.learningRecords);
+        }
+        if (data.contactBooks && data.contactBooks.length > 0) {
+          setContactBooks(data.contactBooks);
+        }
+        const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr, isConnected: true }));
+      })
+      .catch((err) => {
+        console.warn('Initial cloud sync warning:', err?.message || err);
+      });
+  }, []);
+
+  // Background Auto-Refresh Effect (Runs ONLY if autoRefreshEnabled is manually turned on)
+  useEffect(() => {
+    if (!sheetConfig.autoRefreshEnabled) {
       return;
     }
 
@@ -145,7 +188,7 @@ export default function App() {
         setTimeout(() => setSyncToast(null), 4000);
       }, 3000);
 
-      fetchFromWebApp(targetUrl)
+      fetchAllKindergartenData(sheetConfig)
         .then((data) => {
           clearTimeout(slowTimer);
           if (data.students && data.students.length > 0) {
@@ -163,13 +206,10 @@ export default function App() {
         .catch((err) => {
           clearTimeout(slowTimer);
           console.warn('Global background Web App auto-sync warning:', err?.message || err);
-          if (sheetConfig.webAppUrl && sheetConfig.webAppUrl !== DEFAULT_WEB_APP_URL) {
-            setSheetConfig((prev) => ({ ...prev, webAppUrl: DEFAULT_WEB_APP_URL }));
-          }
         });
     };
 
-    // Immediate fetch on mount ONLY if autoRefreshEnabled is true
+    // Immediate fetch on mount if autoRefreshEnabled is true
     doSyncFetch();
 
     // Interval polling
@@ -179,7 +219,7 @@ export default function App() {
     return () => {
       clearInterval(timer);
     };
-  }, [sheetConfig.autoRefreshEnabled, sheetConfig.webAppUrl, sheetConfig.refreshIntervalMinutes]);
+  }, [sheetConfig.autoRefreshEnabled, sheetConfig.studentWebAppUrl, sheetConfig.learningWebAppUrl, sheetConfig.contactWebAppUrl, sheetConfig.webAppUrl, sheetConfig.refreshIntervalMinutes]);
 
   // Handle Google Auth state on app startup
   useEffect(() => {
@@ -219,7 +259,7 @@ export default function App() {
   // Instant Manual Sync Trigger
   const handleInstantSync = async () => {
     setIsSyncing(true);
-    setSyncToast('🔄 正在同步最新資料中...');
+    setSyncToast('🔄 正在同步雲端最新學生名冊與紀錄...');
     let isSlowConnection = false;
 
     // Detect weak network / latency > 3 seconds
@@ -230,14 +270,12 @@ export default function App() {
 
     try {
       const token = await getAccessToken();
-      let data = null;
+      let data: SyncedData | null = null;
       
       if (token && sheetConfig.spreadsheetId) {
         data = await loadAllFromSheet(token, sheetConfig.spreadsheetId);
-      } else if (sheetConfig.webAppUrl) {
-        data = await fetchFromWebApp(sheetConfig.webAppUrl);
       } else {
-        data = await fetchFromWebApp(DEFAULT_WEB_APP_URL);
+        data = await fetchAllKindergartenData(sheetConfig);
       }
 
       if (data) {
@@ -247,12 +285,16 @@ export default function App() {
       }
 
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr }));
+      setSheetConfig((prev) => ({ ...prev, lastSyncedAt: nowStr, isConnected: true }));
       
+      const countMsg = data?.students?.length 
+        ? `✨ 成功！已載入 ${data.students.length} 位學生名冊 (${nowStr})`
+        : `✨ 成功！最新數據已同步完成 (${nowStr})`;
+
       if (isSlowConnection) {
         setSyncToast(`⚠️ 同步已完成 (${nowStr}) — 偵測到連線不穩，建議檢查網路！`);
       } else {
-        setSyncToast(`✨ 成功！最新數據已同步完成 (${nowStr})`);
+        setSyncToast(countMsg);
       }
     } catch (err: any) {
       console.error('Instant sync error:', err);

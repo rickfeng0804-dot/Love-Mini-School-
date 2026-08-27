@@ -1,13 +1,16 @@
-export type ClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
+export type StandardClassName = '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
+export type ClassName = StandardClassName | string;
 
-export const CLASS_OPTIONS: ClassName[] = [
+export const CLASS_OPTIONS: string[] = [
   '大班 (櫻桃班)',
   '中班 (草莓班)',
   '小班 (蘋果班)',
   '幼幼班 (葡萄班)',
+  '青蘋果班',
+  '蜜蘋果班',
 ];
 
-export type ClassFilterOption = '全部班級' | '大班 (櫻桃班)' | '中班 (草莓班)' | '小班 (蘋果班)' | '幼幼班 (葡萄班)';
+export type ClassFilterOption = '全部班級' | string;
 
 export const CLASS_FILTER_OPTIONS: ClassFilterOption[] = [
   '全部班級',
@@ -15,6 +18,8 @@ export const CLASS_FILTER_OPTIONS: ClassFilterOption[] = [
   '中班 (草莓班)',
   '小班 (蘋果班)',
   '幼幼班 (葡萄班)',
+  '青蘋果班',
+  '蜜蘋果班',
 ];
 
 export interface Student {
@@ -96,6 +101,9 @@ export interface SheetConfig {
   spreadsheetUrl: string | null;
   spreadsheetName: string;
   webAppUrl?: string;
+  studentWebAppUrl?: string;
+  learningWebAppUrl?: string;
+  contactWebAppUrl?: string;
   mediaFolderUrl?: string;
   isConnected: boolean;
   lastSyncedAt: string | null;

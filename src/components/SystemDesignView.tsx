@@ -12,6 +12,8 @@ import {
   DEFAULT_CONTACT_WEB_APP_URL,
   DEFAULT_MEDIA_FOLDER_URL,
   fetchFromWebApp, 
+  fetchStudentRoster,
+  fetchAllKindergartenData,
   syncToWebApp,
   normalizeWebAppUrl
 } from '../lib/googleSheets';
@@ -65,7 +67,16 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
-  const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || '');
+  const [studentUrlInput, setStudentUrlInput] = useState(
+    sheetConfig.studentWebAppUrl || sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL
+  );
+  const [learningUrlInput, setLearningUrlInput] = useState(
+    sheetConfig.learningWebAppUrl || DEFAULT_LEARNING_WEB_APP_URL
+  );
+  const [contactUrlInput, setContactUrlInput] = useState(
+    sheetConfig.contactWebAppUrl || DEFAULT_CONTACT_WEB_APP_URL
+  );
+  const [webAppInput, setWebAppInput] = useState(sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL);
   const [mediaFolderInput, setMediaFolderInput] = useState(
     sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL
   );
@@ -82,7 +93,10 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Sync state changes with sheetConfig
   useEffect(() => {
-    setWebAppInput(sheetConfig.webAppUrl || '');
+    setStudentUrlInput(sheetConfig.studentWebAppUrl || sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL);
+    setLearningUrlInput(sheetConfig.learningWebAppUrl || DEFAULT_LEARNING_WEB_APP_URL);
+    setContactUrlInput(sheetConfig.contactWebAppUrl || DEFAULT_CONTACT_WEB_APP_URL);
+    setWebAppInput(sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL);
     setMediaFolderInput(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL);
     setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
@@ -97,22 +111,31 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Test / Connect to Web App URL
   const handleTestConnection = async () => {
-    const rawInput = webAppInput.trim();
-    if (!rawInput) {
-      setStatusMessage({ type: 'error', text: '請輸入有效的 Google Apps Script Web App URL 網址' });
-      return;
-    }
+    const normStudent = normalizeWebAppUrl(studentUrlInput.trim());
+    const normLearning = normalizeWebAppUrl(learningUrlInput.trim());
+    const normContact = normalizeWebAppUrl(contactUrlInput.trim());
 
-    const normalized = normalizeWebAppUrl(rawInput);
-    if (normalized !== rawInput) {
-      setWebAppInput(normalized);
-    }
+    setStudentUrlInput(normStudent);
+    setLearningUrlInput(normLearning);
+    setContactUrlInput(normContact);
+
+    const testConfig: SheetConfig = {
+      ...sheetConfig,
+      studentWebAppUrl: normStudent,
+      learningWebAppUrl: normLearning,
+      contactWebAppUrl: normContact,
+      webAppUrl: normStudent || normLearning,
+      mediaFolderUrl: mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL,
+      refreshIntervalMinutes: intervalMinutes,
+      autoRefreshEnabled: autoSyncEnabled,
+      isConnected: true,
+    };
 
     setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App...' });
+    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App (學生名冊/學習紀錄/聯絡簿)...' });
 
     try {
-      const data = await fetchFromWebApp(normalized);
+      const data = await fetchAllKindergartenData(testConfig);
       
       // Update local state if spreadsheet returns data
       if (data.students && data.students.length > 0) {
@@ -127,14 +150,11 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-      setSheetConfig((prev) => ({
-        ...prev,
-        webAppUrl: normalized,
-        isConnected: true,
+      setSheetConfig({
+        ...testConfig,
         lastSyncedAt: nowStr,
-        refreshIntervalMinutes: intervalMinutes,
-        autoRefreshEnabled: autoSyncEnabled,
-      }));
+        isConnected: true,
+      });
 
       setStatusMessage({
         type: 'success',
@@ -153,29 +173,33 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Save Settings
   const handleSaveSettings = () => {
-    const rawInput = webAppInput.trim();
-    const normalized = normalizeWebAppUrl(rawInput);
-    if (normalized !== rawInput) {
-      setWebAppInput(normalized);
-    }
-
+    const normStudent = normalizeWebAppUrl(studentUrlInput.trim());
+    const normLearning = normalizeWebAppUrl(learningUrlInput.trim());
+    const normContact = normalizeWebAppUrl(contactUrlInput.trim());
     const rawMedia = mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL;
+
+    setStudentUrlInput(normStudent);
+    setLearningUrlInput(normLearning);
+    setContactUrlInput(normContact);
 
     setSheetConfig((prev) => ({
       ...prev,
-      webAppUrl: normalized,
+      studentWebAppUrl: normStudent,
+      learningWebAppUrl: normLearning,
+      contactWebAppUrl: normContact,
+      webAppUrl: normStudent || normLearning || prev.webAppUrl,
       mediaFolderUrl: rawMedia,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
-      isConnected: Boolean(normalized),
+      isConnected: Boolean(normStudent || normLearning || normContact),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定（含照片影片雲端資料夾連結）已成功儲存並生效！' });
+    setStatusMessage({ type: 'success', text: '系統設定（學生名冊、角落學習區、聯絡簿與雲端資料夾網址）已成功儲存並生效！' });
     setTimeout(() => setStatusMessage(null), 3500);
   };
 
   // Trigger manual push sync to Web App
   const handlePushSync = async () => {
-    const url = normalizeWebAppUrl(sheetConfig.webAppUrl || webAppInput.trim());
+    const url = normalizeWebAppUrl(sheetConfig.studentWebAppUrl || sheetConfig.webAppUrl || studentUrlInput.trim());
     if (!url) {
       setStatusMessage({ type: 'error', text: '請先設定並輸入 Google Apps Script Web App URL' });
       return;
@@ -206,7 +230,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
   // Timer effect for auto-refresh
   useEffect(() => {
-    if (!autoSyncEnabled || !sheetConfig.webAppUrl || intervalMinutes <= 0) {
+    if (!autoSyncEnabled || intervalMinutes <= 0) {
       setNextSyncCountdown(null);
       return;
     }
@@ -219,7 +243,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       if (secondsLeft <= 0) {
         secondsLeft = intervalMinutes * 60;
         // Perform auto sync fetch
-        fetchFromWebApp(sheetConfig.webAppUrl!)
+        fetchAllKindergartenData(sheetConfig)
           .then((data) => {
             if (data.students?.length) setStudents(data.students);
             if (data.learningRecords?.length) setLearningRecords(data.learningRecords);
@@ -233,7 +257,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [autoSyncEnabled, sheetConfig.webAppUrl, intervalMinutes]);
+  }, [autoSyncEnabled, sheetConfig, intervalMinutes]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-8 animate-fade-in">
@@ -381,117 +405,97 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Sub-card: Web App URL Setting */}
+          {/* Left Sub-card: Web App URLs Setting */}
           <div className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-2xl p-5 shadow-[4px_4px_0px_#5D4037] space-y-4">
             <div className="flex items-center justify-between border-b border-dashed border-[#5D4037]/30 pb-2">
               <h4 className="font-black text-sm text-[#5D4037] flex items-center gap-2">
                 <Globe className="w-4 h-4 text-[#FF8A65]" />
-                角落學習紀錄 Google Sheet 連結網址設定
+                Google Sheet Web App 服務端點設定
               </h4>
               <span className="bg-[#E0F7FA] text-[#00838F] border border-[#00838F] text-[10px] font-black px-2 py-0.5 rounded-full">
-                角落學習區專屬
+                多端點獨立分流
               </span>
             </div>
 
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
-                <label className="text-[11px] font-black text-[#5D4037]">
-                  角落學習紀錄 Web App URL（可在下方文字框自由修改）：
+            {/* Student Roster Web App URL Field */}
+            <div className="space-y-1 bg-white p-3 rounded-xl border border-[#5D4037]/40 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-black text-[#6A1B9A] flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-[#8E24AA]" />
+                  1. 學生名冊 Web App URL:
                 </label>
-                <div className="flex flex-wrap items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_LEARNING_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入角落學習紀錄預設 Web App URL！請點選「儲存設定」或「測試連線與更新」。' });
-                    }}
-                    className="bg-[#00ACC1] hover:bg-[#00838F] text-white font-black text-[10px] px-2.5 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
-                  >
-                    帶入角落學習區預設 URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入學生名冊預設 Web App URL！' });
-                    }}
-                    className="bg-[#AB47BC] hover:bg-[#8E24AA] text-white font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
-                  >
-                    帶入學生名冊 URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_CONTACT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已自動帶入家長聯絡簿預設 Web App URL！' });
-                    }}
-                    className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#5D4037] shadow-xs cursor-pointer transition-all"
-                  >
-                    帶入家長聯絡簿 URL
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStudentUrlInput(DEFAULT_STUDENT_WEB_APP_URL);
+                    setStatusMessage({ type: 'info', text: '已填入學生名冊預設 Web App URL！' });
+                  }}
+                  className="text-[10px] bg-[#F3E5F5] hover:bg-[#E1BEE7] text-[#6A1B9A] font-black px-2 py-0.5 rounded border border-[#8E24AA]/40 cursor-pointer"
+                >
+                  帶入預設 URL
+                </button>
               </div>
-              
               <input
                 type="url"
-                value={webAppInput}
-                onChange={(e) => setWebAppInput(e.target.value)}
-                placeholder="https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec"
-                className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                value={studentUrlInput}
+                onChange={(e) => setStudentUrlInput(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfyc.../exec"
+                className="w-full bg-[#FAFAFA] border border-[#5D4037] rounded-lg px-2.5 py-1.5 text-xs text-[#5D4037] font-mono font-bold focus:outline-none focus:bg-white"
               />
+            </div>
 
-              <div className="mt-2.5 p-2.5 bg-white/90 rounded-xl border border-[#5D4037]/30 text-[10px] text-[#5D4037] font-bold space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#00838F] font-black">📌 角落學習紀錄預設 URL:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_LEARNING_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已帶入角落學習紀錄預設 Web App URL！' });
-                    }}
-                    className="text-[9px] text-[#00838F] hover:underline cursor-pointer font-black"
-                  >
-                    點此填入
-                  </button>
-                </div>
-                <div className="font-mono break-all text-[9px] text-[#00838F] bg-[#E0F7FA] p-1.5 rounded border border-[#00838F]/30">
-                  {DEFAULT_LEARNING_WEB_APP_URL}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
-                  <span className="text-[#8E24AA] font-black">📌 學生名冊預設 Exec URL:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_STUDENT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已帶入學生名冊預設 Web App URL！' });
-                    }}
-                    className="text-[9px] text-[#8E24AA] hover:underline cursor-pointer font-black"
-                  >
-                    點此填入
-                  </button>
-                </div>
-                <div className="font-mono break-all text-[9px] text-[#8E24AA] bg-[#F3E5F5] p-1.5 rounded border border-[#8E24AA]/30">
-                  {DEFAULT_STUDENT_WEB_APP_URL}
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#5D4037]/10">
-                  <span className="text-[#E65100] font-black">📌 家長聯絡簿預設 URL:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWebAppInput(DEFAULT_CONTACT_WEB_APP_URL);
-                      setStatusMessage({ type: 'info', text: '已帶入家長聯絡簿預設 Web App URL！' });
-                    }}
-                    className="text-[9px] text-[#E65100] hover:underline cursor-pointer font-black"
-                  >
-                    點此填入
-                  </button>
-                </div>
-                <div className="font-mono break-all text-[9px] text-[#E65100] bg-[#FFF3E0] p-1.5 rounded border border-[#E65100]/30">
-                  {DEFAULT_CONTACT_WEB_APP_URL}
-                </div>
+            {/* Learning Records Web App URL Field */}
+            <div className="space-y-1 bg-white p-3 rounded-xl border border-[#5D4037]/40 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-black text-[#00838F] flex items-center gap-1">
+                  <Shapes className="w-3.5 h-3.5 text-[#00ACC1]" />
+                  2. 角落學習紀錄 Web App URL:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLearningUrlInput(DEFAULT_LEARNING_WEB_APP_URL);
+                    setStatusMessage({ type: 'info', text: '已填入角落學習紀錄預設 Web App URL！' });
+                  }}
+                  className="text-[10px] bg-[#E0F7FA] hover:bg-[#B2EBF2] text-[#00838F] font-black px-2 py-0.5 rounded border border-[#00ACC1]/40 cursor-pointer"
+                >
+                  帶入預設 URL
+                </button>
               </div>
+              <input
+                type="url"
+                value={learningUrlInput}
+                onChange={(e) => setLearningUrlInput(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfyc.../exec"
+                className="w-full bg-[#FAFAFA] border border-[#5D4037] rounded-lg px-2.5 py-1.5 text-xs text-[#5D4037] font-mono font-bold focus:outline-none focus:bg-white"
+              />
+            </div>
+
+            {/* Contact Book Web App URL Field */}
+            <div className="space-y-1 bg-white p-3 rounded-xl border border-[#5D4037]/40 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-black text-[#E65100] flex items-center gap-1">
+                  <Heart className="w-3.5 h-3.5 text-[#FF8A65]" />
+                  3. 家長聯絡簿 Web App URL:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContactUrlInput(DEFAULT_CONTACT_WEB_APP_URL);
+                    setStatusMessage({ type: 'info', text: '已填入家長聯絡簿預設 Web App URL！' });
+                  }}
+                  className="text-[10px] bg-[#FFF3E0] hover:bg-[#FFE0B2] text-[#E65100] font-black px-2 py-0.5 rounded border border-[#FF8A65]/40 cursor-pointer"
+                >
+                  帶入預設 URL
+                </button>
+              </div>
+              <input
+                type="url"
+                value={contactUrlInput}
+                onChange={(e) => setContactUrlInput(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfyc.../exec"
+                className="w-full bg-[#FAFAFA] border border-[#5D4037] rounded-lg px-2.5 py-1.5 text-xs text-[#5D4037] font-mono font-bold focus:outline-none focus:bg-white"
+              />
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
@@ -501,7 +505,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 className="bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#2E7D32] font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                儲存修改之網址與設定
+                儲存網址設定
               </button>
 
               <button
@@ -511,7 +515,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 className="bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#01579B] font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                測試連線與更新資料
+                測試連線並同步名冊
               </button>
 
               <button
