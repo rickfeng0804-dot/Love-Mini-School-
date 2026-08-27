@@ -64,7 +64,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     (s) => formClassFilter === '全部班級' || s.className === formClassFilter
   );
 
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || 'stu-01');
 
   // When class filter changes, ensure selectedStudentId points to a valid student in that class
   useEffect(() => {
@@ -73,8 +73,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       if (!exists) {
         setSelectedStudentId(filteredStudents[0].id);
       }
-    } else {
-      setSelectedStudentId('');
     }
   }, [formClassFilter, students]);
   const [dateStart, setDateStart] = useState<string>('2026-07-27');
@@ -104,7 +102,16 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     blocks: '',
   });
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || (students.length > 0 ? students[0] : null);
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
 
   const [photoImages, setPhotoImages] = useState<string[]>([
     '/kindergarten_campus.svg',
@@ -511,8 +518,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                   >
                     {filteredStudents.length > 0 ? (
-                      filteredStudents.map((stu, index) => (
-                        <option key={`form-stu-opt-${stu.id}-${index}`} value={stu.id}>
+                      filteredStudents.map((stu) => (
+                        <option key={stu.id} value={stu.id}>
                           {stu.className} - {stu.seatNumber}號 {stu.name}
                         </option>
                       ))
@@ -546,44 +553,36 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
             </div>
 
             {/* Quick Student Photo Avatar Selection Bar */}
-            {students.length > 0 ? (
-              <div className="pt-2 border-t border-dashed border-[#5D4037]/30">
-                <div className="text-[10px] font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
-                  <span>點擊幼兒照片點名快速選擇：</span>
-                  <span className="text-[9px] text-[#FF8A65]">共 {students.length} 位幼兒</span>
-                </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                  {students.map((stu, index) => {
-                    const isSelected = stu.id === selectedStudentId;
-                    return (
-                      <button
-                        key={`form-avatar-btn-${stu.id}-${index}`}
-                        type="button"
-                        onClick={() => setSelectedStudentId(stu.id)}
-                        className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#FFD54F] text-[#5D4037] shadow-[2px_2px_0px_#5D4037] scale-105 font-black'
-                            : 'bg-[#FFFBF0] text-[#5D4037]/80 hover:bg-white hover:scale-100 font-bold'
-                        }`}
-                      >
-                        <img
-                          src={stu.avatarUrl}
-                          alt={stu.name}
-                          className="w-6 h-6 rounded-full border border-[#5D4037] object-cover shrink-0"
-                        />
-                        <span className="text-[11px] whitespace-nowrap">{stu.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            <div className="pt-2 border-t border-dashed border-[#5D4037]/30">
+              <div className="text-[10px] font-black text-[#5D4037] mb-1.5 flex items-center justify-between">
+                <span>點擊幼兒照片點名快速選擇：</span>
+                <span className="text-[9px] text-[#FF8A65]">共 {students.length} 位幼兒</span>
               </div>
-            ) : (
-              <div className="pt-2 border-t border-dashed border-[#5D4037]/30 text-center py-1">
-                <p className="text-[11px] font-bold text-[#5D4037]/75">
-                  目前名冊尚無幼兒，請點擊上方「從雲端資料庫取得資料」或至幼兒名冊建立學生
-                </p>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {students.map((stu) => {
+                  const isSelected = stu.id === selectedStudentId;
+                  return (
+                    <button
+                      key={stu.id}
+                      type="button"
+                      onClick={() => setSelectedStudentId(stu.id)}
+                      className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full border-2 border-[#5D4037] transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#FFD54F] text-[#5D4037] shadow-[2px_2px_0px_#5D4037] scale-105 font-black'
+                          : 'bg-[#FFFBF0] text-[#5D4037]/80 hover:bg-white hover:scale-100 font-bold'
+                      }`}
+                    >
+                      <img
+                        src={stu.avatarUrl}
+                        alt={stu.name}
+                        className="w-6 h-6 rounded-full border border-[#5D4037] object-cover shrink-0"
+                      />
+                      <span className="text-[11px] whitespace-nowrap">{stu.name}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -716,7 +715,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
             {/* Photo Gallery Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
               {photoImages.map((imgUrl, idx) => (
-                <div key={`form-photo-${idx}`} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
+                <div key={idx} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
                   <img src={imgUrl} alt="活動照片" className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -774,7 +773,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                         vUrl.includes('blob:');
 
                       return (
-                        <div key={`form-video-${vIdx}`} className="bg-[#E1F5FE] p-2 rounded-xl border border-[#5D4037] flex flex-col justify-between relative group">
+                        <div key={vIdx} className="bg-[#E1F5FE] p-2 rounded-xl border border-[#5D4037] flex flex-col justify-between relative group">
                           <button
                             type="button"
                             onClick={() => setVideoUrls(videoUrls.filter((_, i) => i !== vIdx))}

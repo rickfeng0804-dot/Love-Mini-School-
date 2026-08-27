@@ -77,9 +77,18 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     }
   }, [selectedStudentId, learningRecords]);
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || (students.length > 0 ? students[0] : null);
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
   const activeRecord =
-    learningRecords.find((r) => r.id === activeRecordId) || (studentRecords.length > 0 ? studentRecords[0] : (learningRecords.length > 0 ? learningRecords[0] : null));
+    learningRecords.find((r) => r.id === activeRecordId) || studentRecords[0] || learningRecords[0];
 
   const handlePrintSingle = () => {
     const printArea = document.getElementById('printable-area');
@@ -334,17 +343,33 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       });
     }
 
-    // When total === 0, return zeroed data without fake demo weights
-    return CORNER_AREAS.map((area) => ({
-      id: area.id,
-      name: area.name,
-      subject: area.name,
-      count: 0,
-      value: 0,
-      percentage: 0,
-      color: CORNER_COLORS[area.id] || '#FFA726',
-      fullMark: 5,
-    }));
+    // Default sample data for demo preview if total === 0
+    const demoWeights: Record<string, number> = {
+      brain: 4,      // 益智區
+      language: 3,   // 語文區
+      blocks: 3,     // 積木區
+      art: 2,        // 美勞區
+      science: 2,    // 科學區
+      beads: 2,      // 拼豆區
+      watercolor: 1, // 水彩區
+      puzzle: 1,     // 拼圖/建構區
+    };
+    const demoTotal = Object.values(demoWeights).reduce((a, b) => a + b, 0);
+
+    return CORNER_AREAS.map((area) => {
+      const val = demoWeights[area.id] || 1;
+      const percentage = Math.round((val / demoTotal) * 100);
+      return {
+        id: area.id,
+        name: area.name,
+        subject: area.name,
+        count: val,
+        value: val,
+        percentage,
+        color: CORNER_COLORS[area.id] || '#FFA726',
+        fullMark: 5,
+      };
+    });
   };
 
   const chartData = computeDomainStats(activeRecord);
@@ -397,8 +422,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
             >
               {filteredReportStudents.length > 0 ? (
-                filteredReportStudents.map((stu, index) => (
-                  <option key={`report-stu-opt-${stu.id}-${index}`} value={stu.id}>
+                filteredReportStudents.map((stu) => (
+                  <option key={stu.id} value={stu.id}>
                     {stu.className} - {stu.seatNumber}號 {stu.name}
                   </option>
                 ))
@@ -416,8 +441,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                 onChange={(e) => setActiveRecordId(e.target.value)}
                 className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] font-black text-xs text-[#5D4037] rounded-xl px-3 py-2 focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
               >
-                {studentRecords.map((rec, index) => (
-                  <option key={`report-rec-opt-${rec.id}-${index}`} value={rec.id}>
+                {studentRecords.map((rec) => (
+                  <option key={rec.id} value={rec.id}>
                     週次: {rec.dateStart} ~ {rec.dateEnd} ({rec.studentName})
                   </option>
                 ))}
@@ -479,7 +504,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <button
             onClick={() => {
               const csv = generateLearningRecordsCsv(studentRecords.length > 0 ? studentRecords : learningRecords);
-              downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent?.name || '幼兒'}.csv`, csv);
+              downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent.name}.csv`, csv);
             }}
             className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
@@ -509,7 +534,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <div>
               <h3 className="text-base sm:text-lg font-black text-[#5D4037] flex items-center gap-2 italic">
                 <BarChart3 className="w-5 h-5 text-[#FF8A65]" />
-                {selectedStudent?.name || '幼童'} 的學習分布圖（各角落活動頻率分析）
+                {selectedStudent.name} 的學習分布圖（各角落活動頻率分析）
               </h3>
               <p className="text-[11px] font-bold text-[#5D4037]/80 mt-0.5">
                 依據各角落觀察勾選指標與紀錄次數，自動生成 8 大學習區活動頻率雷達圖與圓餅圖
@@ -746,14 +771,14 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
               <span className="font-black text-[#FF8A65] block mb-1">🌟 各角落活動頻率亮點分析：</span>
               <p className="text-[#5D4037] font-bold leading-relaxed">
-                {selectedStudent?.name || '此幼兒'} 在{pieMode === 'cumulative' ? '全學期累積觀察中' : '本週角落學習期間'}，共於 8 大學習區留下{' '}
+                {selectedStudent.name} 在{pieMode === 'cumulative' ? '全學期累積觀察中' : '本週角落學習期間'}，共於 8 大學習區留下{' '}
                 <strong className="text-[#FF8A65]">{totalActivityCount}</strong>{' '}
                 次活動紀錄。{topCorner ? `其中以「${topCorner.name}」參與頻率最高 (${topCorner.count}次，佔比 ${topCorner.percentage}%)！` : '展現廣泛且均衡的角落探索興趣！'}
               </p>
             </div>
             <div className="p-3 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
               <span className="font-black text-[#0288D1] block mb-1">💮 老師指導建議：</span>
-              <p className="text-[#5D4037] font-bold leading-relaxed">{activeRecord?.teacherComment || '學習態度非常良好，樂於探索與分享。'}</p>
+              <p className="text-[#5D4037] font-bold leading-relaxed">{activeRecord.teacherComment || '學習態度非常良好，樂於探索與分享。'}</p>
             </div>
           </div>
         </div>
@@ -772,8 +797,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
 
           {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
           <div id="all-printable-reports" className="hidden">
-            {learningRecords.map((rec, index) => (
-              <div key={`bulk-report-${rec.id || 'rec'}-${index}`} className="a4-page-break mb-8">
+            {learningRecords.map((rec) => (
+              <div key={rec.id} className="a4-page-break mb-8">
                 <SingleReportCard record={rec} students={students} isBatch={true} fontSize={reportFontSize} />
               </div>
             ))}

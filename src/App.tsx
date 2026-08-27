@@ -53,63 +53,21 @@ export default function App() {
   // Core Data State with LocalStorage Persistence
   const [students, setStudents] = useState<Student[]>(() => {
     const saved = localStorage.getItem('kindergarten_students');
-    if (!saved) return INITIAL_STUDENTS;
-    try {
-      const parsed: Student[] = JSON.parse(saved);
-      const seen = new Set<string>();
-      return parsed.map((s, idx) => {
-        let id = (s.id || '').trim();
-        if (!id || seen.has(id)) {
-          id = `stu-${s.className || 'class'}-${s.seatNumber || idx + 1}-${Date.now()}-${idx + 1}`;
-        }
-        seen.add(id);
-        return { ...s, id };
-      });
-    } catch {
-      return INITIAL_STUDENTS;
-    }
+    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
   });
 
   const [learningRecords, setLearningRecords] = useState<LearningRecord[]>(() => {
     const saved = localStorage.getItem('kindergarten_learning_records');
-    if (!saved) return INITIAL_LEARNING_RECORDS;
-    try {
-      const parsed: LearningRecord[] = JSON.parse(saved);
-      const seen = new Set<string>();
-      return parsed.map((r, idx) => {
-        let id = (r.id || '').trim();
-        if (!id || seen.has(id)) {
-          id = `rec-${r.studentId || 'stu'}-${Date.now()}-${idx + 1}`;
-        }
-        seen.add(id);
-        return { ...r, id };
-      });
-    } catch {
-      return INITIAL_LEARNING_RECORDS;
-    }
+    return saved ? JSON.parse(saved) : INITIAL_LEARNING_RECORDS;
   });
 
   const [contactBooks, setContactBooks] = useState<ContactBook[]>(() => {
     const saved = localStorage.getItem('kindergarten_contact_books');
-    if (!saved) return INITIAL_CONTACT_BOOKS;
-    try {
-      const parsed: ContactBook[] = JSON.parse(saved);
-      const seen = new Set<string>();
-      return parsed.map((c, idx) => {
-        let id = (c.id || '').trim();
-        if (!id || seen.has(id)) {
-          id = `cb-${c.studentId || 'stu'}-${Date.now()}-${idx + 1}`;
-        }
-        seen.add(id);
-        return { ...c, id };
-      });
-    } catch {
-      return INITIAL_CONTACT_BOOKS;
-    }
+    return saved ? JSON.parse(saved) : INITIAL_CONTACT_BOOKS;
   });
 
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
-    students[0]?.id || ''
+    students[0]?.id || 'stu-01'
   );
 
   const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
@@ -121,10 +79,10 @@ export default function App() {
         parsed.isConnected = true;
       }
       return {
-        refreshIntervalMinutes: 0,
+        refreshIntervalMinutes: 5,
         mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
         ...parsed,
-        autoRefreshEnabled: parsed.autoRefreshEnabled ?? false,
+        autoRefreshEnabled: false,
       };
     }
     return {
@@ -135,7 +93,7 @@ export default function App() {
       mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
       isConnected: true,
       lastSyncedAt: null,
-      refreshIntervalMinutes: 0,
+      refreshIntervalMinutes: 5,
       autoRefreshEnabled: false,
     };
   });
@@ -173,11 +131,10 @@ export default function App() {
     }
   }, [sheetConfig]);
 
-  // Background Auto-Refresh Effect (Disabled by default; runs ONLY if autoRefreshEnabled is manually turned on and interval > 0)
+  // Background Auto-Refresh Effect (Disabled by default; runs ONLY if autoRefreshEnabled is manually turned on)
   useEffect(() => {
     const targetUrl = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-    const intervalMins = sheetConfig.refreshIntervalMinutes ?? 0;
-    if (!sheetConfig.autoRefreshEnabled || !targetUrl || intervalMins <= 0) {
+    if (!sheetConfig.autoRefreshEnabled || !targetUrl) {
       return;
     }
 
@@ -212,11 +169,11 @@ export default function App() {
         });
     };
 
-    // Immediate fetch on mount ONLY if autoRefreshEnabled is true and interval > 0
+    // Immediate fetch on mount ONLY if autoRefreshEnabled is true
     doSyncFetch();
 
     // Interval polling
-    const intervalMs = intervalMins * 60 * 1000;
+    const intervalMs = (sheetConfig.refreshIntervalMinutes ?? 5) * 60 * 1000;
     const timer = setInterval(doSyncFetch, intervalMs);
 
     return () => {

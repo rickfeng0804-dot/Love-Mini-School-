@@ -45,7 +45,16 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
     (s) => cbClassFilter === '全部班級' || s.className === cbClassFilter
   );
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || (students.length > 0 ? students[0] : null);
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
   const studentContactBooks = contactBooks.filter((c) => c.studentId === selectedStudentId);
 
   // New Contact Book Form State (Teacher)
@@ -293,8 +302,8 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                 className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
               >
                 {filteredCbStudents.length > 0 ? (
-                  filteredCbStudents.map((stu, index) => (
-                    <option key={`cb-stu-opt-${stu.id}-${index}`} value={stu.id}>
+                  filteredCbStudents.map((stu) => (
+                    <option key={stu.id} value={stu.id}>
                       {stu.className} - {stu.seatNumber}號 {stu.name}
                     </option>
                   ))
@@ -468,13 +477,13 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
         <div id="contact-book-list" className="lg:col-span-2 space-y-4">
           <h3 className="font-black text-[#5D4037] text-base mb-2 flex items-center gap-2 italic">
             <MessageSquare className="w-5 h-5 text-[#FF5252]" />
-            {selectedStudent?.name || '幼兒'} 的歷史聯絡簿紀錄
+            {selectedStudent.name} 的歷史聯絡簿紀錄
           </h3>
 
           {studentContactBooks.length > 0 ? (
-            studentContactBooks.map((entry, index) => (
+            studentContactBooks.map((entry) => (
               <div
-                key={`cb-entry-${entry.id || 'cb'}-${index}`}
+                key={entry.id}
                 className="bg-white border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#FFD54F] relative overflow-hidden transition-all hover:shadow-[8px_8px_0px_#FFD54F]"
               >
                 {/* Stamp Decoration */}
@@ -485,13 +494,11 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
 
                 {/* Header Info */}
                 <div className="flex items-center gap-3 mb-4">
-                  {selectedStudent?.avatarUrl && (
-                    <img
-                      src={selectedStudent.avatarUrl}
-                      alt={selectedStudent.name}
-                      className="w-12 h-12 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037]"
-                    />
-                  )}
+                  <img
+                    src={selectedStudent.avatarUrl}
+                    alt={selectedStudent.name}
+                    className="w-12 h-12 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037]"
+                  />
                   <div>
                     <h4 className="font-black text-base text-[#5D4037]">
                       {entry.studentName} ({entry.className} {entry.seatNumber}號)
@@ -541,7 +548,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                 {/* Parent Reply Section */}
                 {entry.parentReply ? (
                   <div className="bg-[#FFEBEE] border-2 border-[#5D4037] rounded-2xl p-3.5 text-xs shadow-[2px_2px_0px_#5D4037]">
-                    <span className="font-black text-[#5D4037] block mb-1">👨‍👩‍👧 家長回覆內容 ({selectedStudent?.parentName || '家長'}):</span>
+                    <span className="font-black text-[#5D4037] block mb-1">👨‍👩‍👧 家長回覆內容 ({selectedStudent.parentName}):</span>
                     <p className="text-[#5D4037] leading-relaxed font-sans font-bold">{entry.parentReply}</p>
                   </div>
                 ) : (

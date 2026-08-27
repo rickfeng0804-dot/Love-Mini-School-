@@ -70,7 +70,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL
   );
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
-    sheetConfig.refreshIntervalMinutes ?? 0
+    sheetConfig.refreshIntervalMinutes ?? 5
   );
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(
     sheetConfig.autoRefreshEnabled ?? false
@@ -84,7 +84,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   useEffect(() => {
     setWebAppInput(sheetConfig.webAppUrl || '');
     setMediaFolderInput(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL);
-    setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 0);
+    setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
   }, [sheetConfig]);
 
@@ -538,101 +538,56 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={autoSyncEnabled && intervalMinutes > 0}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setAutoSyncEnabled(checked);
-                    if (!checked) {
-                      setIntervalMinutes(0);
-                    } else if (intervalMinutes === 0) {
-                      setIntervalMinutes(5);
-                    }
-                  }}
+                  checked={autoSyncEnabled}
+                  onChange={(e) => setAutoSyncEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2E7D32] border-2 border-[#5D4037]"></div>
                 <span className="ml-2 text-xs font-black text-[#5D4037]">
-                  {autoSyncEnabled && intervalMinutes > 0 ? `定時同步中 (${intervalMinutes}分)` : '僅手動 (預設)'}
+                  {autoSyncEnabled ? '定時同步中' : '僅手動'}
                 </span>
               </label>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-black text-[#5D4037]">
-                  選擇資料更新時間間隔：
-                </label>
-                <span className="text-[11px] font-bold text-[#5D4037]/75">
-                  預設值：<span className="bg-[#FFE082] px-1.5 py-0.5 rounded border border-[#5D4037] text-[#5D4037] font-black">僅手動</span>
-                </span>
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {[
-                  { mins: 0, label: '僅手動 (預設)' },
-                  { mins: 1, label: '1 分鐘' },
-                  { mins: 5, label: '5 分鐘' },
-                  { mins: 15, label: '15 分鐘' },
-                  { mins: 30, label: '30 分鐘' },
-                  { mins: 60, label: '60 分鐘' },
-                ].map(({ mins, label }) => {
-                  const isSelected = mins === 0 ? (!autoSyncEnabled || intervalMinutes === 0) : (autoSyncEnabled && intervalMinutes === mins);
-                  return (
-                    <button
-                      key={mins}
-                      type="button"
-                      onClick={() => {
-                        if (mins === 0) {
-                          setIntervalMinutes(0);
-                          setAutoSyncEnabled(false);
-                        } else {
-                          setIntervalMinutes(mins);
-                          setAutoSyncEnabled(true);
-                        }
-                      }}
-                      className={`py-2 px-1 rounded-xl text-[11px] font-black border-2 border-[#5D4037] transition-all cursor-pointer text-center ${
-                        isSelected
-                          ? mins === 0
-                            ? 'bg-[#2E7D32] text-white shadow-[2px_2px_0px_#5D4037]'
-                            : 'bg-[#7E57C2] text-white shadow-[2px_2px_0px_#5D4037]'
-                          : 'bg-white text-[#5D4037] hover:bg-[#F3E5F5]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+              <label className="block text-xs font-black text-[#5D4037] mb-2">
+                選擇自動同步時間間隔：
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {[1, 5, 15, 30, 60].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setIntervalMinutes(mins)}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-black border-2 border-[#5D4037] transition-all cursor-pointer ${
+                      intervalMinutes === mins
+                        ? 'bg-[#7E57C2] text-white shadow-[2px_2px_0px_#5D4037]'
+                        : 'bg-white text-[#5D4037] hover:bg-[#F3E5F5]'
+                    }`}
+                  >
+                    {mins} 分鐘
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Mode Explanation / Countdown */}
-            {!autoSyncEnabled || intervalMinutes === 0 ? (
-              <div className="bg-[#E8F5E9] p-3 rounded-xl border border-[#2E7D32] text-xs font-black text-[#1B5E20] flex items-start gap-2">
-                <span className="text-base shrink-0">🛡️</span>
-                <div>
-                  <p className="font-black">當前模式：僅手動更新 (系統預設)</p>
-                  <p className="text-[11px] font-bold text-[#2E7D32]/85 mt-0.5 leading-snug">
-                    系統安全無背景自動傳輸負擔。您可隨時點選上方「測試連線與更新資料」、「推送更新」或導覽列「從雲端資料庫取得資料」進行手動更新。
-                  </p>
-                </div>
+            {/* Countdown / Status display */}
+            {autoSyncEnabled && nextSyncCountdown !== null && (
+              <div className="bg-[#E8EAF6] p-2.5 rounded-xl border border-[#5D4037] text-xs font-black text-[#3F51B5] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 animate-spin text-[#3F51B5]" />
+                  距離下次 Google Sheet 自動同步：
+                </span>
+                <span className="bg-white px-2 py-0.5 rounded-lg border border-[#5D4037]">
+                  {Math.floor(nextSyncCountdown / 60)}分 {nextSyncCountdown % 60}秒
+                </span>
               </div>
-            ) : (
-              nextSyncCountdown !== null && (
-                <div className="bg-[#E8EAF6] p-2.5 rounded-xl border border-[#3F51B5] text-xs font-black text-[#3F51B5] flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 animate-spin text-[#3F51B5]" />
-                    定時自動更新中 (每 {intervalMinutes} 分鐘)，距離下次同步：
-                  </span>
-                  <span className="bg-white px-2 py-0.5 rounded-lg border border-[#3F51B5] font-mono">
-                    {Math.floor(nextSyncCountdown / 60)}分 {nextSyncCountdown % 60}秒
-                  </span>
-                </div>
-              )
             )}
 
             <button
               type="button"
               onClick={handleSaveSettings}
-              className="w-full bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              className="w-full bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] hover:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" /> 儲存更新時間與 URL 設定
             </button>
@@ -781,8 +736,8 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
             {/* Student Preview Pills */}
             <div className="grid grid-cols-4 gap-1.5 pt-1">
-              {students.slice(0, 4).map((stu, index) => (
-                <div key={`sys-stu-${stu.id || 'stu'}-${index}`} className="bg-white border border-[#5D4037] rounded-lg p-1 text-center shadow-xs">
+              {students.slice(0, 4).map((stu) => (
+                <div key={stu.id} className="bg-white border border-[#5D4037] rounded-lg p-1 text-center shadow-xs">
                   <div className="text-[10px] font-black text-[#5D4037] truncate">{stu.name}</div>
                   <div className="text-[9px] font-bold text-[#5D4037]/60">{stu.seatNumber}號</div>
                 </div>

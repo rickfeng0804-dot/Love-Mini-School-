@@ -519,102 +519,85 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       </div>
 
       {/* Roster Cards Grid */}
-      {displayedStudents.length > 0 ? (
-        <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {displayedStudents.map((stu, index) => {
-            const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
-            const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
+      <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {displayedStudents.map((stu) => {
+          const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
+          const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
 
-            return (
-              <div
-                key={`stu-card-${stu.id || 'id'}-${stu.className || ''}-${stu.seatNumber || ''}-${index}`}
-                className="bg-white border-2 border-[#5D4037] rounded-3xl p-4 shadow-[4px_4px_0px_#5D4037] hover:shadow-[6px_6px_0px_#5D4037] transition-all flex flex-col justify-between"
-              >
-                <div>
-                  {/* Header Badge */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="bg-[#FFF9C4] text-[#5D4037] text-[11px] font-black px-3 py-0.5 rounded-full border border-[#5D4037]">
-                      {stu.className}
-                    </span>
-                    <span className="text-xs font-black text-[#5D4037] font-mono bg-[#E3F2FD] px-2 py-0.5 rounded-full border border-[#5D4037]">
-                      {stu.seatNumber} 號
-                    </span>
-                  </div>
+          return (
+            <div
+              key={stu.id}
+              className="bg-white border-2 border-[#5D4037] rounded-3xl p-4 shadow-[4px_4px_0px_#5D4037] hover:shadow-[6px_6px_0px_#5D4037] transition-all flex flex-col justify-between"
+            >
+              <div>
+                {/* Header Badge */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="bg-[#FFF9C4] text-[#5D4037] text-[11px] font-black px-3 py-0.5 rounded-full border border-[#5D4037]">
+                    {stu.className}
+                  </span>
+                  <span className="text-xs font-black text-[#5D4037] font-mono bg-[#E3F2FD] px-2 py-0.5 rounded-full border border-[#5D4037]">
+                    {stu.seatNumber} 號
+                  </span>
+                </div>
 
-                  {/* Avatar & Name */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <img
-                      src={stu.avatarUrl}
-                      alt={stu.name}
-                      className="w-14 h-14 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037]"
-                    />
-                    <div>
-                      <h3 className="font-black text-lg text-[#5D4037] flex items-center gap-1">
-                        {stu.name}
-                        <span className="text-xs">
-                          {stu.gender === 'boy' ? '👦' : '👧'}
-                        </span>
-                      </h3>
-                      <p className="text-xs text-[#5D4037]/80 font-bold flex items-center gap-1 mt-0.5">
-                        <GraduationCap className="w-3.5 h-3.5 text-[#FF8A65]" /> {stu.className} ({stu.seatNumber}號)
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Progress Indicators */}
-                  <div className="grid grid-cols-2 gap-2 mb-3 text-[11px] font-bold">
-                    <div className="bg-[#FFEBEE] p-2 rounded-2xl text-[#C62828] border border-[#5D4037] text-center">
-                      <span className="block text-[10px] text-[#5D4037]/70 font-black">學習區紀錄</span>
-                      <span className="text-sm font-black">{stuRecordsCount} 篇</span>
-                    </div>
-                    <div className="bg-[#E0F7FA] p-2 rounded-2xl text-[#006064] border border-[#5D4037] text-center">
-                      <span className="block text-[10px] text-[#5D4037]/70 font-black">聯絡簿話語</span>
-                      <span className="text-sm font-black">{stuContactCount} 則</span>
-                    </div>
-                  </div>
-
-                  {stu.notes && (
-                    <p className="text-[11px] text-[#5D4037] bg-[#FFFDE7] p-2 rounded-2xl border border-[#5D4037] line-clamp-2 font-bold">
-                      💡 {stu.notes}
+                {/* Avatar & Name */}
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={stu.avatarUrl}
+                    alt={stu.name}
+                    className="w-14 h-14 rounded-full border-2 border-[#5D4037] object-cover shadow-[2px_2px_0px_#5D4037]"
+                  />
+                  <div>
+                    <h3 className="font-black text-lg text-[#5D4037] flex items-center gap-1">
+                      {stu.name}
+                      <span className="text-xs">
+                        {stu.gender === 'boy' ? '👦' : '👧'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-[#5D4037]/80 font-bold flex items-center gap-1 mt-0.5">
+                      <GraduationCap className="w-3.5 h-3.5 text-[#FF8A65]" /> {stu.className} ({stu.seatNumber}號)
                     </p>
-                  )}
+                  </div>
                 </div>
 
-                {/* Action Bar */}
-                <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t-2 border-dashed border-[#5D4037]/30">
-                  <button
-                    onClick={() => openEditModal(stu)}
-                    className="p-1.5 px-3 rounded-full bg-[#E1BEE7] text-[#4A148C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> 編輯
-                  </button>
-                  <button
-                    onClick={() => handleDeleteStudent(stu.id)}
-                    className="p-1.5 px-3 rounded-full bg-[#FFCDD2] text-[#B71C1C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> 刪除
-                  </button>
+                {/* Progress Indicators */}
+                <div className="grid grid-cols-2 gap-2 mb-3 text-[11px] font-bold">
+                  <div className="bg-[#FFEBEE] p-2 rounded-2xl text-[#C62828] border border-[#5D4037] text-center">
+                    <span className="block text-[10px] text-[#5D4037]/70 font-black">學習區紀錄</span>
+                    <span className="text-sm font-black">{stuRecordsCount} 篇</span>
+                  </div>
+                  <div className="bg-[#E0F7FA] p-2 rounded-2xl text-[#006064] border border-[#5D4037] text-center">
+                    <span className="block text-[10px] text-[#5D4037]/70 font-black">聯絡簿話語</span>
+                    <span className="text-sm font-black">{stuContactCount} 則</span>
+                  </div>
                 </div>
+
+                {stu.notes && (
+                  <p className="text-[11px] text-[#5D4037] bg-[#FFFDE7] p-2 rounded-2xl border border-[#5D4037] line-clamp-2 font-bold">
+                    💡 {stu.notes}
+                  </p>
+                )}
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-12 text-center text-[#5D4037] shadow-[6px_6px_0px_#FFD54F]">
-          <Users className="w-12 h-12 text-[#FF8A65] mx-auto mb-3" />
-          <h3 className="font-black text-lg text-[#5D4037] mb-1">目前尚無學生資料</h3>
-          <p className="text-xs text-[#5D4037]/80 font-bold mb-4">
-            請點擊「➕ 新增幼兒」手動建立學生，或點擊上方「從雲端資料庫取得資料」同步名冊。
-          </p>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex items-center gap-2 bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-4 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" /> 立即新增第一位學生
-          </button>
-        </div>
-      )}
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t-2 border-dashed border-[#5D4037]/30">
+                <button
+                  onClick={() => openEditModal(stu)}
+                  className="p-1.5 px-3 rounded-full bg-[#E1BEE7] text-[#4A148C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
+                >
+                  <Edit3 className="w-3.5 h-3.5" /> 編輯
+                </button>
+                <button
+                  onClick={() => handleDeleteStudent(stu.id)}
+                  className="p-1.5 px-3 rounded-full bg-[#FFCDD2] text-[#B71C1C] border-2 border-[#5D4037] text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_#5D4037]"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 刪除
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Add / Edit Student Modal */}
       {showModal && (
@@ -773,7 +756,7 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                   <div className="flex items-center gap-2 overflow-x-auto pb-1">
                     {AVATAR_SAMPLES.map((sampleUrl, idx) => (
                       <button
-                        key={`preset-avatar-${idx}`}
+                        key={idx}
                         type="button"
                         onClick={() => setAvatarUrl(sampleUrl)}
                         className={`shrink-0 w-8 h-8 rounded-full border-2 border-[#5D4037] overflow-hidden cursor-pointer transition-all ${
