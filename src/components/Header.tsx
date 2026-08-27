@@ -144,28 +144,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Class Filter Bar */}
-        <div className="bg-[#FFF8E1] border-2 border-[#5D4037] rounded-2xl p-2 mb-2 flex items-center justify-between gap-2 text-xs shadow-[2px_2px_0px_#5D4037]">
-          {/* Class Filter Dropdown */}
-          <div className="flex items-center gap-2 w-full">
-            <div className="flex items-center gap-1.5 text-[#5D4037] font-black shrink-0">
-              <Filter className="w-4 h-4 text-[#FF8A65]" />
-              <span>全校班級篩選：</span>
-            </div>
-            <select
-              value={selectedClassFilter}
-              onChange={(e) => setSelectedClassFilter(e.target.value as ClassFilterOption)}
-              className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-xs font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer w-full sm:w-auto"
-            >
-              <option value="全部班級">🏫 全部班級 (全校幼童)</option>
-              <option value="大班 (櫻桃班)">🌸 大班 (櫻桃班)</option>
-              <option value="中班 (草莓班)">🍓 中班 (草莓班)</option>
-              <option value="小班 (蘋果班)">🍎 小班 (蘋果班)</option>
-              <option value="幼幼班 (葡萄班)">🍇 幼幼班 (葡萄班)</option>
-            </select>
-          </div>
-        </div>
-
         {/* Navigation Tabs (Desktop & Tablet) */}
         <nav className="hidden md:flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
           <button
