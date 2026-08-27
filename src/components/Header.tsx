@@ -85,19 +85,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar: Instant Sync, CSV Export, Sheet & Font Size */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-stretch sm:justify-end">
-            {/* Instant Sync Button */}
+            {/* Fetch from Cloud Database Button */}
             <button
               onClick={onInstantSync}
               disabled={isSyncing}
-              title={sheetConfig.lastSyncedAt ? `上次同步時間：${sheetConfig.lastSyncedAt}` : '立即同步最新資料'}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
+              title={sheetConfig.lastSyncedAt ? `上次取得時間：${sheetConfig.lastSyncedAt}` : '從雲端資料庫取得資料'}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95 ${
                 isSyncing
                   ? 'bg-amber-100 text-[#5D4037] cursor-wait'
                   : 'bg-[#00E676] hover:bg-[#00C853] text-[#1B5E20]'
               }`}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
-              <span>{isSyncing ? '同步中' : '立即同步'}</span>
+              <span>{isSyncing ? '取得中...' : '從雲端資料庫取得資料'}</span>
             </button>
 
             {/* CSV Export Button */}

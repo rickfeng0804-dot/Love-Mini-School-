@@ -135,54 +135,78 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
   const learningRowData = valueRanges[1]?.values || [];
   const contactRowData = valueRanges[2]?.values || [];
 
-  const students: Student[] = studentsRowData.map((row: string[]) => ({
-    id: row[0] || '',
-    name: row[1] || '',
-    seatNumber: row[2] || '',
-    className: (row[3] as any) || '大班 (櫻桃班)',
-    gender: (row[4] as any) || 'girl',
-    avatarUrl: row[5] || '',
-    parentName: row[6] || '',
-    parentContact: row[7] || '',
-    notes: row[8] || '',
-  }));
+  const studentIdSet = new Set<string>();
+  const students: Student[] = studentsRowData.map((row: string[], idx: number) => {
+    let id = (row[0] || '').trim();
+    if (!id || studentIdSet.has(id)) {
+      id = `stu-${row[3] || 'class'}-${row[2] || idx + 1}-${Date.now()}-${idx + 1}`;
+    }
+    studentIdSet.add(id);
+    return {
+      id,
+      name: row[1] || '',
+      seatNumber: row[2] || '',
+      className: (row[3] as any) || '大班 (櫻桃班)',
+      gender: (row[4] as any) || 'girl',
+      avatarUrl: row[5] || '',
+      parentName: row[6] || '',
+      parentContact: row[7] || '',
+      notes: row[8] || '',
+    };
+  });
 
-  const learningRecords: LearningRecord[] = learningRowData.map((row: string[]) => ({
-    id: row[0] || '',
-    dateStart: row[1] || '',
-    dateEnd: row[2] || '',
-    studentId: row[3] || '',
-    studentName: row[4] || '',
-    className: (row[5] as any) || '大班 (櫻桃班)',
-    seatNumber: row[6] || '',
-    checkedItems: safeJsonParse(row[7], {}),
-    customNotes: safeJsonParse(row[8], {}),
-    drawingImage: row[9] || '',
-    photoImages: safeJsonParse(row[10], []),
-    teacherComment: row[11] || '',
-    stamp: row[12] || '特別優秀',
-    createdAt: row[13] || new Date().toISOString(),
-  }));
+  const recordIdSet = new Set<string>();
+  const learningRecords: LearningRecord[] = learningRowData.map((row: string[], idx: number) => {
+    let id = (row[0] || '').trim();
+    if (!id || recordIdSet.has(id)) {
+      id = `rec-${row[3] || 'stu'}-${Date.now()}-${idx + 1}`;
+    }
+    recordIdSet.add(id);
+    return {
+      id,
+      dateStart: row[1] || '',
+      dateEnd: row[2] || '',
+      studentId: row[3] || '',
+      studentName: row[4] || '',
+      className: (row[5] as any) || '大班 (櫻桃班)',
+      seatNumber: row[6] || '',
+      checkedItems: safeJsonParse(row[7], {}),
+      customNotes: safeJsonParse(row[8], {}),
+      drawingImage: row[9] || '',
+      photoImages: safeJsonParse(row[10], []),
+      teacherComment: row[11] || '',
+      stamp: row[12] || '特別優秀',
+      createdAt: row[13] || new Date().toISOString(),
+    };
+  });
 
-  const contactBooks: ContactBook[] = contactRowData.map((row: string[]) => ({
-    id: row[0] || '',
-    date: row[1] || '',
-    studentId: row[2] || '',
-    studentName: row[3] || '',
-    className: (row[4] as any) || '大班 (櫻桃班)',
-    seatNumber: row[5] || '',
-    breakfast: (row[6] as any) || '全部吃完',
-    lunch: (row[7] as any) || '全部吃完',
-    snack: (row[8] as any) || '全部吃完',
-    napMinutes: parseInt(row[9] || '90', 10),
-    mood: (row[10] as any) || '開心熱情 🌸',
-    temperature: row[11] || '36.5°C',
-    healthNotes: row[12] || '',
-    teacherMessage: row[13] || '',
-    parentReply: row[14] || '',
-    isReadByParent: row[15] === 'TRUE' || row[15] === 'true',
-    createdAt: row[16] || new Date().toISOString(),
-  }));
+  const contactIdSet = new Set<string>();
+  const contactBooks: ContactBook[] = contactRowData.map((row: string[], idx: number) => {
+    let id = (row[0] || '').trim();
+    if (!id || contactIdSet.has(id)) {
+      id = `cb-${row[2] || 'stu'}-${Date.now()}-${idx + 1}`;
+    }
+    contactIdSet.add(id);
+    return {
+      id,
+      date: row[1] || '',
+      studentId: row[2] || '',
+      studentName: row[3] || '',
+      className: (row[4] as any) || '大班 (櫻桃班)',
+      seatNumber: row[5] || '',
+      breakfast: (row[6] as any) || '全部吃完',
+      lunch: (row[7] as any) || '全部吃完',
+      snack: (row[8] as any) || '全部吃完',
+      napMinutes: parseInt(row[9] || '90', 10),
+      mood: (row[10] as any) || '開心熱情 🌸',
+      temperature: row[11] || '36.5°C',
+      healthNotes: row[12] || '',
+      teacherMessage: row[13] || '',
+      parentReply: row[14] || '',
+      isReadByParent: row[15] === 'TRUE' || row[15] === 'true',
+      createdAt: row[16] || new Date().toISOString(),
+    };
+  });
 
   return { students, learningRecords, contactBooks };
 }
@@ -904,55 +928,79 @@ export async function fetchFromWebApp(webAppUrl: string): Promise<SyncedData> {
   const rawLearning = Array.isArray(data.learningRecords) ? data.learningRecords : [];
   const rawContact = Array.isArray(data.contactBooks) ? data.contactBooks : [];
 
-  const students: Student[] = rawStudents.map((s: any) => ({
-    id: String(s.ID || s.id || Math.random()),
-    name: s.Name || s.name || '',
-    seatNumber: String(s.SeatNumber || s.seatNumber || ''),
-    className: s.ClassName || s.className || '大班 (櫻桃班)',
-    gender: s.Gender || s.gender || 'girl',
-    avatarUrl: s.AvatarUrl || s.avatarUrl || '',
-    parentName: s.ParentName || s.parentName || '',
-    parentContact: String(s.ParentContact || s.parentContact || ''),
-    notes: s.Notes || s.notes || '',
-  }));
+  const studentIdSet = new Set<string>();
+  const students: Student[] = rawStudents.map((s: any, idx: number) => {
+    let id = String(s.ID || s.id || '').trim();
+    if (!id || studentIdSet.has(id)) {
+      id = `stu-${s.ClassName || 'class'}-${s.SeatNumber || idx + 1}-${Date.now()}-${idx + 1}`;
+    }
+    studentIdSet.add(id);
+    return {
+      id,
+      name: s.Name || s.name || '',
+      seatNumber: String(s.SeatNumber || s.seatNumber || ''),
+      className: s.ClassName || s.className || '大班 (櫻桃班)',
+      gender: s.Gender || s.gender || 'girl',
+      avatarUrl: s.AvatarUrl || s.avatarUrl || '',
+      parentName: s.ParentName || s.parentName || '',
+      parentContact: String(s.ParentContact || s.parentContact || ''),
+      notes: s.Notes || s.notes || '',
+    };
+  });
 
-  const learningRecords: LearningRecord[] = rawLearning.map((r: any) => ({
-    id: String(r.ID || r.id || Math.random()),
-    dateStart: r.DateStart || r.dateStart || '',
-    dateEnd: r.DateEnd || r.dateEnd || '',
-    studentId: String(r.StudentId || r.studentId || ''),
-    studentName: r.StudentName || r.studentName || '',
-    className: r.ClassName || r.className || '大班 (櫻桃班)',
-    seatNumber: String(r.SeatNumber || r.seatNumber || ''),
-    checkedItems: typeof r.CheckedItemsJSON === 'string' ? safeJsonParse(r.CheckedItemsJSON, {}) : (r.checkedItems || {}),
-    customNotes: typeof r.CustomNotesJSON === 'string' ? safeJsonParse(r.CustomNotesJSON, {}) : (r.customNotes || {}),
-    drawingImage: r.DrawingImage || r.drawingImage || '',
-    photoImages: typeof r.PhotoImagesJSON === 'string' ? safeJsonParse(r.PhotoImagesJSON, []) : (r.photoImages || []),
-    videoUrls: typeof r.VideoUrlsJSON === 'string' ? safeJsonParse(r.VideoUrlsJSON, []) : (r.videoUrls || []),
-    teacherComment: r.TeacherComment || r.teacherComment || '',
-    stamp: r.Stamp || r.stamp || '特別優秀',
-    createdAt: r.CreatedAt || r.createdAt || new Date().toISOString(),
-  }));
+  const recordIdSet = new Set<string>();
+  const learningRecords: LearningRecord[] = rawLearning.map((r: any, idx: number) => {
+    let id = String(r.ID || r.id || '').trim();
+    if (!id || recordIdSet.has(id)) {
+      id = `rec-${r.StudentId || 'stu'}-${Date.now()}-${idx + 1}`;
+    }
+    recordIdSet.add(id);
+    return {
+      id,
+      dateStart: r.DateStart || r.dateStart || '',
+      dateEnd: r.DateEnd || r.dateEnd || '',
+      studentId: String(r.StudentId || r.studentId || ''),
+      studentName: r.StudentName || r.studentName || '',
+      className: r.ClassName || r.className || '大班 (櫻桃班)',
+      seatNumber: String(r.SeatNumber || r.seatNumber || ''),
+      checkedItems: typeof r.CheckedItemsJSON === 'string' ? safeJsonParse(r.CheckedItemsJSON, {}) : (r.checkedItems || {}),
+      customNotes: typeof r.CustomNotesJSON === 'string' ? safeJsonParse(r.CustomNotesJSON, {}) : (r.customNotes || {}),
+      drawingImage: r.DrawingImage || r.drawingImage || '',
+      photoImages: typeof r.PhotoImagesJSON === 'string' ? safeJsonParse(r.PhotoImagesJSON, []) : (r.photoImages || []),
+      videoUrls: typeof r.VideoUrlsJSON === 'string' ? safeJsonParse(r.VideoUrlsJSON, []) : (r.videoUrls || []),
+      teacherComment: r.TeacherComment || r.teacherComment || '',
+      stamp: r.Stamp || r.stamp || '特別優秀',
+      createdAt: r.CreatedAt || r.createdAt || new Date().toISOString(),
+    };
+  });
 
-  const contactBooks: ContactBook[] = rawContact.map((c: any) => ({
-    id: String(c.ID || c.id || Math.random()),
-    date: c.Date || c.date || '',
-    studentId: String(c.StudentId || c.studentId || ''),
-    studentName: c.StudentName || c.studentName || '',
-    className: c.ClassName || c.className || '大班 (櫻桃班)',
-    seatNumber: String(c.SeatNumber || c.seatNumber || ''),
-    breakfast: c.Breakfast || c.breakfast || '全部吃完',
-    lunch: c.Lunch || c.lunch || '全部吃完',
-    snack: c.Snack || c.snack || '全部吃完',
-    napMinutes: Number(c.NapMinutes || c.napMinutes || 90),
-    mood: c.Mood || c.mood || '開心熱情 🌸',
-    temperature: c.Temperature || c.temperature || '36.5°C',
-    healthNotes: c.HealthNotes || c.healthNotes || '',
-    teacherMessage: c.TeacherMessage || c.teacherMessage || '',
-    parentReply: c.ParentReply || c.parentReply || '',
-    isReadByParent: c.IsReadByParent === 'TRUE' || c.IsReadByParent === true || c.isReadByParent === true,
-    createdAt: c.CreatedAt || c.createdAt || new Date().toISOString(),
-  }));
+  const contactIdSet = new Set<string>();
+  const contactBooks: ContactBook[] = rawContact.map((c: any, idx: number) => {
+    let id = String(c.ID || c.id || '').trim();
+    if (!id || contactIdSet.has(id)) {
+      id = `cb-${c.StudentId || 'stu'}-${Date.now()}-${idx + 1}`;
+    }
+    contactIdSet.add(id);
+    return {
+      id,
+      date: c.Date || c.date || '',
+      studentId: String(c.StudentId || c.studentId || ''),
+      studentName: c.StudentName || c.studentName || '',
+      className: c.ClassName || c.className || '大班 (櫻桃班)',
+      seatNumber: String(c.SeatNumber || c.seatNumber || ''),
+      breakfast: c.Breakfast || c.breakfast || '全部吃完',
+      lunch: c.Lunch || c.lunch || '全部吃完',
+      snack: c.Snack || c.snack || '全部吃完',
+      napMinutes: Number(c.NapMinutes || c.napMinutes || 90),
+      mood: c.Mood || c.mood || '開心熱情 🌸',
+      temperature: c.Temperature || c.temperature || '36.5°C',
+      healthNotes: c.HealthNotes || c.healthNotes || '',
+      teacherMessage: c.TeacherMessage || c.teacherMessage || '',
+      parentReply: c.ParentReply || c.parentReply || '',
+      isReadByParent: c.IsReadByParent === 'TRUE' || c.IsReadByParent === true || c.isReadByParent === true,
+      createdAt: c.CreatedAt || c.createdAt || new Date().toISOString(),
+    };
+  });
 
   return { students, learningRecords, contactBooks };
 }

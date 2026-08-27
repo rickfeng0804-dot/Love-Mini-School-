@@ -70,13 +70,14 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         const found = await findKindergartenSpreadsheet(token);
         if (found) {
           const url = `https://docs.google.com/spreadsheets/d/${found.id}`;
-          setSheetConfig({
+          setSheetConfig((prev) => ({
+            ...prev,
             spreadsheetId: found.id,
             spreadsheetUrl: url,
             spreadsheetName: found.name,
             isConnected: true,
             lastSyncedAt: new Date().toLocaleTimeString(),
-          });
+          }));
           setStatusMsg(`已自動找到並連線至試算表：${found.name}`);
         } else {
           setSheetConfig((prev) => ({ ...prev, isConnected: true }));
@@ -107,13 +108,14 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
             throw new Error('存取金鑰已過期，請重新「Google 帳號登入」');
           }
           const res = await createKindergartenSpreadsheet(token, '愛愛幼兒園_學習歷程與聯絡簿_資料庫');
-          setSheetConfig({
+          setSheetConfig((prev) => ({
+            ...prev,
             spreadsheetId: res.spreadsheetId,
             spreadsheetUrl: res.spreadsheetUrl,
             spreadsheetName: '愛愛幼兒園_學習歷程與聯絡簿_資料庫',
             isConnected: true,
             lastSyncedAt: new Date().toLocaleTimeString(),
-          });
+          }));
           setStatusMsg('Google 試算表建立成功！正在寫入現有資料...');
           await syncAllToSheet(token, res.spreadsheetId, students, learningRecords, contactBooks);
           setStatusMsg('現有資料已全部同步至您的 Google Sheet 資料庫！');

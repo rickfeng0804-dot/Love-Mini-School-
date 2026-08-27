@@ -195,7 +195,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
                 className="bg-white border-2 border-[#5D4037] rounded-lg px-2.5 py-1 text-xs font-black text-[#5D4037] shadow-[1px_1px_0px_#5D4037] focus:outline-none cursor-pointer max-w-[200px]"
               >
                 {filteredRecords.map((rec, i) => (
-                  <option key={rec.id} value={i}>
+                  <option key={`inspect-opt-${rec.id || 'rec'}-${i}`} value={i}>
                     {i + 1}. {rec.studentName} ({rec.className} {rec.seatNumber}號)
                   </option>
                 ))}
@@ -371,7 +371,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
           ) : inspectionViewMode === 'continuous' ? (
             /* Continuous Multi-Student Batch Inspection */
             filteredRecords.map((rec, index) => (
-              <div key={rec.id} className="flex flex-col items-center">
+              <div key={`inspect-cont-card-${rec.id || 'rec'}-${index}`} className="flex flex-col items-center">
                 {/* A4 Sheet Simulated Page Frame */}
                 <div className="relative bg-white p-3 sm:p-5 rounded-2xl border-4 border-[#5D4037] shadow-[12px_12px_0px_#2A1E17] w-[880px] max-w-[95vw]">
                   {/* Sheet Header Badge */}
@@ -520,7 +520,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
               const isSelected = i === currentRecordIndex;
               return (
                 <button
-                  key={rec.id}
+                  key={`inspect-jump-btn-${rec.id || 'rec'}-${i}`}
                   onClick={() => setCurrentRecordIndex(i)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-black border-2 transition-all cursor-pointer shrink-0 ${
                     isSelected

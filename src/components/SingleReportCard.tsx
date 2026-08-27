@@ -180,7 +180,7 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {record.photoImages && record.photoImages.length > 0 ? (
               record.photoImages.map((img, i) => (
-                <div key={i} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037] bg-white">
+                <div key={`card-photo-${record.id || 'rec'}-${i}`} className="aspect-4/3 rounded-lg overflow-hidden border border-[#5D4037] bg-white">
                   <img src={img} alt="活動紀錄" className="w-full h-full object-cover" />
                 </div>
               ))
@@ -208,7 +208,7 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
 
                   if (isVideoFile) {
                     return (
-                      <div key={vI} className="bg-white p-1.5 rounded-lg border border-[#5D4037]">
+                      <div key={`card-video-box-${record.id || 'rec'}-${vI}`} className="bg-white p-1.5 rounded-lg border border-[#5D4037]">
                         <video
                           src={vUrl}
                           controls
@@ -223,7 +223,7 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
 
                   return (
                     <a
-                      key={vI}
+                      key={`card-video-link-${record.id || 'rec'}-${vI}`}
                       href={vUrl}
                       target="_blank"
                       rel="noopener noreferrer"

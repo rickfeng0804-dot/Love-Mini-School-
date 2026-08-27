@@ -156,9 +156,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ initialImage, onSa
         {/* Color / Tool Palette */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-white p-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-            {PASTEL_COLORS.map((c) => (
+            {PASTEL_COLORS.map((c, i) => (
               <button
-                key={c}
+                key={`palette-col-${c}-${i}`}
                 type="button"
                 onClick={() => {
                   setColor(c);
@@ -214,9 +214,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ initialImage, onSa
         <span className="text-xs text-[#5D4037] font-black flex items-center gap-1 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-[#FFB74D]" /> 可愛印章:
         </span>
-        {STAMPS.map((s) => (
+        {STAMPS.map((s, i) => (
           <button
-            key={s}
+            key={`stamp-item-${s}-${i}`}
             type="button"
             onClick={() => {
               setSelectedStamp(selectedStamp === s ? null : s);

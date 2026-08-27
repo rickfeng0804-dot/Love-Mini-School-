@@ -99,6 +99,6 @@ export interface SheetConfig {
   mediaFolderUrl?: string;
   isConnected: boolean;
   lastSyncedAt: string | null;
-  refreshIntervalMinutes?: number; // 0 (Manual), 1, 5, 15, 30, 60
+  refreshIntervalMinutes?: number; // 0 (僅手動 / 預設), 1, 5, 15, 30, 60
   autoRefreshEnabled?: boolean;
 }
