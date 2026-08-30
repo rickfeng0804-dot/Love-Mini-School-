@@ -120,14 +120,14 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-[#5D4037] tracking-wide">
-                園長 A4 列印檢查模式
+                園長 A4 PDF 預覽與儲存檢查模式
               </h2>
               <span className="bg-[#FFE082] text-[#5D4037] text-[11px] font-black px-2 py-0.5 rounded-full border border-[#5D4037] shadow-[1px_1px_0px_#5D4037]">
                 A4 標準 210 × 297 mm
               </span>
             </div>
             <p className="text-xs text-[#5D4037]/75 font-bold">
-              檢查所有紀錄表之版面比例、圖片邊距及自動 A4 分頁符號，確認列印無誤後可一鍵輸出
+              檢查所有紀錄表之版面比例、圖片邊距及自動 A4 分頁符號，確認無誤後可一鍵存成 PDF 並分享或儲存
             </p>
           </div>
         </div>
@@ -138,18 +138,18 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
             <button
               onClick={() => onPrintSingle(currentRecord)}
               className="bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-              title="列印當前檢查的這份 A4 報告書"
+              title="儲存或分享這份 PDF 報告書"
             >
-              <Printer className="w-4 h-4" /> 列印當前頁 (A4)
+              <Printer className="w-4 h-4" /> 存PDF / 分享 (單頁)
             </button>
           )}
 
           <button
             onClick={() => onPrintBatch(filteredRecords)}
             className="bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-            title="批次列印當前篩選之所有幼兒紀錄表（自動獨立 A4 分頁）"
+            title="批次轉存 PDF / 分享當前篩選之所有幼兒紀錄表（自動獨立 A4 分頁）"
           >
-            <Layers className="w-4 h-4" /> 全班批次列印 ({filteredRecords.length} 頁)
+            <Layers className="w-4 h-4" /> 批次存PDF / 分享 ({filteredRecords.length} 頁)
           </button>
 
           <button
@@ -281,7 +281,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
             className={`px-2.5 py-1 rounded-lg border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037] transition-all flex items-center gap-1 cursor-pointer ${
               isGrayscale ? 'bg-gray-700 text-white' : 'bg-white text-[#5D4037]'
             }`}
-            title="模擬黑白影印列印效果"
+            title="模擬黑白影印轉存 PDF 效果"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>{isGrayscale ? '黑白預覽中' : '彩色完稿'}</span>
@@ -403,7 +403,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
                     <div className="h-0.5 flex-1 border-b-2 border-dashed border-[#FFD54F]" />
                     <div className="bg-[#FFE082] border-2 border-[#5D4037] text-[#5D4037] text-xs font-black px-4 py-1 rounded-full shadow-[2px_2px_0px_#5D4037] flex items-center gap-2 shrink-0">
                       <Scissors className="w-4 h-4 text-[#FF8A65]" />
-                      <span>--- ✂️ A4 Page Break 自動分頁符號（列印時自動獨立切換下一張實體紙張） ---</span>
+                      <span>--- ✂️ A4 Page Break 自動分頁符號（轉存 PDF 時自動獨立切換下一張頁面） ---</span>
                     </div>
                     <div className="h-0.5 flex-1 border-b-2 border-dashed border-[#FFD54F]" />
                   </div>
@@ -493,7 +493,7 @@ export const PrintInspectionModal: React.FC<PrintInspectionModalProps> = ({
                 {showPageBreaks && (
                   <div className="mt-4 bg-[#FFE082] border-2 border-[#5D4037] text-[#5D4037] text-xs font-black px-4 py-1 rounded-full shadow-[2px_2px_0px_#5D4037] flex items-center gap-2">
                     <Scissors className="w-4 h-4 text-[#FF8A65]" />
-                    <span>A4 單頁完稿標記：此紀錄表符合單頁 A4 比例，列印時將完整輸出於單張紙上</span>
+                    <span>A4 單頁完稿標記：此紀錄表符合單頁 A4 比例，轉存 PDF 時將完整輸出於單張頁面</span>
                   </div>
                 )}
               </div>

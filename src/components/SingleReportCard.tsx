@@ -45,7 +45,7 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
       {showSafeMargins && (
         <div className="absolute inset-2 border-2 border-dashed border-red-400 pointer-events-none rounded-2xl z-10 print:hidden flex items-start justify-end p-1">
           <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
-            A4 10mm 安全列印邊界線
+            A4 10mm 安全 PDF 邊界線
           </span>
         </div>
       )}

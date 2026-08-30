@@ -235,7 +235,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
                 <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #FFFDE7; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
                   <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📄 愛愛幼兒園 家長聯絡簿卡片 - ${stuName}：</span>
                   <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
-                    🖨️ 立即列印 / 儲存 PDF 檔案
+                    🖨️ 存pdf檔案並分享或儲存
                   </button>
                   <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
                     ✖ 關閉視窗
@@ -375,7 +375,7 @@ export const ContactBookView: React.FC<ContactBookViewProps> = ({
               onClick={handlePrintContactBook}
               className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2 px-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[38px]"
             >
-              <Printer className="w-3.5 h-3.5" /> 列印 / PDF
+              <Printer className="w-3.5 h-3.5" /> 存pdf / 分享
             </button>
             <button
               onClick={() => {

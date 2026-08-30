@@ -164,9 +164,9 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               </head>
               <body>
                 <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #FFFDE7; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
-                  <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📄 愛愛幼兒園 A4 官方報告書 - ${stuName}（按 Ctrl+P 或點擊按鈕「另存為 PDF」）：</span>
+                  <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📄 愛愛幼兒園 A4 官方報告書 - ${stuName}（點擊按鈕存成PDF）：</span>
                   <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
-                    🖨️ 立即列印 / 儲存 PDF 檔案
+                    🖨️ 存pdf檔案並分享或儲存
                   </button>
                   <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
                     ✖ 關閉視窗
@@ -250,9 +250,9 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             </head>
             <body>
               <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #FFFDE7; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
-                <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📁 愛愛幼兒園 全班 A4 報告書合輯 (每位幼兒報告自動獨立 A4 分頁)：</span>
+                <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📁 愛愛幼兒園 全班 A4 報告書合輯 (每位幼兒報告自動獨立一頁)：</span>
                 <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
-                  🖨️ 批次列印 / 儲存全班 PDF 報告書
+                  🖨️ 批次存pdf檔案並分享或儲存
                 </button>
                 <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
                   ✖ 關閉視窗
@@ -561,9 +561,9 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <button
             onClick={() => setIsPrintInspectionOpen(true)}
             className="flex-1 sm:flex-none justify-center bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="開啟園長 A4 列印檢查模式，預覽所有幼兒紀錄之版面比例與自動分頁符號"
+            title="開啟園長 PDF 預覽檢查模式，預覽所有幼兒紀錄之版面比例與自動分頁符號"
           >
-            <FileCheck className="w-4 h-4 text-[#FF8A65]" /> 園長列印檢查模式 (A4 預覽)
+            <FileCheck className="w-4 h-4 text-[#FF8A65]" /> PDF 預覽檢查模式
           </button>
 
           <button
@@ -580,14 +580,14 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
-            <Printer className="w-4 h-4" /> 列印 A4 報告書
+            <Printer className="w-4 h-4" /> 存PDF檔案並分享或儲存
           </button>
 
           <button
             onClick={handlePrintAllStudents}
             className="w-full sm:w-auto justify-center bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
-            <Printer className="w-4 h-4" /> 全班 A4 批次列印
+            <Printer className="w-4 h-4" /> 批次存PDF並分享或儲存
           </button>
         </div>
       </div>
@@ -877,7 +877,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
       )}
 
-      {/* 園長專用 A4 列印檢查模式視窗 */}
+      {/* 園長專用 A4 PDF 檢查模式視窗 */}
       <PrintInspectionModal
         isOpen={isPrintInspectionOpen}
         onClose={() => setIsPrintInspectionOpen(false)}
