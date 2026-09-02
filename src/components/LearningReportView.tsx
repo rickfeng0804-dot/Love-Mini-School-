@@ -13,7 +13,6 @@ import { CORNER_AREAS } from '../data/initialData';
 import { 
   Printer, 
   Sparkles, 
-  Download, 
   BookOpen, 
   Award, 
   Calendar, 
@@ -27,12 +26,10 @@ import {
   PieChart as PieIcon,
   FolderOpen,
   Type,
-  FileCheck,
   Eye,
   GraduationCap,
   Filter
 } from 'lucide-react';
-import { generateLearningRecordsCsv, downloadCsv } from '../lib/csvExport';
 import { 
   Radar, 
   RadarChart, 
@@ -47,7 +44,6 @@ import {
   Legend 
 } from 'recharts';
 import { SingleReportCard } from './SingleReportCard';
-import { PrintInspectionModal } from './PrintInspectionModal';
 
 interface LearningReportViewProps {
   students: Student[];
@@ -67,7 +63,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   const [reportGradeFilter, setReportGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
   const [reportFontSize, setReportFontSize] = useState<number>(18);
-  const [isPrintInspectionOpen, setIsPrintInspectionOpen] = useState<boolean>(false);
 
   // Dynamically compute unique grades
   const uniqueGradeList = Array.from(
@@ -197,89 +192,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     setTimeout(() => { window.print(); }, 100);
   };
 
-  const handlePrintAllStudents = () => {
-    const allPrintAreas = document.getElementById('all-printable-reports');
-    if (!allPrintAreas) {
-      handlePrintSingle();
-      return;
-    }
 
-    try {
-      const printWindow = window.open('', '_blank', 'width=1024,height=900,top=50,left=50');
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>愛愛幼兒園 - 全班角落學習紀錄表 (全班 A4 批次檔)</title>
-              <meta charset="utf-8" />
-              <script src="https://cdn.tailwindcss.com"></script>
-              <style>
-                @page {
-                  size: A4 portrait;
-                  margin: 8mm 10mm;
-                }
-                @media print {
-                  .no-print { display: none !important; }
-                  body { background: white !important; margin: 0 !important; padding: 0 !important; }
-                  *, *::before, *::after {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                  }
-                  .a4-page-break {
-                    page-break-after: always !important;
-                    break-after: page !important;
-                    page-break-inside: avoid !important;
-                    break-inside: avoid !important;
-                    margin-bottom: 0 !important;
-                  }
-                }
-                .a4-page-break {
-                  page-break-after: always;
-                  break-after: page;
-                  margin-bottom: 40px;
-                }
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                  background-color: #f5f5f5;
-                  margin: 0;
-                  padding: 20px;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="no-print" style="margin-bottom: 20px; text-align: center; background: #FFFDE7; padding: 14px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037;">
-                <span style="font-weight: 900; color: #5D4037; margin-right: 15px; font-size: 15px;">📁 愛愛幼兒園 全班 A4 報告書合輯 (每位幼兒報告自動獨立一頁)：</span>
-                <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 20px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px; margin-right: 10px; box-shadow: 2px 2px 0px #5D4037;">
-                  🖨️ 批次存pdf檔案並分享或儲存
-                </button>
-                <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 16px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 14px;">
-                  ✖ 關閉視窗
-                </button>
-              </div>
-              <div style="max-width: 960px; margin: 0 auto; background: white;">
-                ${allPrintAreas.innerHTML}
-              </div>
-              <script>
-                setTimeout(() => {
-                  window.focus();
-                  window.print();
-                }, 600);
-              </script>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        return;
-      }
-    } catch (err) {
-      console.error('Batch print error:', err);
-    }
-
-    window.focus();
-    setTimeout(() => { window.print(); }, 100);
-  };
 
   const computeDomainStats = (record?: LearningRecord) => {
     if (!record) return [];
@@ -559,35 +472,10 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setIsPrintInspectionOpen(true)}
-            className="flex-1 sm:flex-none justify-center bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="開啟園長 PDF 預覽檢查模式，預覽所有幼兒紀錄之版面比例與自動分頁符號"
-          >
-            <FileCheck className="w-4 h-4 text-[#FF8A65]" /> PDF 預覽檢查模式
-          </button>
-
-          <button
-            onClick={() => {
-              const csv = generateLearningRecordsCsv(studentRecords.length > 0 ? studentRecords : learningRecords);
-              downloadCsv(`愛愛幼兒園_學習區紀錄_${selectedStudent.name}.csv`, csv);
-            }}
-            className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-          >
-            <Download className="w-4 h-4" /> 匯出 CSV
-          </button>
-
-          <button
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
           >
             <Printer className="w-4 h-4" /> 存PDF檔案並分享或儲存
-          </button>
-
-          <button
-            onClick={handlePrintAllStudents}
-            className="w-full sm:w-auto justify-center bg-[#4FC3F7] hover:bg-[#29B6F6] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
-          >
-            <Printer className="w-4 h-4" /> 批次存PDF並分享或儲存
           </button>
         </div>
       </div>
@@ -876,23 +764,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <p className="text-xs font-bold mt-1">請先於「角落學習紀錄表」為學生建立觀察紀錄。</p>
         </div>
       )}
-
-      {/* 園長專用 A4 PDF 檢查模式視窗 */}
-      <PrintInspectionModal
-        isOpen={isPrintInspectionOpen}
-        onClose={() => setIsPrintInspectionOpen(false)}
-        students={students}
-        learningRecords={learningRecords}
-        initialStudentId={selectedStudentId}
-        initialFontSize={reportFontSize}
-        onPrintSingle={(rec) => {
-          setSelectedStudentId(rec.studentId);
-          setTimeout(() => handlePrintSingle(), 150);
-        }}
-        onPrintBatch={(recs) => {
-          handlePrintAllStudents();
-        }}
-      />
     </div>
   );
 };
