@@ -49,13 +49,8 @@ import {
   FolderOpen,
   ExternalLink,
   GraduationCap,
-  Download,
-  FileSpreadsheet,
-  FileText,
   RefreshCw
 } from 'lucide-react';
-import { generateCurrentFormObservationCsv, downloadCsv } from '../lib/csvExport';
-import { CornerCsvExportModal } from './CornerCsvExportModal';
 
 interface CornerLearningFormProps {
   students: Student[];
@@ -169,7 +164,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-  const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [sheetSyncing, setSheetSyncing] = useState<boolean>(false);
   const [sheetSyncStatus, setSheetSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
@@ -221,47 +215,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       setTimeout(() => {
         setSheetSyncStatus(null);
       }, 6000);
-    }
-  };
-
-  const handleQuickExportCurrentFormCsv = () => {
-    if (!selectedStudent) return;
-    try {
-      const csvContent = generateCurrentFormObservationCsv({
-        student: selectedStudent,
-        dateStart,
-        dateEnd,
-        checkedItems,
-        customNotes,
-        teacherComment,
-        stamp,
-        photoImages,
-        videoUrls,
-      });
-
-      const safeDate = dateStart.replace(/[^0-9-]/g, '');
-      const filename = `愛愛幼兒園_角落學習觀察紀錄_${selectedStudent.className}_${selectedStudent.name}_${safeDate}.csv`;
-      downloadCsv(filename, csvContent);
-
-      try {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#FFB74D', '#81C784', '#4FC3F7', '#FF8A65'],
-        });
-      } catch {}
-
-      setSyncStatus({
-        type: 'success',
-        message: `🎉 已成功匯出 ${selectedStudent.name} 的角落觀察紀錄 CSV 檔案！已支援 Excel 中文防亂碼 (UTF-8 BOM)。`,
-      });
-      setTimeout(() => setSyncStatus(null), 4500);
-    } catch (err) {
-      setSyncStatus({
-        type: 'error',
-        message: '匯出 CSV 失敗，請重試。',
-      });
     }
   };
 
@@ -612,31 +565,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               勾選幼兒在 8 大角落區的學習表現，資料已與 Google Sheet (ID: {activeSpreadsheetId.slice(0, 8)}...{activeSpreadsheetId.slice(-6)}) 完全同步！
             </p>
 
-            {/* Observation Form CSV Export & Google Sheet Sync Actions */}
+            {/* Google Sheet Sync Actions */}
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-[#5D4037]/15">
-              <button
-                type="button"
-                onClick={handleQuickExportCurrentFormCsv}
-                className="bg-white hover:bg-[#FFF8E1] text-[#5D4037] text-xs font-black py-1.5 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                title="立即將目前畫面勾選的觀察指標與評語匯出為單筆 CSV 檔案"
-              >
-                <Download className="w-3.5 h-3.5 text-[#E65100]" />
-                匯出當前表單 CSV
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setShowCsvModal(true)}
-                className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] text-xs font-black py-1.5 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-                title="開啟完整觀察紀錄 CSV 匯出選單（支援當前表單、班級紀錄、全園總表）"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-[#2E7D32]" />
-                匯出觀察紀錄 CSV 選單
-                <span className="bg-[#2E7D32] text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">
-                  UTF-8 BOM
-                </span>
-              </button>
-
               <button
                 type="button"
                 onClick={handleManualSheetSync}
@@ -1063,59 +993,18 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           </div>
         </div>
 
-        {/* Submit and CSV Export Actions Row */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          {/* CSV Quick Export Buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleQuickExportCurrentFormCsv}
-              className="bg-white hover:bg-[#FFF8E1] text-[#5D4037] font-black text-xs sm:text-sm py-3 px-4 rounded-full border-3 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer flex-1 sm:flex-initial"
-              title="匯出當前填寫的這筆觀察紀錄 CSV"
-            >
-              <Download className="w-4 h-4 text-[#E65100]" />
-              匯出當前填寫紀錄 CSV 📄
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCsvModal(true)}
-              className="bg-[#FFE082] hover:bg-[#FFD54F] text-[#5D4037] font-black text-xs sm:text-sm py-3 px-4 rounded-full border-3 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer flex-1 sm:flex-initial"
-              title="開啟完整觀察紀錄 CSV 匯出選單（班級歷程與全園總表）"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-[#2E7D32]" />
-              匯出紀錄總表 CSV 📑
-            </button>
-          </div>
-
+        {/* Submit Actions Row */}
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm sm:text-base py-3.5 px-8 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm sm:text-base py-3.5 px-8 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <Save className="w-5 h-5" />
             {isSaving ? '正在儲存並同步中...' : '確認儲存觀察紀錄並產生報告 🚀'}
           </button>
         </div>
       </form>
-
-      {/* Observation Records CSV Export Modal */}
-      <CornerCsvExportModal
-        isOpen={showCsvModal}
-        onClose={() => setShowCsvModal(false)}
-        currentStudent={selectedStudent}
-        currentDateStart={dateStart}
-        currentDateEnd={dateEnd}
-        currentCheckedItems={checkedItems}
-        currentCustomNotes={customNotes}
-        currentTeacherComment={teacherComment}
-        currentStamp={stamp}
-        currentPhotoImages={photoImages}
-        currentVideoUrls={videoUrls}
-        learningRecords={learningRecords}
-        students={students}
-        currentGradeFilter={formGradeFilter}
-        currentClassFilter={formClassFilter}
-      />
     </div>
   );
 };

@@ -30,7 +30,6 @@ import {
   Layers,
   ArrowUpDown
 } from 'lucide-react';
-import { DEFAULT_NAS_STORAGE_URL } from '../lib/googleSheets';
 import { 
   BarChart,
   Bar,
@@ -69,15 +68,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   const [reportGradeFilter, setReportGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
   const [reportFontSize, setReportFontSize] = useState<number>(18);
-  const [copiedNasUrl, setCopiedNasUrl] = useState(false);
-
-  const nasStorageUrl = sheetConfig?.nasStorageUrl || DEFAULT_NAS_STORAGE_URL;
-
-  const handleCopyNasUrl = () => {
-    navigator.clipboard.writeText(nasStorageUrl);
-    setCopiedNasUrl(true);
-    setTimeout(() => setCopiedNasUrl(false), 2500);
-  };
 
   // Dynamically compute unique grades
   const uniqueGradeList = Array.from(
@@ -180,16 +170,13 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                     <div>
                       <span style="font-weight: 900; color: #5D4037; font-size: 15px; display: block;">📄 愛愛幼兒園 A4 官方報告書 - ${stuName}</span>
                       <span style="font-size: 11px; color: #795548; font-weight: bold; display: block; margin-top: 2px;">
-                        📌 歸檔步驟：① 點擊【存 PDF 檔案】(目的地選「另存為 PDF」) ➔ ② 點擊【儲存至 NAS】開啟幼兒園群暉 NAS 目錄上傳歸檔！
+                        📌 提示：點擊【存 PDF 檔案】目的地選擇「另存為 PDF」，即可輸出為高解析度 A4 電子檔案或列印。
                       </span>
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
                       <button onclick="window.focus(); window.print();" style="background: #FF8A65; color: white; border: 2px solid #5D4037; padding: 8px 18px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 13px; box-shadow: 2px 2px 0px #5D4037;">
                         🖨️ 存 PDF 檔案
                       </button>
-                      <a href="${nasStorageUrl}" target="_blank" rel="noopener noreferrer" style="background: #0288D1; color: white; border: 2px solid #5D4037; padding: 8px 18px; border-radius: 20px; font-weight: 900; text-decoration: none; font-size: 13px; box-shadow: 2px 2px 0px #5D4037; display: inline-flex; align-items: center; gap: 4px;">
-                        🗄️ 儲存至 NAS ↗
-                      </a>
                       <button onclick="window.close();" style="background: #e0e0e0; color: #333; border: 2px solid #5D4037; padding: 8px 14px; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 13px;">
                         ✖ 關閉視窗
                       </button>
@@ -598,68 +585,9 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <button
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
-            title="另存為 A4 PDF 格式檔案"
+            title="另存為 A4 PDF 格式檔案或列印"
           >
-            <Printer className="w-4 h-4" /> 存PDF檔案並分享或儲存
-          </button>
-
-          <a
-            href={nasStorageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 sm:flex-none justify-center bg-[#0288D1] hover:bg-[#0277BD] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-            title="開啟愛愛幼兒園群暉 Synology NAS 儲存目錄"
-          >
-            <HardDrive className="w-4 h-4" /> 轉PDF後儲存至 NAS <ExternalLink className="w-3.5 h-3.5 opacity-90" />
-          </a>
-        </div>
-      </div>
-
-      {/* NAS Cloud Archive Quick-Access Banner (Hidden on Print) */}
-      <div className="print:hidden bg-[#E0F2F1] border-3 border-[#5D4037] rounded-2xl p-3.5 shadow-[4px_4px_0px_#00796B] mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-start sm:items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-[#00897B] text-white flex items-center justify-center border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] shrink-0">
-            <HardDrive className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-black text-xs sm:text-sm text-[#004D40] flex items-center gap-1">
-                學生角落學習紀錄報告 ➔ 轉 PDF 後儲存至 NAS
-              </span>
-              <span className="bg-[#B2DFDB] text-[#004D40] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#00796B]">
-                Synology QuickConnect
-              </span>
-            </div>
-            <p className="text-[11px] text-[#004D40]/80 font-bold mt-0.5">
-              💡 歸檔步驟：點擊【存PDF檔案】目的地選擇「另存為 PDF」轉存 ➔ 點擊【開啟 NAS 資料夾】將產生的 PDF 拖曳上傳歸檔！
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
-          <a
-            href={nasStorageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-[#00897B] hover:bg-[#00796B] text-white text-xs font-black px-3.5 py-1.5 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-          >
-            開啟 NAS 資料夾 <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-          <button
-            type="button"
-            onClick={handleCopyNasUrl}
-            className="bg-white hover:bg-[#E0F2F1] text-[#004D40] text-xs font-black px-3 py-1.5 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-            title="複製 NAS 專屬連結"
-          >
-            {copiedNasUrl ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-green-600" /> 已複製連結
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" /> 複製 NAS 網址
-              </>
-            )}
+            <Printer className="w-4 h-4" /> 存PDF檔案或列印報告
           </button>
         </div>
       </div>

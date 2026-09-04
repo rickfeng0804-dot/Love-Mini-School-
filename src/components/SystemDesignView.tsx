@@ -11,7 +11,6 @@ import {
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
   DEFAULT_MEDIA_FOLDER_URL,
-  DEFAULT_NAS_STORAGE_URL,
   fetchFromWebApp, 
   fetchStudentRoster,
   fetchAllKindergartenData,
@@ -40,8 +39,7 @@ import {
   Folder,
   FolderOpen,
   Camera,
-  Video,
-  HardDrive
+  Video
 } from 'lucide-react';
 
 interface SystemDesignViewProps {
@@ -80,9 +78,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   const [mediaFolderInput, setMediaFolderInput] = useState(
     sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL
   );
-  const [nasStorageInput, setNasStorageInput] = useState(
-    sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL
-  );
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
     sheetConfig.refreshIntervalMinutes ?? 5
   );
@@ -101,7 +96,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     setContactUrlInput(sheetConfig.contactWebAppUrl || DEFAULT_CONTACT_WEB_APP_URL);
     setWebAppInput(sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL);
     setMediaFolderInput(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL);
-    setNasStorageInput(sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL);
     setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
   }, [sheetConfig]);
@@ -130,7 +124,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       contactWebAppUrl: normContact,
       webAppUrl: normStudent || normLearning,
       mediaFolderUrl: mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL,
-      nasStorageUrl: nasStorageInput.trim() || DEFAULT_NAS_STORAGE_URL,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
       isConnected: true,
@@ -182,7 +175,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     const normLearning = normalizeWebAppUrl(learningUrlInput.trim());
     const normContact = normalizeWebAppUrl(contactUrlInput.trim());
     const rawMedia = mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL;
-    const rawNas = nasStorageInput.trim() || DEFAULT_NAS_STORAGE_URL;
 
     setStudentUrlInput(normStudent);
     setLearningUrlInput(normLearning);
@@ -195,12 +187,11 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       contactWebAppUrl: normContact,
       webAppUrl: normStudent || normLearning || prev.webAppUrl,
       mediaFolderUrl: rawMedia,
-      nasStorageUrl: rawNas,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
       isConnected: Boolean(normStudent || normLearning || normContact),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定（學生名冊、角落學習區、多媒體與 NAS 雲端目錄網址）已成功儲存並生效！' });
+    setStatusMessage({ type: 'success', text: '系統設定（學生名冊、角落學習區、多媒體雲端資料夾網址）已成功儲存並生效！' });
     setTimeout(() => setStatusMessage(null), 3500);
   };
 
@@ -632,76 +623,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 type="button"
                 onClick={() => handleCopyCode(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL)}
                 className="bg-[#E0F7FA] hover:bg-[#B2EBF2] text-[#00838F] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#00838F] cursor-pointer shrink-0 ml-2"
-              >
-                複製連結
-              </button>
-            </div>
-          </div>
-
-          {/* NAS Folder Sub-card: Synology NAS Storage Link */}
-          <div className="lg:col-span-2 bg-[#E0F2F1] border-2 border-[#5D4037] rounded-2xl p-5 shadow-[4px_4px_0px_#5D4037] space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#5D4037]/30 pb-2">
-              <h4 className="font-black text-sm text-[#004D40] flex items-center gap-2">
-                <HardDrive className="w-5 h-5 text-[#00897B]" />
-                學生角落學習紀錄報告轉 PDF 儲存至 NAS 目錄 (QuickConnect)
-              </h4>
-              <span className="bg-[#80CBC4] text-[#004D40] border border-[#00796B] text-[10px] font-black px-2.5 py-0.5 rounded-full">
-                Synology NAS 專屬備份空間
-              </span>
-            </div>
-
-            <p className="text-xs text-[#004D40]/80 font-bold">
-              學生角落學習紀錄報告產生並轉成 A4 PDF 後，可點擊「儲存至 NAS」直接開啟此 QuickConnect 雲端資料夾，將 PDF 檔案拖曳上傳歸檔與長期保存。
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-              <div className="relative flex-1">
-                <input
-                  type="url"
-                  value={nasStorageInput}
-                  onChange={(e) => setNasStorageInput(e.target.value)}
-                  placeholder="https://llk-nas.quickconnect.to/d/s/..."
-                  className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNasStorageInput(DEFAULT_NAS_STORAGE_URL);
-                    setStatusMessage({ type: 'info', text: '已自動帶入預設 NAS 雲端資料夾網址！請記得點擊「儲存網址設定」。' });
-                  }}
-                  className="bg-[#B2DFDB] hover:bg-[#80CBC4] text-[#004D40] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> 恢復預設 NAS 網址
-                </button>
-
-                <a
-                  href={sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-[#00897B] hover:bg-[#00796B] text-white font-black text-xs py-2 px-3.5 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer"
-                >
-                  開啟 NAS 資料夾 ↗
-                </a>
-
-                <button
-                  type="button"
-                  onClick={handleSaveSettings}
-                  className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Check className="w-3.5 h-3.5" /> 儲存網址設定
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white/90 p-2.5 rounded-xl border border-[#00796B]/30 text-[11px] text-[#004D40] font-bold flex items-center justify-between">
-              <span className="truncate">🗄️ 當前 NAS 儲存目錄: <code className="font-mono text-[#00796B] ml-1">{sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL}</code></span>
-              <button
-                type="button"
-                onClick={() => handleCopyCode(sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL)}
-                className="bg-[#E0F2F1] hover:bg-[#B2DFDB] text-[#004D40] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#00796B] cursor-pointer shrink-0 ml-2"
               >
                 複製連結
               </button>
