@@ -1,5 +1,6 @@
-import { Student, LearningRecord, ContactBook, CornerAreaId, getStudentGrade } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, CornerAreaDef, getStudentGrade } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
+import { getStoredCornerAreas } from './cornerStorage';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
@@ -38,7 +39,8 @@ export function getExpandedLearningHeaders(): string[] {
     'SeatNumber',
   ];
 
-  CORNER_AREAS.forEach((area) => {
+  const dynamicAreas = getStoredCornerAreas();
+  dynamicAreas.forEach((area) => {
     area.items.forEach((item) => {
       headers.push(`[${area.name}] ${item}`);
     });
@@ -83,7 +85,8 @@ export function formatLearningRecordRow(
   let totalChecked = 0;
   let activeAreas = 0;
 
-  CORNER_AREAS.forEach((area) => {
+  const dynamicAreas = getStoredCornerAreas();
+  dynamicAreas.forEach((area) => {
     const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
     const note = (r.customNotes && r.customNotes[area.id]) || '';
 
@@ -152,7 +155,8 @@ export function formatLearningChecklistRows(
     const s = studentMap.get(r.studentId);
     const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : '小班');
 
-    CORNER_AREAS.forEach((area) => {
+    const dynamicAreas = getStoredCornerAreas();
+    dynamicAreas.forEach((area) => {
       const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
       const note = (r.customNotes && r.customNotes[area.id]) || '';
 
@@ -363,13 +367,14 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
     const hasExpandedHeaders = headerRow.some((h: string) => h && h.includes('[') && h.includes(']'));
 
     if (hasExpandedHeaders) {
-      // Dynamic index mapping for all 48 items and 8 notes
+      // Dynamic index mapping for all items and notes
       const itemCols: { colIdx: number; areaId: CornerAreaId; itemName: string }[] = [];
       const noteCols: { colIdx: number; areaId: CornerAreaId }[] = [];
+      const dynamicAreas = getStoredCornerAreas();
 
       headerRow.forEach((colHeader: string, idx: number) => {
         if (!colHeader) return;
-        CORNER_AREAS.forEach((area) => {
+        dynamicAreas.forEach((area) => {
           if (colHeader.includes(`[${area.name}]`) && colHeader.includes('觀察筆記')) {
             noteCols.push({ colIdx: idx, areaId: area.id });
           } else {

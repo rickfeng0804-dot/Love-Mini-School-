@@ -1,10 +1,11 @@
-import { Student, LearningRecord, ContactBook, CornerAreaId, getStudentGrade } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, CornerAreaDef, getStudentGrade } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
+import { getStoredCornerAreas } from './cornerStorage';
 
 /**
  * Map of Corner Area ID to Chinese display name
  */
-export const CORNER_NAME_MAP: Record<CornerAreaId, string> = {
+export const CORNER_NAME_MAP: Record<string, string> = {
   language: '語文區',
   watercolor: '水彩區',
   art: '美勞區',
@@ -16,7 +17,7 @@ export const CORNER_NAME_MAP: Record<CornerAreaId, string> = {
 };
 
 /**
- * Metadata for every single item across all 8 corner areas (48 items total)
+ * Metadata for every single item across all corner areas
  */
 export interface CornerItemMeta {
   areaId: CornerAreaId;
@@ -26,11 +27,12 @@ export interface CornerItemMeta {
 }
 
 /**
- * Returns the flat list of all 48 items across the 8 corner areas
+ * Returns the flat list of all items across corner areas
  */
-export function getAllCornerItems(): CornerItemMeta[] {
+export function getAllCornerItems(customAreas?: CornerAreaDef[]): CornerItemMeta[] {
   const itemsList: CornerItemMeta[] = [];
-  CORNER_AREAS.forEach((area) => {
+  const areas = customAreas || getStoredCornerAreas();
+  areas.forEach((area) => {
     area.items.forEach((item) => {
       itemsList.push({
         areaId: area.id,
@@ -151,7 +153,8 @@ export function generateCurrentFormObservationCsv(params: {
   ].map(escapeCsvCell).join(','));
 
   let itemCounter = 1;
-  CORNER_AREAS.forEach((area) => {
+  const areas = getStoredCornerAreas();
+  areas.forEach((area) => {
     const areaChecked = checkedItems[area.id] || [];
     const note = customNotes[area.id] || '';
     area.items.forEach((item, idx) => {
@@ -278,7 +281,8 @@ export function generateGoogleSheetsChecklistCsv(
     const s = studentMap.get(r.studentId);
     const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : '小班');
 
-    CORNER_AREAS.forEach((area) => {
+    const areas = getStoredCornerAreas();
+    areas.forEach((area) => {
       const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
       const note = (r.customNotes && r.customNotes[area.id]) || '';
 
@@ -340,8 +344,10 @@ export function generateLearningRecordsCsv(
     '座號',
   ];
 
-  // 8 Areas with all 48 items explicitly listed as separate columns
-  CORNER_AREAS.forEach((area) => {
+  const dynamicAreas = getStoredCornerAreas();
+
+  // Areas with items explicitly listed as separate columns
+  dynamicAreas.forEach((area) => {
     area.items.forEach((item) => {
       headers.push(`[${area.name}] ${item}`);
     });
@@ -380,8 +386,8 @@ export function generateLearningRecordsCsv(
     let totalCheckedCount = 0;
     let activeCornerCount = 0;
 
-    // Fill all 48 item columns and 8 note columns
-    CORNER_AREAS.forEach((area) => {
+    // Fill all item columns and note columns
+    dynamicAreas.forEach((area) => {
       const areaChecked = (r.checkedItems && r.checkedItems[area.id]) || [];
       const note = (r.customNotes && r.customNotes[area.id]) || '';
 

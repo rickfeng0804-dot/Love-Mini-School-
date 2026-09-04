@@ -1,5 +1,5 @@
 import React from 'react';
-import { Student, LearningRecord, getStudentGrade } from '../types';
+import { Student, LearningRecord, CornerAreaDef, getStudentGrade } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
 import { Video, ExternalLink } from 'lucide-react';
 
@@ -9,6 +9,7 @@ export interface SingleReportCardProps {
   isBatch?: boolean;
   fontSize?: number;
   grayscale?: boolean;
+  cornerAreas?: CornerAreaDef[];
 }
 
 export const SingleReportCard: React.FC<SingleReportCardProps> = ({ 
@@ -17,10 +18,13 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
   isBatch = false,
   fontSize = 18,
   grayscale = false,
+  cornerAreas,
 }) => {
   if (!record) return null;
   const matchingStudent = students?.find((s) => s.id === record.studentId || s.name === record.studentName);
   const avatarToDisplay = matchingStudent?.avatarUrl;
+
+  const areas = cornerAreas && cornerAreas.length > 0 ? cornerAreas : CORNER_AREAS;
 
   const headerTitleSize = Math.max(20, Math.round(fontSize * 1.35));
   const subTitleSize = Math.max(12, Math.round(fontSize * 0.8));
@@ -91,73 +95,58 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
         </div>
       </div>
 
-      {/* 8 Corner Learning Grid Replica */}
-      <div className="grid grid-cols-4 border-2 border-[#5D4037] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none">
-        {/* Top 4 Corners */}
-        {CORNER_AREAS.slice(0, 4).map((area) => {
-          const checkedList = record.checkedItems?.[area.id] || [];
-          const note = record.customNotes?.[area.id] || '';
-          return (
-            <div key={area.id} className="border-r-2 border-b-2 border-[#5D4037] p-2.5 flex flex-col justify-between last:border-r-0">
-              <div>
-                <h4 style={{ fontSize: `${cornerHeaderSize}px` }} className="font-black text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082] rounded-md">
-                  {area.name}
-                </h4>
-                <div className="space-y-1.5">
-                  {area.items.map((item) => {
-                    const isChecked = checkedList.includes(item);
-                    return (
-                      <div key={item} style={{ fontSize: `${cornerItemSize}px` }} className="flex items-start gap-1 leading-snug">
-                        <span className="font-black shrink-0">{isChecked ? '☑' : '□'}</span>
-                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/75'}>
-                          {item}
-                        </span>
-                      </div>
-                    );
-                  })}
+      {/* Dynamic Corner Learning Grid */}
+      <div className="border-2 border-[#5D4037] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none">
+        <div className="grid grid-cols-4">
+          {areas.map((area, idx) => {
+            const checkedList = record.checkedItems?.[area.id] || [];
+            const note = record.customNotes?.[area.id] || '';
+            const isLastCol = (idx + 1) % 4 === 0;
+            const isLastRow = idx >= Math.floor((areas.length - 1) / 4) * 4;
+            return (
+              <div
+                key={area.id}
+                className={`p-2.5 flex flex-col justify-between ${
+                  !isLastCol ? 'border-r-2 border-[#5D4037]' : ''
+                } ${!isLastRow ? 'border-b-2 border-[#5D4037]' : ''}`}
+              >
+                <div>
+                  <h4
+                    style={{ fontSize: `${cornerHeaderSize}px` }}
+                    className="font-black text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082] rounded-md truncate px-1"
+                  >
+                    {area.name}
+                  </h4>
+                  <div className="space-y-1.5">
+                    {area.items.map((item) => {
+                      const isChecked = checkedList.includes(item);
+                      return (
+                        <div
+                          key={item}
+                          style={{ fontSize: `${cornerItemSize}px` }}
+                          className="flex items-start gap-1 leading-snug"
+                        >
+                          <span className="font-black shrink-0">{isChecked ? '☑' : '□'}</span>
+                          <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/75'}>
+                            {item}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+                {note && (
+                  <div
+                    style={{ fontSize: `${cornerNoteSize}px` }}
+                    className="mt-1.5 pt-1.5 border-t border-dashed border-[#5D4037]/50 text-[#5D4037] font-bold"
+                  >
+                    □ {note}
+                  </div>
+                )}
               </div>
-              {note && (
-                <div style={{ fontSize: `${cornerNoteSize}px` }} className="mt-1.5 pt-1.5 border-t border-dashed border-[#5D4037]/50 text-[#5D4037] font-bold">
-                  □ {note}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Bottom 4 Corners */}
-        {CORNER_AREAS.slice(4, 8).map((area) => {
-          const checkedList = record.checkedItems?.[area.id] || [];
-          const note = record.customNotes?.[area.id] || '';
-          return (
-            <div key={area.id} className="border-r-2 border-[#5D4037] p-2.5 flex flex-col justify-between last:border-r-0">
-              <div>
-                <h4 style={{ fontSize: `${cornerHeaderSize}px` }} className="font-black text-center border-b border-[#5D4037] pb-1 mb-1.5 bg-[#FFE082] rounded-md">
-                  {area.name}
-                </h4>
-                <div className="space-y-1.5">
-                  {area.items.map((item) => {
-                    const isChecked = checkedList.includes(item);
-                    return (
-                      <div key={item} style={{ fontSize: `${cornerItemSize}px` }} className="flex items-start gap-1 leading-snug">
-                        <span className="font-black shrink-0">{isChecked ? '☑' : '□'}</span>
-                        <span className={isChecked ? 'font-black text-[#5D4037]' : 'text-[#5D4037]/75'}>
-                          {item}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {note && (
-                <div style={{ fontSize: `${cornerNoteSize}px` }} className="mt-1.5 pt-1.5 border-t border-dashed border-[#5D4037]/50 text-[#5D4037] font-bold">
-                  □ {note}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Photo & Video Section */}

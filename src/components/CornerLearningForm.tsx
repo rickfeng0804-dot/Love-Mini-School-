@@ -4,6 +4,7 @@ import {
   LearningRecord, 
   ContactBook, 
   CornerAreaId, 
+  CornerAreaDef,
   SheetConfig, 
   ClassFilterOption, 
   CLASS_OPTIONS,
@@ -49,7 +50,10 @@ import {
   FolderOpen,
   ExternalLink,
   GraduationCap,
-  RefreshCw
+  RefreshCw,
+  Settings,
+  Plus,
+  Edit2
 } from 'lucide-react';
 
 interface CornerLearningFormProps {
@@ -61,6 +65,8 @@ interface CornerLearningFormProps {
   onSavedRecord: (record: LearningRecord) => void;
   selectedStudentId?: string;
   setSelectedStudentId?: (id: string) => void;
+  cornerAreas?: CornerAreaDef[];
+  onOpenCornerManager?: (areaId?: string) => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -72,6 +78,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Brain: <Brain className="w-5 h-5" />,
   Puzzle: <Puzzle className="w-5 h-5" />,
   Box: <Box className="w-5 h-5" />,
+  Sparkles: <Sparkles className="w-5 h-5" />,
 };
 
 export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
@@ -83,7 +90,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   onSavedRecord,
   selectedStudentId: externalStudentId,
   setSelectedStudentId: setExternalStudentId,
+  cornerAreas,
+  onOpenCornerManager,
 }) => {
+  const areas = cornerAreas && cornerAreas.length > 0 ? cornerAreas : CORNER_AREAS;
   const [formGradeFilter, setFormGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [formClassFilter, setFormClassFilter] = useState<ClassFilterOption>('全部班級');
   
@@ -134,7 +144,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [dateEnd, setDateEnd] = useState<string>('2026-07-31');
 
   // Selected Checkboxes per corner area
-  const [checkedItems, setCheckedItems] = useState<Record<CornerAreaId, string[]>>({
+  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({
     language: ['聽覺專注與理解能力', '口語表達與溝通能力'],
     watercolor: ['手眼協調', '美感與藝術創造'],
     art: ['精細動作與手眼協調', '創造力與想像力'],
@@ -146,7 +156,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   });
 
   // Custom Notes per corner area
-  const [customNotes, setCustomNotes] = useState<Record<CornerAreaId, string>>({
+  const [customNotes, setCustomNotes] = useState<Record<string, string>>({
     language: '',
     watercolor: '',
     art: '',
@@ -233,7 +243,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     }
   };
 
-  const handleToggleCheck = (areaId: CornerAreaId, item: string) => {
+  const handleToggleCheck = (areaId: string, item: string) => {
     setCheckedItems((prev) => {
       const currentList = prev[areaId] || [];
       const isExist = currentList.includes(item);
@@ -244,7 +254,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     });
   };
 
-  const handleCustomNoteChange = (areaId: CornerAreaId, text: string) => {
+  const handleCustomNoteChange = (areaId: string, text: string) => {
     setCustomNotes((prev) => ({ ...prev, [areaId]: text }));
   };
 
@@ -758,9 +768,29 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
 
       {/* Main Form */}
       <form onSubmit={handleSubmitRecord} className="space-y-6">
-        {/* 8 Corner Learning Areas Grid (2 Columns on Medium Screens) */}
+        {/* Section Header & Manage Areas Button */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FFF9C4] border-2 border-[#5D4037] rounded-2xl px-4 py-3 shadow-[2px_2px_0px_#5D4037]">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🏷️</span>
+            <span className="text-xs sm:text-sm font-black text-[#5D4037]">
+              學習區觀察指標清單（共 {areas.length} 大區 · {areas.reduce((acc, a) => acc + (a.items?.length || 0), 0)} 項評估指標）
+            </span>
+          </div>
+          {onOpenCornerManager && (
+            <button
+              type="button"
+              onClick={() => onOpenCornerManager()}
+              className="px-3 py-1.5 bg-[#FF8A65] hover:bg-[#FF7043] text-white rounded-xl border border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>動態管理與自訂學習區 / 項目</span>
+            </button>
+          )}
+        </div>
+
+        {/* Dynamic Corner Learning Areas Grid (2 Columns on Medium Screens, 4 on Large) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {CORNER_AREAS.map((area) => {
+          {areas.map((area) => {
             const selectedList = checkedItems[area.id] || [];
             return (
               <div
@@ -772,20 +802,34 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                   <div className="flex items-center justify-between pb-2 mb-3 border-b-2 border-dashed border-[#5D4037]/30">
                     <div className="flex items-center gap-2">
                       <div className="p-2 rounded-2xl bg-[#FFE082] border border-[#5D4037] text-[#5D4037]">
-                        {ICON_MAP[area.iconName]}
+                        {ICON_MAP[area.iconName] || <Sparkles className="w-5 h-5" />}
                       </div>
                       <div>
                         <h3 className="font-black text-base text-[#5D4037]">{area.name}</h3>
-                        <span className="text-[10px] font-bold text-[#5D4037]/70 block -mt-0.5">{area.jpName}</span>
+                        {area.jpName && (
+                          <span className="text-[10px] font-bold text-[#5D4037]/70 block -mt-0.5">{area.jpName}</span>
+                        )}
                       </div>
                     </div>
-                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-[#FFF9C4] border border-[#5D4037] text-[#5D4037]">
-                      {selectedList.length} 項
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-black px-2 py-0.5 rounded-full bg-[#FFF9C4] border border-[#5D4037] text-[#5D4037]">
+                        {selectedList.length} 項
+                      </span>
+                      {onOpenCornerManager && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenCornerManager(area.id)}
+                          className="p-1 rounded-lg hover:bg-[#FFE082] text-[#5D4037] border border-transparent hover:border-[#5D4037] transition-all cursor-pointer"
+                          title={`修改「${area.name}」的評估指標`}
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-[#5D4037]" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Checklist Options */}
-                  <div className="space-y-2 mb-3">
+                  <div className="space-y-2 mb-2">
                     {area.items.map((item) => {
                       const isChecked = selectedList.includes(item);
                       return (
@@ -807,6 +851,22 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                         </label>
                       );
                     })}
+
+                    {area.items.length === 0 && (
+                      <p className="text-xs text-[#5D4037]/60 italic py-2 text-center">
+                        此區目前無預設項目
+                      </p>
+                    )}
+
+                    {onOpenCornerManager && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenCornerManager(area.id)}
+                        className="w-full mt-1 py-1 px-2 text-[11px] font-bold text-[#E65100] hover:text-[#BF360C] hover:bg-[#FFE082]/40 rounded-lg flex items-center justify-center gap-1 border border-dashed border-[#E65100]/40 transition-all cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> 新增 / 編輯本區項目
+                      </button>
+                    )}
                   </div>
                 </div>
 

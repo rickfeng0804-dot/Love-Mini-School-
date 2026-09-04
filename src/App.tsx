@@ -18,6 +18,9 @@ import { StudentRosterView } from './components/StudentRosterView';
 import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CsvExportModal } from './components/CsvExportModal';
+import { CornerAreasManagerModal } from './components/CornerAreasManagerModal';
+import { CornerAreaDef } from './types';
+import { getStoredCornerAreas, saveStoredCornerAreas } from './lib/cornerStorage';
 import { initAuth, getAccessToken } from './lib/firebase';
 import { 
   findKindergartenSpreadsheet, 
@@ -82,6 +85,21 @@ export default function App() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     students[0]?.id || 'stu-01'
   );
+
+  // Dynamic 8 Corner Areas & Indicator Items Configuration
+  const [cornerAreas, setCornerAreas] = useState<CornerAreaDef[]>(() => getStoredCornerAreas());
+  const [showCornerManagerModal, setShowCornerManagerModal] = useState<boolean>(false);
+  const [cornerManagerActiveAreaId, setCornerManagerActiveAreaId] = useState<string | undefined>(undefined);
+
+  const handleOpenCornerManager = (areaId?: string) => {
+    setCornerManagerActiveAreaId(areaId);
+    setShowCornerManagerModal(true);
+  };
+
+  const handleSaveCornerAreas = (newAreas: CornerAreaDef[]) => {
+    setCornerAreas(newAreas);
+    saveStoredCornerAreas(newAreas);
+  };
 
   const [sheetConfig, setSheetConfig] = useState<SheetConfig>(() => {
     const saved = localStorage.getItem('kindergarten_sheet_config');
@@ -365,6 +383,7 @@ export default function App() {
           sheetConfig={sheetConfig}
           onOpenSheetModal={() => setShowSheetModal(true)}
           onOpenCsvModal={() => setShowCsvModal(true)}
+          onOpenCornerManager={() => handleOpenCornerManager()}
           onInstantSync={handleInstantSync}
           isSyncing={isSyncing}
           students={students}
@@ -388,6 +407,8 @@ export default function App() {
               onSavedRecord={handleSavedRecordNav}
               selectedStudentId={selectedStudentId}
               setSelectedStudentId={setSelectedStudentId}
+              cornerAreas={cornerAreas}
+              onOpenCornerManager={handleOpenCornerManager}
             />
           )}
 
@@ -402,6 +423,8 @@ export default function App() {
               setSelectedClassFilter={setSelectedClassFilter}
               targetRecordId={targetRecordId}
               setTargetRecordId={setTargetRecordId}
+              cornerAreas={cornerAreas}
+              onOpenCornerManager={handleOpenCornerManager}
             />
           )}
 
@@ -514,6 +537,16 @@ export default function App() {
         students={students}
         learningRecords={learningRecords}
         contactBooks={contactBooks}
+      />
+
+      {/* Dynamic 8 Learning Corner Areas & Indicators Manager Modal */}
+      <CornerAreasManagerModal
+        isOpen={showCornerManagerModal}
+        onClose={() => setShowCornerManagerModal(false)}
+        initialAreaId={cornerManagerActiveAreaId}
+        cornerAreas={cornerAreas}
+        setCornerAreas={setCornerAreas}
+        onSave={handleSaveCornerAreas}
       />
     </div>
   );

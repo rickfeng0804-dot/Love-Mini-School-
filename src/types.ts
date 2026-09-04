@@ -65,7 +65,8 @@ export type CornerAreaId =
   | 'science' 
   | 'brain' 
   | 'puzzle' 
-  | 'blocks';
+  | 'blocks'
+  | string;
 
 export interface CornerAreaDef {
   id: CornerAreaId;
@@ -86,9 +87,9 @@ export interface LearningRecord {
   className: ClassName;
   seatNumber: string;
   // Key: corner ID, Value: selected items
-  checkedItems: Record<CornerAreaId, string[]>;
+  checkedItems: Record<string, string[]>;
   // Custom text for each corner area
-  customNotes: Record<CornerAreaId, string>;
+  customNotes: Record<string, string>;
   drawingImage?: string; // Data URL or URL
   photoImages: string[];  // Array of image Data URLs or URLs
   videoUrls?: string[];   // Array of video URLs (YouTube, Drive, MP4)

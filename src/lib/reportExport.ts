@@ -1,19 +1,26 @@
-import { LearningRecord, Student } from '../types';
+import { LearningRecord, Student, CornerAreaDef } from '../types';
 import { CORNER_AREAS } from '../data/initialData';
+import { getStoredCornerAreas } from './cornerStorage';
 import { uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from './googleSheets';
 
 /**
  * Generate a complete standalone HTML string for a Student Learning History Report.
  */
-export function generateLearningReportHtml(record: LearningRecord, student?: Student): string {
+export function generateLearningReportHtml(
+  record: LearningRecord,
+  student?: Student,
+  customAreas?: CornerAreaDef[]
+): string {
   const stuName = record.studentName || student?.name || '幼童';
   const className = record.className || student?.className || '大班';
   const seatNumber = record.seatNumber || student?.seatNumber || 1;
   const stamp = record.stamp || '特別優秀';
   const teacherComment = record.teacherComment || '學習態度非常良好，樂於探索與分享。';
 
-  // Render 8 Corner Areas
-  const cornerBoxesHtml = CORNER_AREAS.map((area) => {
+  const areas = customAreas || getStoredCornerAreas();
+
+  // Render Corner Areas
+  const cornerBoxesHtml = areas.map((area) => {
     const checkedList = record.checkedItems?.[area.id] || [];
     const note = record.customNotes?.[area.id] || '';
     const itemsHtml = area.items

@@ -3,6 +3,7 @@ import {
   Student, 
   LearningRecord, 
   CornerAreaId, 
+  CornerAreaDef,
   ClassFilterOption, 
   SheetConfig,
   GradeFilterOption,
@@ -28,7 +29,8 @@ import {
   Compass,
   Sparkles,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  Settings
 } from 'lucide-react';
 import { 
   BarChart,
@@ -60,6 +62,8 @@ interface LearningReportViewProps {
   setSelectedClassFilter?: (filter: ClassFilterOption) => void;
   targetRecordId?: string;
   setTargetRecordId?: (id: string) => void;
+  cornerAreas?: CornerAreaDef[];
+  onOpenCornerManager?: (areaId?: string) => void;
 }
 
 export const LearningReportView: React.FC<LearningReportViewProps> = ({
@@ -72,7 +76,10 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   setSelectedClassFilter,
   targetRecordId,
   setTargetRecordId,
+  cornerAreas,
+  onOpenCornerManager,
 }) => {
+  const areas = cornerAreas && cornerAreas.length > 0 ? cornerAreas : CORNER_AREAS;
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
     name: '學生',
@@ -424,7 +431,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     const counts: Record<string, number> = {};
     const uniqueStudents: Record<string, Set<string>> = {};
 
-    CORNER_AREAS.forEach((area) => {
+    areas.forEach((area) => {
       counts[area.id] = 0;
       uniqueStudents[area.id] = new Set<string>();
     });
@@ -432,7 +439,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     if (targetRecords.length > 0) {
       targetRecords.forEach((rec) => {
         const checked = rec.checkedItems || {};
-        CORNER_AREAS.forEach((area) => {
+        areas.forEach((area) => {
           const itemsCount = (checked[area.id] || []).length;
           const noteCount = rec.customNotes?.[area.id]?.trim() ? 1 : 0;
           const totalInArea = itemsCount + noteCount;
@@ -448,7 +455,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
 
     if (total > 0) {
       const maxVal = Math.max(...Object.values(counts), 1);
-      const data = CORNER_AREAS.map((area) => {
+      const data = areas.map((area) => {
         const val = counts[area.id] || 0;
         const percentage = Math.round((val / total) * 100);
         return {
@@ -483,7 +490,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     };
     const demoTotal = Object.values(demoWeights).reduce((a, b) => a + b, 0);
 
-    const demoData = CORNER_AREAS.map((area) => {
+    const demoData = areas.map((area) => {
       const val = demoWeights[area.id] || 1;
       const percentage = Math.round((val / demoTotal) * 100);
       return {
@@ -673,6 +680,17 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenCornerManager && (
+            <button
+              type="button"
+              onClick={() => onOpenCornerManager()}
+              className="bg-white hover:bg-[#FFE082] text-[#5D4037] font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
+              title="管理與自訂 8 大學習區評估指標項目"
+            >
+              <Settings className="w-4 h-4 text-[#E65100]" />
+              <span>自訂評估指標</span>
+            </button>
+          )}
           <button
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
@@ -1167,14 +1185,14 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       {activeRecord ? (
         <>
           <div id="printable-area">
-            <SingleReportCard record={activeRecord} students={students} fontSize={reportFontSize} />
+            <SingleReportCard record={activeRecord} students={students} fontSize={reportFontSize} cornerAreas={areas} />
           </div>
 
           {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}
           <div id="all-printable-reports" className="hidden">
             {learningRecords.map((rec) => (
               <div key={rec.id} className="a4-page-break mb-8">
-                <SingleReportCard record={rec} students={students} isBatch={true} fontSize={reportFontSize} />
+                <SingleReportCard record={rec} students={students} isBatch={true} fontSize={reportFontSize} cornerAreas={areas} />
               </div>
             ))}
           </div>

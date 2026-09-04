@@ -19,7 +19,8 @@ import {
   Layers,
   RefreshCw,
   Type,
-  Filter
+  Filter,
+  Settings
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -28,6 +29,7 @@ interface HeaderProps {
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
   onOpenCsvModal: () => void;
+  onOpenCornerManager?: () => void;
   onInstantSync?: () => void;
   isSyncing?: boolean;
   students: Student[];
@@ -45,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   sheetConfig,
   onOpenSheetModal,
   onOpenCsvModal,
+  onOpenCornerManager,
   onInstantSync,
   isSyncing,
   fontSize,
@@ -98,6 +101,18 @@ export const Header: React.FC<HeaderProps> = ({
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#1B5E20]' : ''}`} />
               <span>{isSyncing ? '同步中' : '立即同步'}</span>
             </button>
+
+            {/* Manage Corner Areas & Indicators Button */}
+            {onOpenCornerManager && (
+              <button
+                onClick={onOpenCornerManager}
+                title="自訂與動態管理 8 大學習區與評估指標項目"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FFF9C4] hover:bg-[#FFE082] text-[#5D4037] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
+              >
+                <Settings className="w-3.5 h-3.5 text-[#E65100]" />
+                <span>自訂指標</span>
+              </button>
+            )}
 
             {/* CSV Export Button */}
             <button
