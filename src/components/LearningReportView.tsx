@@ -90,24 +90,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     return matchGrade && matchClass;
   });
 
-  const studentRecords = learningRecords.filter((r) => r.studentId === selectedStudentId);
-  const [activeRecordId, setActiveRecordId] = useState<string>('');
-  const [pieMode, setPieMode] = useState<'week' | 'cumulative'>('week');
-  const [chartViewMode, setChartViewMode] = useState<'dual' | 'bar' | 'radar' | 'pie'>('dual');
-  const [analyticsScope, setAnalyticsScope] = useState<'single' | 'overview'>('single');
-  const [sortByUsage, setSortByUsage] = useState<boolean>(false);
-
-  React.useEffect(() => {
-    const matchingRecs = learningRecords.filter((r) => r.studentId === selectedStudentId);
-    if (matchingRecs.length > 0) {
-      setActiveRecordId(matchingRecs[0].id);
-    } else if (learningRecords.length > 0) {
-      setActiveRecordId(learningRecords[0].id);
-    } else {
-      setActiveRecordId('');
-    }
-  }, [selectedStudentId, learningRecords]);
-
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
     id: 'stu-01',
     name: '學生',
@@ -118,12 +100,42 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     parentContact: '',
     notes: '',
   };
+
+  const studentRecords = learningRecords.filter((r) => {
+    return r.studentId === selectedStudentId || (selectedStudentId && r.studentName === selectedStudent.name && r.className === selectedStudent.className);
+  });
+  const [activeRecordId, setActiveRecordId] = useState<string>('');
+  const [pieMode, setPieMode] = useState<'week' | 'cumulative'>('week');
+  const [chartViewMode, setChartViewMode] = useState<'dual' | 'bar' | 'radar' | 'pie'>('dual');
+  const [analyticsScope, setAnalyticsScope] = useState<'single' | 'overview'>('single');
+  const [sortByUsage, setSortByUsage] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const matchingRecs = learningRecords.filter((r) => {
+      return r.studentId === selectedStudentId || (selectedStudentId && r.studentName === selectedStudent.name && r.className === selectedStudent.className);
+    });
+    if (matchingRecs.length > 0) {
+      setActiveRecordId(matchingRecs[0].id);
+    } else {
+      setActiveRecordId('');
+    }
+  }, [selectedStudentId, learningRecords, selectedStudent.name, selectedStudent.className]);
+
   const activeRecord =
-    learningRecords.find((r) => r.id === activeRecordId) || studentRecords[0] || learningRecords[0];
+    (activeRecordId ? learningRecords.find((r) => r.id === activeRecordId) : null) ||
+    studentRecords[0] ||
+    (selectedStudentId ? null : learningRecords[0]);
+
+  // Generate filename strictly based on the corner learning record's student & class name
+  const currentRecord = activeRecord || studentRecords[0] || null;
+  const targetClass = (currentRecord?.className || selectedStudent?.className || '大班').trim();
+  const targetName = (currentRecord?.studentName || selectedStudent?.name || '學生').trim();
+  const safeClass = targetClass.replace(/[\\/:*?"<>|]/g, '').trim();
+  const safeName = targetName.replace(/[\\/:*?"<>|]/g, '').trim();
+  const reportFileName = `愛愛幼兒園_角落學習紀錄表_${safeClass}_${safeName}`;
 
   const handlePrintSingle = () => {
     const printArea = document.getElementById('printable-area');
-    const stuName = selectedStudent?.name || '幼童';
 
     if (printArea) {
       try {
@@ -133,7 +145,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <!DOCTYPE html>
             <html>
               <head>
-                <title>愛愛幼兒園 - 角落學習紀錄表 - ${stuName}</title>
+                <title>${reportFileName}</title>
                 <meta charset="utf-8" />
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
@@ -168,9 +180,9 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
                 <div class="no-print" style="margin-bottom: 20px; background: #FFFDE7; padding: 14px 18px; border: 3px solid #5D4037; border-radius: 16px; font-family: sans-serif; box-shadow: 4px 4px 0px #5D4037; max-width: 960px; margin: 0 auto 20px auto;">
                   <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
                     <div>
-                      <span style="font-weight: 900; color: #5D4037; font-size: 15px; display: block;">📄 愛愛幼兒園 A4 官方報告書 - ${stuName}</span>
+                      <span style="font-weight: 900; color: #5D4037; font-size: 15px; display: block;">📄 愛愛幼兒園 A4 官方報告書 - ${safeClass} ${safeName}</span>
                       <span style="font-size: 11px; color: #795548; font-weight: bold; display: block; margin-top: 2px;">
-                        📌 提示：點擊【存 PDF 檔案】目的地選擇「另存為 PDF」，即可輸出為高解析度 A4 電子檔案或列印。
+                        📌 預設 PDF 存檔名稱：<code style="background: #FFF3E0; padding: 2px 6px; border-radius: 4px; color: #E65100; font-family: monospace; font-weight: 900;">${reportFileName}.pdf</code>（點擊【存 PDF 檔案】目的地選擇「另存為 PDF」）
                       </span>
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
@@ -203,9 +215,19 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
       }
     }
 
-    // Direct fallback
+    // Direct fallback for iframe or when popup is blocked:
+    // Temporarily set document.title so browser's "Save as PDF" uses the exact correct filename
+    const origTitle = document.title;
+    document.title = reportFileName;
+    const restoreTitle = () => {
+      document.title = origTitle;
+    };
+    window.addEventListener('afterprint', restoreTitle, { once: true });
     window.focus();
-    setTimeout(() => { window.print(); }, 100);
+    setTimeout(() => {
+      window.print();
+      setTimeout(restoreTitle, 3500);
+    }, 150);
   };
 
 
@@ -585,10 +607,13 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           <button
             onClick={handlePrintSingle}
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
-            title="另存為 A4 PDF 格式檔案或列印"
+            title={`另存為 A4 PDF 格式檔案或列印（預設檔名：${reportFileName}.pdf）`}
           >
             <Printer className="w-4 h-4" /> 存PDF檔案或列印報告
           </button>
+          <span className="text-[11px] text-[#5D4037]/75 font-mono font-bold hidden md:inline-block bg-[#FFF8E1] px-2.5 py-1 rounded-lg border border-[#5D4037]/20">
+            預設檔名：{reportFileName}.pdf
+          </span>
         </div>
       </div>
 
