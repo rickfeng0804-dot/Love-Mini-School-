@@ -58,7 +58,9 @@ interface CornerLearningFormProps {
   setLearningRecords: React.Dispatch<React.SetStateAction<LearningRecord[]>>;
   contactBooks?: ContactBook[];
   sheetConfig: SheetConfig;
-  onSavedRecord: (recordId: string) => void;
+  onSavedRecord: (record: LearningRecord) => void;
+  selectedStudentId?: string;
+  setSelectedStudentId?: (id: string) => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -79,6 +81,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   contactBooks = [],
   sheetConfig,
   onSavedRecord,
+  selectedStudentId: externalStudentId,
+  setSelectedStudentId: setExternalStudentId,
 }) => {
   const [formGradeFilter, setFormGradeFilter] = useState<GradeFilterOption>('全部年級');
   const [formClassFilter, setFormClassFilter] = useState<ClassFilterOption>('全部班級');
@@ -104,7 +108,15 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     return matchGrade && matchClass;
   });
 
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || 'stu-01');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(
+    externalStudentId || students[0]?.id || 'stu-01'
+  );
+
+  useEffect(() => {
+    if (externalStudentId && students.some((s) => s.id === externalStudentId)) {
+      setSelectedStudentId(externalStudentId);
+    }
+  }, [externalStudentId, students]);
 
   // When grade/class filter changes, ensure selectedStudentId points to a valid student
   useEffect(() => {
@@ -112,6 +124,9 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       const exists = filteredStudents.some((s) => s.id === selectedStudentId);
       if (!exists) {
         setSelectedStudentId(filteredStudents[0].id);
+        if (setExternalStudentId) {
+          setExternalStudentId(filteredStudents[0].id);
+        }
       }
     }
   }, [formGradeFilter, formClassFilter, students]);
@@ -439,7 +454,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
 
     // Jump immediately to report view after short delay so user doesn't wait
     setTimeout(() => {
-      onSavedRecord(newRecord.id);
+      onSavedRecord(newRecord);
     }, 200);
 
     // Asynchronous background upload of files to Google Drive & sync to Web App & Sheet
@@ -674,7 +689,12 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                   )}
                   <select
                     value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedStudentId(e.target.value);
+                      if (setExternalStudentId) {
+                        setExternalStudentId(e.target.value);
+                      }
+                    }}
                     className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs font-bold text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037] cursor-pointer"
                   >
                     {filteredStudents.length > 0 ? (

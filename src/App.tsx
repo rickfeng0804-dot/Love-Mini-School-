@@ -327,10 +327,17 @@ export default function App() {
     }
   };
 
-  const handleSavedRecordNav = (recordId: string) => {
-    const rec = learningRecords.find((r) => r.id === recordId);
-    if (rec && rec.studentId) {
-      setSelectedStudentId(rec.studentId);
+  const [targetRecordId, setTargetRecordId] = useState<string>('');
+
+  const handleSavedRecordNav = (record: LearningRecord) => {
+    if (record.studentId) {
+      setSelectedStudentId(record.studentId);
+    }
+    if (record.className) {
+      setSelectedClassFilter(record.className as ClassFilterOption);
+    }
+    if (record.id) {
+      setTargetRecordId(record.id);
     }
     setActiveTab('learning-report');
   };
@@ -379,6 +386,8 @@ export default function App() {
               contactBooks={contactBooks}
               sheetConfig={sheetConfig}
               onSavedRecord={handleSavedRecordNav}
+              selectedStudentId={selectedStudentId}
+              setSelectedStudentId={setSelectedStudentId}
             />
           )}
 
@@ -389,6 +398,10 @@ export default function App() {
               selectedStudentId={selectedStudentId}
               setSelectedStudentId={setSelectedStudentId}
               sheetConfig={sheetConfig}
+              selectedClassFilter={selectedClassFilter}
+              setSelectedClassFilter={setSelectedClassFilter}
+              targetRecordId={targetRecordId}
+              setTargetRecordId={setTargetRecordId}
             />
           )}
 

@@ -56,6 +56,10 @@ interface LearningReportViewProps {
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
   sheetConfig?: SheetConfig;
+  selectedClassFilter?: ClassFilterOption;
+  setSelectedClassFilter?: (filter: ClassFilterOption) => void;
+  targetRecordId?: string;
+  setTargetRecordId?: (id: string) => void;
 }
 
 export const LearningReportView: React.FC<LearningReportViewProps> = ({
@@ -64,10 +68,83 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   selectedStudentId,
   setSelectedStudentId,
   sheetConfig,
+  selectedClassFilter,
+  setSelectedClassFilter,
+  targetRecordId,
+  setTargetRecordId,
 }) => {
-  const [reportGradeFilter, setReportGradeFilter] = useState<GradeFilterOption>('全部年級');
-  const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>('全部班級');
+  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
+    id: 'stu-01',
+    name: '學生',
+    className: '大班',
+    seatNumber: 1,
+    gender: 'boy',
+    parentName: '',
+    parentContact: '',
+    notes: '',
+  };
+
+  const [reportGradeFilter, setReportGradeFilter] = useState<GradeFilterOption>(() => {
+    const studentGrade = getStudentGrade(selectedStudent);
+    return (studentGrade && studentGrade !== '未設定' ? studentGrade : '全部年級') as GradeFilterOption;
+  });
+  const [reportClassFilter, setReportClassFilter] = useState<ClassFilterOption>(() => {
+    return selectedClassFilter && selectedClassFilter !== '全部班級'
+      ? selectedClassFilter
+      : (selectedStudent?.className as ClassFilterOption) || '全部班級';
+  });
   const [reportFontSize, setReportFontSize] = useState<number>(18);
+
+  // Sync grade and class filters when targetRecordId is provided or selected student changes
+  React.useEffect(() => {
+    if (targetRecordId) {
+      const rec = learningRecords.find((r) => r.id === targetRecordId);
+      const studentForRec = rec
+        ? students.find((s) => s.id === rec.studentId || (s.name === rec.studentName && s.className === rec.className))
+        : null;
+      const targetStudent = studentForRec || selectedStudent;
+
+      if (targetStudent) {
+        if (targetStudent.id !== selectedStudentId) {
+          setSelectedStudentId(targetStudent.id);
+        }
+        const studentGrade = getStudentGrade(targetStudent);
+        if (studentGrade && studentGrade !== '未設定') {
+          setReportGradeFilter(studentGrade as GradeFilterOption);
+        }
+        if (targetStudent.className) {
+          setReportClassFilter(targetStudent.className as ClassFilterOption);
+          if (setSelectedClassFilter) {
+            setSelectedClassFilter(targetStudent.className as ClassFilterOption);
+          }
+        }
+      }
+
+      if (rec) {
+        setActiveRecordId(rec.id);
+      }
+
+      if (setTargetRecordId) {
+        setTargetRecordId('');
+      }
+    } else if (selectedStudent) {
+      // If student is outside current filter, ensure filter accommodates the student
+      const matchGrade = reportGradeFilter === '全部年級' || getStudentGrade(selectedStudent) === reportGradeFilter;
+      const matchClass = reportClassFilter === '全部班級' || selectedStudent.className === reportClassFilter;
+      if (!matchGrade || !matchClass) {
+        const studentGrade = getStudentGrade(selectedStudent);
+        if (studentGrade && studentGrade !== '未設定') {
+          setReportGradeFilter(studentGrade as GradeFilterOption);
+        }
+        if (selectedStudent.className) {
+          setReportClassFilter(selectedStudent.className as ClassFilterOption);
+          if (setSelectedClassFilter) {
+            setSelectedClassFilter(selectedStudent.className as ClassFilterOption);
+          }
+        }
+      }
+    }
+  }, [targetRecordId, learningRecords, students, selectedStudentId, selectedStudent?.className]);
 
   // Dynamically compute unique grades
   const uniqueGradeList = Array.from(
@@ -90,17 +167,6 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
     return matchGrade && matchClass;
   });
 
-  const selectedStudent = students.find((s) => s.id === selectedStudentId) || students[0] || {
-    id: 'stu-01',
-    name: '學生',
-    className: '大班',
-    seatNumber: 1,
-    gender: 'boy',
-    parentName: '',
-    parentContact: '',
-    notes: '',
-  };
-
   const studentRecords = learningRecords.filter((r) => {
     return r.studentId === selectedStudentId || (selectedStudentId && r.studentName === selectedStudent.name && r.className === selectedStudent.className);
   });
@@ -111,15 +177,18 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
   const [sortByUsage, setSortByUsage] = useState<boolean>(false);
 
   React.useEffect(() => {
+    if (targetRecordId) return;
     const matchingRecs = learningRecords.filter((r) => {
       return r.studentId === selectedStudentId || (selectedStudentId && r.studentName === selectedStudent.name && r.className === selectedStudent.className);
     });
     if (matchingRecs.length > 0) {
-      setActiveRecordId(matchingRecs[0].id);
+      if (!activeRecordId || !matchingRecs.some((r) => r.id === activeRecordId)) {
+        setActiveRecordId(matchingRecs[0].id);
+      }
     } else {
       setActiveRecordId('');
     }
-  }, [selectedStudentId, learningRecords, selectedStudent.name, selectedStudent.className]);
+  }, [selectedStudentId, learningRecords, selectedStudent.name, selectedStudent.className, activeRecordId, targetRecordId]);
 
   const activeRecord =
     (activeRecordId ? learningRecords.find((r) => r.id === activeRecordId) : null) ||
