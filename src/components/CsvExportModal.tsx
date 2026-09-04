@@ -3,7 +3,6 @@ import { Student, LearningRecord, ContactBook } from '../types';
 import { 
   generateStudentsCsv, 
   generateLearningRecordsCsv, 
-  generateContactBooksCsv, 
   downloadCsv 
 } from '../lib/csvExport';
 import { 
@@ -12,7 +11,6 @@ import {
   FileSpreadsheet, 
   Users, 
   BookOpen, 
-  Heart, 
   Check, 
   Sparkles, 
   ExternalLink,
@@ -25,7 +23,7 @@ interface CsvExportModalProps {
   onClose: () => void;
   students: Student[];
   learningRecords: LearningRecord[];
-  contactBooks: ContactBook[];
+  contactBooks?: ContactBook[];
 }
 
 export const CsvExportModal: React.FC<CsvExportModalProps> = ({
@@ -33,7 +31,6 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
   onClose,
   students,
   learningRecords,
-  contactBooks,
 }) => {
   const [downloadedType, setDownloadedType] = useState<string | null>(null);
 
@@ -55,18 +52,9 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
     setTimeout(() => setDownloadedType(null), 3000);
   };
 
-  const handleExportContactBooks = () => {
-    const csv = generateContactBooksCsv(contactBooks);
-    const filename = `愛愛幼兒園_家長聯絡簿紀錄_${new Date().toISOString().slice(0, 10)}.csv`;
-    downloadCsv(filename, csv);
-    setDownloadedType('contact');
-    setTimeout(() => setDownloadedType(null), 3000);
-  };
-
   const handleExportAll = () => {
     handleExportStudents();
     setTimeout(() => handleExportLearningRecords(), 300);
-    setTimeout(() => handleExportContactBooks(), 600);
     setDownloadedType('all');
     setTimeout(() => setDownloadedType(null), 3000);
   };
@@ -116,7 +104,7 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
         </div>
 
         {/* Export Buttons Options Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           {/* Option 1: Students */}
           <div className="bg-white border-2 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between hover:shadow-[6px_6px_0px_#5D4037] transition-all">
             <div>
@@ -160,28 +148,6 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
               <Download className="w-3.5 h-3.5" /> 匯出學習區 CSV
             </button>
           </div>
-
-          {/* Option 3: Contact Books */}
-          <div className="bg-white border-2 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between hover:shadow-[6px_6px_0px_#5D4037] transition-all">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Heart className="w-6 h-6 text-[#81D4FA]" />
-                <span className="text-xs font-black bg-[#E1F5FE] text-[#01579B] px-2 py-0.5 rounded-full border border-[#5D4037]">
-                  {contactBooks.length} 筆資料
-                </span>
-              </div>
-              <h3 className="font-black text-sm text-[#5D4037] mb-1">家長聯絡簿紀錄</h3>
-              <p className="text-[11px] text-[#5D4037]/80 font-bold mb-3">
-                包含每日飲食、睡眠、額溫、情緒、老師留言、家長簽名與活動影音 URL。
-              </p>
-            </div>
-            <button
-              onClick={handleExportContactBooks}
-              className="w-full bg-[#81D4FA] hover:bg-[#4FC3F7] text-[#01579B] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center justify-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" /> 匯出聯絡簿 CSV
-            </button>
-          </div>
         </div>
 
         {/* One-click Export All Button */}
@@ -191,7 +157,7 @@ export const CsvExportModal: React.FC<CsvExportModalProps> = ({
             className="w-full bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm py-3 px-6 rounded-full border-4 border-[#5D4037] shadow-[6px_6px_0px_#5D4037] hover:shadow-[3px_3px_0px_#5D4037] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Download className="w-5 h-5" />
-            一鍵匯出全部 3 個 CSV 檔案 (可直接匯入 Google Sheet) 🚀
+            一鍵匯出全部 2 個 CSV 檔案 (可直接匯入 Google Sheet) 🚀
           </button>
           {downloadedType && (
             <div className="mt-2 text-center text-xs font-black text-[#2E7D32] bg-[#C8E6C9] border border-[#5D4037] rounded-full py-1 animate-fade-in flex items-center justify-center gap-1">

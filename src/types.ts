@@ -128,6 +128,7 @@ export interface SheetConfig {
   learningWebAppUrl?: string;
   contactWebAppUrl?: string;
   mediaFolderUrl?: string;
+  nasStorageUrl?: string;
   isConnected: boolean;
   lastSyncedAt: string | null;
   refreshIntervalMinutes?: number; // 0 (Manual), 1, 5, 15, 30, 60

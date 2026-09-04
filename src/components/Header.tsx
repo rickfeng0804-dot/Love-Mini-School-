@@ -13,7 +13,6 @@ import {
   Sparkles, 
   CheckCircle2, 
   AlertCircle, 
-  Heart, 
   Baby, 
   GraduationCap,
   Download,
@@ -24,8 +23,8 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design';
-  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design') => void;
+  activeTab: 'corner-form' | 'learning-report' | 'roster' | 'system-design';
+  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'roster' | 'system-design') => void;
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
   onOpenCsvModal: () => void;
@@ -76,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#5D4037] tracking-tight flex items-center gap-2 flex-wrap">
                   愛愛幼兒園
                   <span className="text-[10px] sm:text-xs text-[#5D4037] font-extrabold hidden md:inline-block bg-white px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]">
-                    角落學習紀錄與家長聯絡簿
+                    角落學習紀錄系統
                   </span>
                 </h1>
               </div>
@@ -166,17 +165,6 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <BookOpenCheck className="w-4 h-4" /> 學生角落學習紀錄報告
-          </button>
-
-          <button
-            onClick={() => setActiveTab('contact-book')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-black text-xs md:text-sm whitespace-nowrap transition-all border-2 border-[#5D4037] ${
-              activeTab === 'contact-book'
-                ? 'bg-[#81D4FA] text-[#01579B] shadow-[3px_3px_0px_#5D4037] transform -translate-y-0.5'
-                : 'bg-white text-[#5D4037] hover:bg-[#E1F5FE] shadow-[2px_2px_0px_#5D4037]'
-            }`}
-          >
-            <Heart className="w-4 h-4" /> 家長聯絡簿
           </button>
 
           <button

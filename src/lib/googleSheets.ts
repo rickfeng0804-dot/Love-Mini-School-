@@ -8,6 +8,7 @@ export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/A
 export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
 export const DEFAULT_MEDIA_FOLDER_URL = 'https://drive.google.com/drive/folders/1HmKXkl-xbLMaaCq663RMRINAsdavttJp?usp=drive_link';
+export const DEFAULT_NAS_STORAGE_URL = 'https://llk-nas.quickconnect.to/d/s/19gzQx1DuMJbQbtNaWeRVaxUAqcUrtCX/ct9etCC8-qwn8ehO52880kb6gRugFamQ-RbTA_sIIeA0';
 export const DEFAULT_WEB_APP_URL = DEFAULT_STUDENT_WEB_APP_URL;
 
 export interface SyncedData {

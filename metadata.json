@@ -1,6 +1,6 @@
 {
   "name": "愛愛幼兒園 - 角落學習紀錄與家長聯絡簿",
-  "description": "幼兒園學習狀況記錄、角落學習紀錄表、家長聯絡溝通與角落學習紀錄報告生成系統，支援 Google Sheets 後端同步。",
+  "description": "幼兒園學生學習狀況記錄、角落學習紀錄表與角落學習報告系統，支援 A4 PDF 報告匯出與 Synology NAS 雲端歸檔及 Google Sheets 資料庫同步。",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -14,7 +14,6 @@ import {
 import { Header } from './components/Header';
 import { CornerLearningForm } from './components/CornerLearningForm';
 import { LearningReportView } from './components/LearningReportView';
-import { ContactBookView } from './components/ContactBookView';
 import { StudentRosterView } from './components/StudentRosterView';
 import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
@@ -30,6 +29,7 @@ import {
   DEFAULT_LEARNING_WEB_APP_URL, 
   DEFAULT_CONTACT_WEB_APP_URL,
   DEFAULT_MEDIA_FOLDER_URL,
+  DEFAULT_NAS_STORAGE_URL,
   SyncedData
 } from './lib/googleSheets';
 import { 
@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'contact-book' | 'roster' | 'system-design'>('corner-form');
+  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'roster' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -94,6 +94,9 @@ export default function App() {
       if (!parsed.contactWebAppUrl) {
         parsed.contactWebAppUrl = DEFAULT_CONTACT_WEB_APP_URL;
       }
+      if (!parsed.nasStorageUrl) {
+        parsed.nasStorageUrl = DEFAULT_NAS_STORAGE_URL;
+      }
       if (!parsed.webAppUrl || parsed.webAppUrl.includes('/macros/library/d/')) {
         parsed.webAppUrl = DEFAULT_STUDENT_WEB_APP_URL;
         parsed.isConnected = true;
@@ -101,6 +104,7 @@ export default function App() {
       return {
         refreshIntervalMinutes: 5,
         mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
+        nasStorageUrl: DEFAULT_NAS_STORAGE_URL,
         ...parsed,
         autoRefreshEnabled: false,
       };
@@ -114,6 +118,7 @@ export default function App() {
       learningWebAppUrl: DEFAULT_LEARNING_WEB_APP_URL,
       contactWebAppUrl: DEFAULT_CONTACT_WEB_APP_URL,
       mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
+      nasStorageUrl: DEFAULT_NAS_STORAGE_URL,
       isConnected: true,
       lastSyncedAt: null,
       refreshIntervalMinutes: 5,
@@ -379,18 +384,6 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'contact-book' && (
-            <ContactBookView
-              students={students}
-              contactBooks={contactBooks}
-              setContactBooks={setContactBooks}
-              selectedStudentId={selectedStudentId}
-              setSelectedStudentId={setSelectedStudentId}
-              sheetConfig={sheetConfig}
-              learningRecords={learningRecords}
-            />
-          )}
-
           {activeTab === 'roster' && (
             <StudentRosterView
               students={students}
@@ -420,7 +413,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-12 py-3 bg-[#5D4037] text-white flex flex-col sm:flex-row items-center justify-center text-xs gap-3 tracking-widest font-mono border-t-4 border-[#3E2723]">
-        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習紀錄與家長聯絡簿管理系統</span>
+        <span className="opacity-90 font-sans font-bold">桃園市私立愛愛幼兒園｜園長 黃雅琦 Rachel｜角落學習紀錄管理系統</span>
         <div className="flex items-center gap-2 bg-[#4E342E] px-3 py-1 rounded-full text-[10px]">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>GOOGLE SHEETS SYNC ACTIVE</span>
@@ -451,18 +444,6 @@ export default function App() {
         >
           <BookOpenCheck className="w-5 h-5 mb-0.5" />
           <span>角落學習紀錄</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('contact-book')}
-          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
-            activeTab === 'contact-book'
-              ? 'bg-[#81D4FA] text-[#01579B] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
-              : 'text-[#5D4037] hover:bg-white/40'
-          }`}
-        >
-          <Heart className="w-5 h-5 mb-0.5" />
-          <span>聯絡簿</span>
         </button>
 
         <button

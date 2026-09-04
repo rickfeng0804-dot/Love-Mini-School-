@@ -11,6 +11,7 @@ import {
   DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_CONTACT_WEB_APP_URL,
   DEFAULT_MEDIA_FOLDER_URL,
+  DEFAULT_NAS_STORAGE_URL,
   fetchFromWebApp, 
   fetchStudentRoster,
   fetchAllKindergartenData,
@@ -32,16 +33,15 @@ import {
   Globe, 
   Users, 
   BookOpen, 
-  Heart, 
   CheckCircle2, 
   AlertCircle,
   HelpCircle,
-  MessageSquare,
   Shapes,
   Folder,
   FolderOpen,
   Camera,
-  Video
+  Video,
+  HardDrive
 } from 'lucide-react';
 
 interface SystemDesignViewProps {
@@ -51,8 +51,8 @@ interface SystemDesignViewProps {
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   learningRecords: LearningRecord[];
   setLearningRecords: React.Dispatch<React.SetStateAction<LearningRecord[]>>;
-  contactBooks: ContactBook[];
-  setContactBooks: React.Dispatch<React.SetStateAction<ContactBook[]>>;
+  contactBooks?: ContactBook[];
+  setContactBooks?: React.Dispatch<React.SetStateAction<ContactBook[]>>;
 }
 
 export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
@@ -80,6 +80,9 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   const [mediaFolderInput, setMediaFolderInput] = useState(
     sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL
   );
+  const [nasStorageInput, setNasStorageInput] = useState(
+    sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL
+  );
   const [intervalMinutes, setIntervalMinutes] = useState<number>(
     sheetConfig.refreshIntervalMinutes ?? 5
   );
@@ -98,6 +101,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     setContactUrlInput(sheetConfig.contactWebAppUrl || DEFAULT_CONTACT_WEB_APP_URL);
     setWebAppInput(sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL);
     setMediaFolderInput(sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL);
+    setNasStorageInput(sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL);
     setIntervalMinutes(sheetConfig.refreshIntervalMinutes ?? 5);
     setAutoSyncEnabled(sheetConfig.autoRefreshEnabled ?? false);
   }, [sheetConfig]);
@@ -126,13 +130,14 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       contactWebAppUrl: normContact,
       webAppUrl: normStudent || normLearning,
       mediaFolderUrl: mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL,
+      nasStorageUrl: nasStorageInput.trim() || DEFAULT_NAS_STORAGE_URL,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
       isConnected: true,
     };
 
     setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App (學生名冊/學習紀錄/聯絡簿)...' });
+    setStatusMessage({ type: 'info', text: '正在嘗試連接 Google Apps Script Web App (學生名冊/學習紀錄)...' });
 
     try {
       const data = await fetchAllKindergartenData(testConfig);
@@ -144,7 +149,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       if (data.learningRecords && data.learningRecords.length > 0) {
         setLearningRecords(data.learningRecords);
       }
-      if (data.contactBooks && data.contactBooks.length > 0) {
+      if (data.contactBooks && data.contactBooks.length > 0 && setContactBooks) {
         setContactBooks(data.contactBooks);
       }
 
@@ -158,7 +163,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
 
       setStatusMessage({
         type: 'success',
-        text: `連線成功！已由 Google Sheet 載入 ${data.students.length} 位學生名冊、${data.learningRecords.length} 筆角落紀錄與 ${data.contactBooks.length} 筆聯絡簿！`
+        text: `連線成功！已由 Google Sheet 載入 ${data.students.length} 位學生名冊與 ${data.learningRecords.length} 筆角落紀錄！`
       });
     } catch (err: any) {
       console.error(err);
@@ -177,6 +182,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     const normLearning = normalizeWebAppUrl(learningUrlInput.trim());
     const normContact = normalizeWebAppUrl(contactUrlInput.trim());
     const rawMedia = mediaFolderInput.trim() || DEFAULT_MEDIA_FOLDER_URL;
+    const rawNas = nasStorageInput.trim() || DEFAULT_NAS_STORAGE_URL;
 
     setStudentUrlInput(normStudent);
     setLearningUrlInput(normLearning);
@@ -189,11 +195,12 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
       contactWebAppUrl: normContact,
       webAppUrl: normStudent || normLearning || prev.webAppUrl,
       mediaFolderUrl: rawMedia,
+      nasStorageUrl: rawNas,
       refreshIntervalMinutes: intervalMinutes,
       autoRefreshEnabled: autoSyncEnabled,
       isConnected: Boolean(normStudent || normLearning || normContact),
     }));
-    setStatusMessage({ type: 'success', text: '系統設定（學生名冊、角落學習區、聯絡簿與雲端資料夾網址）已成功儲存並生效！' });
+    setStatusMessage({ type: 'success', text: '系統設定（學生名冊、角落學習區、多媒體與 NAS 雲端目錄網址）已成功儲存並生效！' });
     setTimeout(() => setStatusMessage(null), 3500);
   };
 
@@ -206,10 +213,10 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
     }
 
     setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: '正在將學生名冊、角落學習紀錄及聯絡簿同步寫入 Google Sheet...' });
+    setStatusMessage({ type: 'info', text: '正在將學生名冊及角落學習紀錄同步寫入 Google Sheet...' });
 
     try {
-      await syncToWebApp(url, students, learningRecords, contactBooks);
+      await syncToWebApp(url, students, learningRecords, contactBooks || []);
       const nowStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       setSheetConfig((prev) => ({
@@ -219,7 +226,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
         lastSyncedAt: nowStr,
       }));
 
-      setStatusMessage({ type: 'success', text: `同步完成！已成功將 ${students.length} 位學生、${learningRecords.length} 筆角落紀錄與 ${contactBooks.length} 筆聯絡簿同步至 Google Sheet。` });
+      setStatusMessage({ type: 'success', text: `同步完成！已成功將 ${students.length} 位學生與 ${learningRecords.length} 筆角落紀錄同步至 Google Sheet。` });
     } catch (err: any) {
       console.error(err);
       setStatusMessage({ type: 'error', text: `寫入失敗：${err.message || '無法連線至 Web App'}` });
@@ -277,7 +284,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             <Sparkles className="w-6 h-6 text-[#FF8A65] animate-pulse" />
           </h2>
           <p className="text-xs text-[#5D4037]/80 font-bold mt-1">
-            將學生名冊、角落學習區歷程與家長聯絡簿即時連結至 Google 試算表，支援自動定時更新與雙向同步。
+            將學生名冊與角落學習區歷程即時連結至 Google 試算表，支援自動定時更新與雙向同步。
           </p>
         </div>
 
@@ -348,7 +355,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 愛愛幼兒園系統
               </h4>
               <p className="text-[11px] font-bold text-[#5D4037]/80 leading-relaxed">
-                包含學生名冊管理、角落學習區評量、家長聯絡簿，即時呈現並儲存多媒體 URL。
+                包含學生名冊管理、角落學習區評量，即時呈現並儲存多媒體 URL。
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-[#5D4037]/20 text-[10px] font-black text-[#5D4037] flex justify-between">
@@ -387,7 +394,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 Google Sheets 試算表
               </h4>
               <p className="text-[11px] font-bold text-[#1B5E20]/80 leading-relaxed">
-                包含 3 大工作表：<code>Students</code> (學生名冊)、<code>LearningRecords</code> (角落歷程)、<code>ContactBooks</code> (聯絡簿)。
+                包含 2 大工作表：<code>Students</code> (學生名冊)、<code>LearningRecords</code> (角落歷程)。
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-[#5D4037]/20 text-[10px] font-black text-[#1B5E20]">
@@ -466,33 +473,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                 type="url"
                 value={learningUrlInput}
                 onChange={(e) => setLearningUrlInput(e.target.value)}
-                placeholder="https://script.google.com/macros/s/AKfyc.../exec"
-                className="w-full bg-[#FAFAFA] border border-[#5D4037] rounded-lg px-2.5 py-1.5 text-xs text-[#5D4037] font-mono font-bold focus:outline-none focus:bg-white"
-              />
-            </div>
-
-            {/* Contact Book Web App URL Field */}
-            <div className="space-y-1 bg-white p-3 rounded-xl border border-[#5D4037]/40 shadow-xs">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-black text-[#E65100] flex items-center gap-1">
-                  <Heart className="w-3.5 h-3.5 text-[#FF8A65]" />
-                  3. 家長聯絡簿 Web App URL:
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setContactUrlInput(DEFAULT_CONTACT_WEB_APP_URL);
-                    setStatusMessage({ type: 'info', text: '已填入家長聯絡簿預設 Web App URL！' });
-                  }}
-                  className="text-[10px] bg-[#FFF3E0] hover:bg-[#FFE0B2] text-[#E65100] font-black px-2 py-0.5 rounded border border-[#FF8A65]/40 cursor-pointer"
-                >
-                  帶入預設 URL
-                </button>
-              </div>
-              <input
-                type="url"
-                value={contactUrlInput}
-                onChange={(e) => setContactUrlInput(e.target.value)}
                 placeholder="https://script.google.com/macros/s/AKfyc.../exec"
                 className="w-full bg-[#FAFAFA] border border-[#5D4037] rounded-lg px-2.5 py-1.5 text-xs text-[#5D4037] font-mono font-bold focus:outline-none focus:bg-white"
               />
@@ -657,17 +637,87 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               </button>
             </div>
           </div>
+
+          {/* NAS Folder Sub-card: Synology NAS Storage Link */}
+          <div className="lg:col-span-2 bg-[#E0F2F1] border-2 border-[#5D4037] rounded-2xl p-5 shadow-[4px_4px_0px_#5D4037] space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#5D4037]/30 pb-2">
+              <h4 className="font-black text-sm text-[#004D40] flex items-center gap-2">
+                <HardDrive className="w-5 h-5 text-[#00897B]" />
+                學生角落學習紀錄報告轉 PDF 儲存至 NAS 目錄 (QuickConnect)
+              </h4>
+              <span className="bg-[#80CBC4] text-[#004D40] border border-[#00796B] text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                Synology NAS 專屬備份空間
+              </span>
+            </div>
+
+            <p className="text-xs text-[#004D40]/80 font-bold">
+              學生角落學習紀錄報告產生並轉成 A4 PDF 後，可點擊「儲存至 NAS」直接開啟此 QuickConnect 雲端資料夾，將 PDF 檔案拖曳上傳歸檔與長期保存。
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <div className="relative flex-1">
+                <input
+                  type="url"
+                  value={nasStorageInput}
+                  onChange={(e) => setNasStorageInput(e.target.value)}
+                  placeholder="https://llk-nas.quickconnect.to/d/s/..."
+                  className="w-full bg-white border-2 border-[#5D4037] rounded-xl px-3 py-2 text-xs text-[#5D4037] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_#5D4037]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNasStorageInput(DEFAULT_NAS_STORAGE_URL);
+                    setStatusMessage({ type: 'info', text: '已自動帶入預設 NAS 雲端資料夾網址！請記得點擊「儲存網址設定」。' });
+                  }}
+                  className="bg-[#B2DFDB] hover:bg-[#80CBC4] text-[#004D40] font-black text-xs py-2 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> 恢復預設 NAS 網址
+                </button>
+
+                <a
+                  href={sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#00897B] hover:bg-[#00796B] text-white font-black text-xs py-2 px-3.5 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  開啟 NAS 資料夾 ↗
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-black text-xs py-2 px-4 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] hover:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> 儲存網址設定
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white/90 p-2.5 rounded-xl border border-[#00796B]/30 text-[11px] text-[#004D40] font-bold flex items-center justify-between">
+              <span className="truncate">🗄️ 當前 NAS 儲存目錄: <code className="font-mono text-[#00796B] ml-1">{sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL}</code></span>
+              <button
+                type="button"
+                onClick={() => handleCopyCode(sheetConfig.nasStorageUrl || DEFAULT_NAS_STORAGE_URL)}
+                className="bg-[#E0F2F1] hover:bg-[#B2DFDB] text-[#004D40] font-black text-[10px] px-2 py-0.5 rounded-lg border border-[#00796B] cursor-pointer shrink-0 ml-2"
+              >
+                複製連結
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Section 3: Data Links Showcase (Learning Records, Contact Books & Roster) */}
+      {/* Section 3: Data Links Showcase (Learning Records & Roster) */}
       <div className="bg-white border-4 border-[#5D4037] rounded-[2rem] p-6 shadow-[8px_8px_0px_#5D4037] space-y-6">
         <h3 className="text-lg font-black text-[#5D4037] flex items-center gap-2 italic border-b-2 border-dashed border-[#5D4037]/30 pb-2">
           <Database className="w-5 h-5 text-[#CE93D8]" />
           3. 資料連結展示 (Live Google Sheet Sync Status)
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card A: Learning Corner Records */}
           <div className="bg-[#E0F7FA] border-2 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between space-y-3">
             <div>
@@ -694,33 +744,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             </div>
           </div>
 
-          {/* Card B: Contact Book Link */}
-          <div className="bg-[#FFF3E0] border-2 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="bg-[#FF9800] text-white font-black text-[10px] px-2.5 py-0.5 rounded-full border border-[#5D4037]">
-                  ContactBooks 工作表
-                </span>
-                <span className="text-xs font-black text-[#E65100]">聯絡簿總數：{contactBooks.length} 筆</span>
-              </div>
-              <h4 className="font-black text-sm text-[#E65100] flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#FB8C00]" />
-                家長聯絡簿資料連結
-              </h4>
-              <p className="text-xs font-bold text-[#E65100]/80 mt-1">
-                記錄早午點餐飲食、午睡分鐘、情緒體溫、健康叮嚀、老師評語與家長簽收狀態。
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-1 text-[10px] font-black text-[#E65100] pt-1">
-              <span className="bg-white border border-[#5D4037] px-2 py-0.5 rounded-md">飲食紀錄</span>
-              <span className="bg-white border border-[#5D4037] px-2 py-0.5 rounded-md">午睡狀況</span>
-              <span className="bg-white border border-[#5D4037] px-2 py-0.5 rounded-md">體溫情緒</span>
-              <span className="bg-white border border-[#5D4037] px-2 py-0.5 rounded-md">家長簽收回覆</span>
-            </div>
-          </div>
-
-          {/* Card C: Student Roster Link */}
+          {/* Card B: Student Roster Link */}
           <div className="bg-[#F3E5F5] border-2 border-[#5D4037] rounded-2xl p-4 shadow-[4px_4px_0px_#5D4037] flex flex-col justify-between space-y-3">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -779,7 +803,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
             <span className="w-6 h-6 bg-[#5D4037] text-white rounded-full flex items-center justify-center font-black text-xs mb-2">3</span>
             <h4 className="font-black text-xs text-[#5D4037] mb-1">貼上 Apps Script 程式碼</h4>
             <p className="text-[11px] font-bold text-[#5D4037]/80">
-              選擇下方區塊 5 的「角落學習區專用」、「家長聯絡簿專用」或「全系統」 Apps Script 程式碼全選貼覆，按下 <code>Ctrl+S</code> 儲存。
+              選擇下方區塊 5 的「學生名冊專用」、「角落學習區專用」或「全系統」 Apps Script 程式碼全選貼覆，按下 <code>Ctrl+S</code> 儲存。
             </p>
           </div>
 
@@ -844,17 +868,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveCodeTab('contactBook')}
-                className={`px-3 py-1 rounded-lg font-black text-xs transition-all cursor-pointer ${
-                  activeCodeTab === 'contactBook'
-                    ? 'bg-[#FF8A65] text-white shadow-[1px_1px_0px_#5D4037]'
-                    : 'text-[#5D4037] hover:bg-gray-200'
-                }`}
-              >
-                家長聯絡簿專用
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveCodeTab('fullSystem')}
                 className={`px-3 py-1 rounded-lg font-black text-xs transition-all cursor-pointer ${
                   activeCodeTab === 'fullSystem'
@@ -874,8 +887,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                   ? STUDENT_ROSTER_APPS_SCRIPT_CODE
                   : activeCodeTab === 'learningCorner'
                   ? LEARNING_CORNER_APPS_SCRIPT_CODE
-                  : activeCodeTab === 'contactBook'
-                  ? CONTACT_BOOK_APPS_SCRIPT_CODE
                   : APPS_SCRIPT_CODE
               )
             }
@@ -892,8 +903,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                     ? '學生名冊'
                     : activeCodeTab === 'learningCorner'
                     ? '角落學習區'
-                    : activeCodeTab === 'contactBook'
-                    ? '家長聯絡簿'
                     : '全系統'
                 } Apps Script
               </>
@@ -907,8 +916,6 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               ? STUDENT_ROSTER_APPS_SCRIPT_CODE
               : activeCodeTab === 'learningCorner'
               ? LEARNING_CORNER_APPS_SCRIPT_CODE
-              : activeCodeTab === 'contactBook'
-              ? CONTACT_BOOK_APPS_SCRIPT_CODE
               : APPS_SCRIPT_CODE
           }</pre>
         </div>

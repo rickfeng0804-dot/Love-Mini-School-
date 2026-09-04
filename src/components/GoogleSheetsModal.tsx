@@ -97,20 +97,20 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setConfirmModal({
       show: true,
       title: '確認建立全新 Google Sheet 資料庫？',
-      message: '系統將會在您的 Google Drive 中新增名為「愛愛幼兒園_學習歷程與聯絡簿_資料庫」的試算表，並寫入目前的學生名冊、學習區紀錄與聯絡簿，請問要繼續嗎？',
+      message: '系統將會在您的 Google Drive 中新增名為「愛愛幼兒園_角落學習歷程_資料庫」的試算表，並寫入目前的學生名冊與學習區紀錄，請問要繼續嗎？',
       action: async () => {
         setLoading(true);
-        setStatusMsg('正在建立 Google 試算表與設定工作表 (Students, LearningRecords, ContactBooks)...');
+        setStatusMsg('正在建立 Google 試算表與設定工作表 (Students, LearningRecords)...');
         try {
           const token = getAccessToken();
           if (!token) {
             throw new Error('存取金鑰已過期，請重新「Google 帳號登入」');
           }
-          const res = await createKindergartenSpreadsheet(token, '愛愛幼兒園_學習歷程與聯絡簿_資料庫');
+          const res = await createKindergartenSpreadsheet(token, '愛愛幼兒園_角落學習歷程_資料庫');
           setSheetConfig({
             spreadsheetId: res.spreadsheetId,
             spreadsheetUrl: res.spreadsheetUrl,
-            spreadsheetName: '愛愛幼兒園_學習歷程與聯絡簿_資料庫',
+            spreadsheetName: '愛愛幼兒園_角落學習歷程_資料庫',
             isConnected: true,
             lastSyncedAt: new Date().toLocaleTimeString(),
           });
@@ -132,7 +132,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setConfirmModal({
       show: true,
       title: '確認同步寫入 Google Sheet？',
-      message: `將會把系統內目前的 ${students.length} 筆學生資料、${learningRecords.length} 筆學習區紀錄與 ${contactBooks.length} 筆聯絡簿寫入您的 Google 試算表。這會更新雲端對應資料，請問確認嗎？`,
+      message: `將會把系統內目前的 ${students.length} 筆學生資料與 ${learningRecords.length} 筆學習區紀錄寫入您的 Google 試算表。這會更新雲端對應資料，請問確認嗎？`,
       action: async () => {
         setLoading(true);
         setStatusMsg('正在與 Google Sheet 進行資料同步寫入...');
@@ -207,7 +207,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
             <h3 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
               Google Sheet 後端連線與管理
             </h3>
-            <p className="text-xs text-gray-500">將學生的學習歷程與家長聯絡簿記錄於 Google 試算表</p>
+            <p className="text-xs text-gray-500">將學生的學習歷程與名冊資料記錄於 Google 試算表</p>
           </div>
         </div>
 
@@ -332,7 +332,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
             <h5 className="text-xs font-black text-amber-900 flex items-center gap-1">
               <Download className="w-3.5 h-3.5 text-amber-600" /> 匯出 CSV 檔 (可在 Google Sheets 匯入)
             </h5>
-            <p className="text-[11px] text-amber-800 font-medium">支援一鍵將學生名冊、角落學習紀錄及聯絡簿匯出成標準 UTF-8 CSV 檔案。</p>
+            <p className="text-[11px] text-amber-800 font-medium">支援一鍵將學生名冊與角落學習紀錄匯出成標準 UTF-8 CSV 檔案。</p>
           </div>
           {onOpenCsvModal && (
             <button

@@ -49,7 +49,7 @@ interface StudentRosterViewProps {
   students: Student[];
   setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   learningRecords: LearningRecord[];
-  contactBooks: ContactBook[];
+  contactBooks?: ContactBook[];
   sheetConfig: SheetConfig;
   selectedClassFilter?: ClassFilterOption;
   setSelectedClassFilter?: (filter: ClassFilterOption) => void;
@@ -643,7 +643,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {displayedStudents.map((stu) => {
           const stuRecordsCount = learningRecords.filter((r) => r.studentId === stu.id).length;
-          const stuContactCount = contactBooks.filter((c) => c.studentId === stu.id).length;
           const stuGrade = stu.grade || getStudentGrade(stu);
 
           return (
@@ -688,14 +687,12 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                 </div>
 
                 {/* Progress Indicators */}
-                <div className="grid grid-cols-2 gap-2 mb-3 text-[11px] font-bold">
-                  <div className="bg-[#FFEBEE] p-2 rounded-2xl text-[#C62828] border border-[#5D4037] text-center">
-                    <span className="block text-[10px] text-[#5D4037]/70 font-black">學習區紀錄</span>
-                    <span className="text-sm font-black">{stuRecordsCount} 篇</span>
-                  </div>
-                  <div className="bg-[#E0F7FA] p-2 rounded-2xl text-[#006064] border border-[#5D4037] text-center">
-                    <span className="block text-[10px] text-[#5D4037]/70 font-black">聯絡簿話語</span>
-                    <span className="text-sm font-black">{stuContactCount} 則</span>
+                <div className="mb-3">
+                  <div className="bg-[#FFEBEE] p-2 rounded-2xl text-[#C62828] border border-[#5D4037] flex items-center justify-between px-3">
+                    <span className="text-xs text-[#5D4037] font-black flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-[#C62828]" /> 角落學習區紀錄
+                    </span>
+                    <span className="text-sm font-black bg-white px-2 py-0.5 rounded-lg border border-[#5D4037]">{stuRecordsCount} 篇</span>
                   </div>
                 </div>
 

@@ -9,7 +9,6 @@ export interface SingleReportCardProps {
   isBatch?: boolean;
   fontSize?: number;
   grayscale?: boolean;
-  showSafeMargins?: boolean;
 }
 
 export const SingleReportCard: React.FC<SingleReportCardProps> = ({ 
@@ -18,7 +17,6 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
   isBatch = false,
   fontSize = 18,
   grayscale = false,
-  showSafeMargins = false
 }) => {
   if (!record) return null;
   const matchingStudent = students?.find((s) => s.id === record.studentId || s.name === record.studentName);
@@ -41,15 +39,6 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
         grayscale ? 'grayscale contrast-125 bg-white text-black border-black shadow-[6px_6px_0px_#333]' : ''
       } ${isBatch ? 'a4-page-break' : ''}`}
     >
-      {/* Visual A4 Printable Margin Overlay Guide (Inspection Mode only) */}
-      {showSafeMargins && (
-        <div className="absolute inset-2 border-2 border-dashed border-red-400 pointer-events-none rounded-2xl z-10 print:hidden flex items-start justify-end p-1">
-          <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
-            A4 10mm 安全 PDF 邊界線
-          </span>
-        </div>
-      )}
-
       {/* Header Row */}
       <div className="flex items-center justify-between border-b-4 border-[#5D4037] pb-3 mb-3">
         <div className="flex items-center gap-3">
