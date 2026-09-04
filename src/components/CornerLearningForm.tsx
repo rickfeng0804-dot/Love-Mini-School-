@@ -12,7 +12,15 @@ import {
   getStudentGrade
 } from '../types';
 import { CORNER_AREAS, JAPANESE_STAMPS } from '../data/initialData';
-import { syncAllToSheet, syncToWebApp, uploadPhotoToGoogleDrive, DEFAULT_WEB_APP_URL, DEFAULT_MEDIA_FOLDER_URL } from '../lib/googleSheets';
+import { 
+  syncAllToSheet, 
+  syncToWebApp, 
+  uploadPhotoToGoogleDrive, 
+  DEFAULT_WEB_APP_URL, 
+  DEFAULT_MEDIA_FOLDER_URL,
+  DEFAULT_SPREADSHEET_ID,
+  DEFAULT_SPREADSHEET_URL
+} from '../lib/googleSheets';
 import { uploadReportToGoogleDrive } from '../lib/reportExport';
 import { getAccessToken } from '../lib/firebase';
 import confetti from 'canvas-confetti';
@@ -43,7 +51,8 @@ import {
   GraduationCap,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 import { generateCurrentFormObservationCsv, downloadCsv } from '../lib/csvExport';
 import { CornerCsvExportModal } from './CornerCsvExportModal';
@@ -161,6 +170,59 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
+  const [sheetSyncing, setSheetSyncing] = useState<boolean>(false);
+  const [sheetSyncStatus, setSheetSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  const handleManualSheetSync = async () => {
+    setSheetSyncing(true);
+    setSheetSyncStatus({ type: 'info', message: '正在將 8 大區 48 項指標資料同步至 Google Sheet...' });
+
+    const targetSheetId = sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID;
+
+    try {
+      const token = getAccessToken();
+      if (token) {
+        await syncAllToSheet(token, targetSheetId, students, learningRecords, contactBooks || []);
+        setSheetSyncStatus({
+          type: 'success',
+          message: `8 大區 48 項指標資料已成功全數同步寫入 Google Sheet！(ID: ${targetSheetId.slice(0, 10)}...)`,
+        });
+        try {
+          confetti({
+            particleCount: 45,
+            spread: 60,
+            origin: { y: 0.4 },
+            colors: ['#2E7D32', '#66BB6A', '#FFB74D', '#FF8A65'],
+          });
+        } catch {}
+      } else {
+        // Try Web App URL background sync
+        const webAppTarget = sheetConfig.learningWebAppUrl || sheetConfig.webAppUrl;
+        if (webAppTarget) {
+          await syncToWebApp(webAppTarget, students, learningRecords, contactBooks || []);
+          setSheetSyncStatus({
+            type: 'success',
+            message: '已透過 Google Apps Script Web App 背景同步 8 大區 48 項指標至 Google Sheet！',
+          });
+        } else {
+          setSheetSyncStatus({
+            type: 'info',
+            message: `預設 Google Sheet ID 為: ${DEFAULT_SPREADSHEET_ID}。若需直接連線寫入，請點擊右上角「Google Sheet」完成授權。`,
+          });
+        }
+      }
+    } catch (err: any) {
+      setSheetSyncStatus({
+        type: 'error',
+        message: `同步失敗: ${err.message || '請確認網路與授權權限'}`,
+      });
+    } finally {
+      setSheetSyncing(false);
+      setTimeout(() => {
+        setSheetSyncStatus(null);
+      }, 6000);
+    }
+  };
 
   const handleQuickExportCurrentFormCsv = () => {
     if (!selectedStudent) return;
@@ -509,19 +571,21 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         }
       }
 
-      // 5. Sync to Google Sheets
-      if (sheetConfig.isConnected && sheetConfig.spreadsheetId) {
-        try {
-          const token = getAccessToken();
-          if (token) {
-            await syncAllToSheet(token, sheetConfig.spreadsheetId, students, finalRecords, contactBooks);
-          }
-        } catch (err) {
-          console.warn('Auto sync to sheet failed:', err);
+      // 5. Sync to Google Sheets (8 areas & 48 items fully expanded)
+      const targetSpreadsheetId = sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID;
+      try {
+        const token = getAccessToken();
+        if (token) {
+          await syncAllToSheet(token, targetSpreadsheetId, students, finalRecords, contactBooks || []);
         }
+      } catch (err) {
+        console.warn('Auto sync to sheet failed:', err);
       }
     })();
   };
+
+  const activeSpreadsheetId = sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID;
+  const activeSpreadsheetUrl = sheetConfig.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${activeSpreadsheetId}/edit`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -545,10 +609,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               <Sparkles className="w-6 h-6 text-[#FFB74D] animate-spin" />
             </h2>
             <p className="text-xs text-[#5D4037]/80 font-bold mt-1">
-              勾選幼兒在 8 大角落區的學習表現，系統將自動匯出可愛日式繪本風學習歷程報告。
+              勾選幼兒在 8 大角落區的學習表現，資料已與 Google Sheet (ID: {activeSpreadsheetId.slice(0, 8)}...{activeSpreadsheetId.slice(-6)}) 完全同步！
             </p>
 
-            {/* Observation Form CSV Export Actions */}
+            {/* Observation Form CSV Export & Google Sheet Sync Actions */}
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-[#5D4037]/15">
               <button
                 type="button"
@@ -559,6 +623,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 <Download className="w-3.5 h-3.5 text-[#E65100]" />
                 匯出當前表單 CSV
               </button>
+              
               <button
                 type="button"
                 onClick={() => setShowCsvModal(true)}
@@ -571,7 +636,47 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                   UTF-8 BOM
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={handleManualSheetSync}
+                disabled={sheetSyncing}
+                className="bg-[#C8E6C9] hover:bg-[#A5D6A7] text-[#1B5E20] text-xs font-black py-1.5 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                title="將 8 大區所有 48 項指標同步至 Google 試算表"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-[#2E7D32] ${sheetSyncing ? 'animate-spin' : ''}`} />
+                {sheetSyncing ? '同步中...' : '同步至 Google Sheet'}
+              </button>
+
+              <a
+                href={activeSpreadsheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#2E7D32] text-xs font-black py-1.5 px-3 rounded-xl border-2 border-[#2E7D32] shadow-[2px_2px_0px_#2E7D32] active:scale-95 transition-all flex items-center gap-1.5"
+                title="在新分頁開啟 Google 試算表檢視或編輯"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                開啟 Google 試算表
+              </a>
             </div>
+
+            {/* Sync Feedback Alert */}
+            {sheetSyncStatus && (
+              <div className={`mt-2 p-2 rounded-xl border-2 text-xs font-bold flex items-center gap-2 animate-fade-in ${
+                sheetSyncStatus.type === 'success' 
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-900'
+                  : sheetSyncStatus.type === 'error'
+                  ? 'bg-rose-50 border-rose-500 text-rose-900'
+                  : 'bg-amber-50 border-amber-500 text-amber-900'
+              }`}>
+                {sheetSyncStatus.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                )}
+                <span>{sheetSyncStatus.message}</span>
+              </div>
+            )}
           </div>
 
           {/* Student & Date Picker Selector Card */}

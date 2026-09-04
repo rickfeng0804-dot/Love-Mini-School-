@@ -30,6 +30,8 @@ import {
   DEFAULT_CONTACT_WEB_APP_URL,
   DEFAULT_MEDIA_FOLDER_URL,
   DEFAULT_NAS_STORAGE_URL,
+  DEFAULT_SPREADSHEET_ID,
+  DEFAULT_SPREADSHEET_URL,
   SyncedData
 } from './lib/googleSheets';
 import { 
@@ -101,17 +103,23 @@ export default function App() {
         parsed.webAppUrl = DEFAULT_STUDENT_WEB_APP_URL;
         parsed.isConnected = true;
       }
+      if (!parsed.spreadsheetId) {
+        parsed.spreadsheetId = DEFAULT_SPREADSHEET_ID;
+        parsed.spreadsheetUrl = DEFAULT_SPREADSHEET_URL;
+      }
       return {
         refreshIntervalMinutes: 5,
         mediaFolderUrl: DEFAULT_MEDIA_FOLDER_URL,
         nasStorageUrl: DEFAULT_NAS_STORAGE_URL,
         ...parsed,
+        spreadsheetId: parsed.spreadsheetId || DEFAULT_SPREADSHEET_ID,
+        spreadsheetUrl: parsed.spreadsheetUrl || DEFAULT_SPREADSHEET_URL,
         autoRefreshEnabled: false,
       };
     }
     return {
-      spreadsheetId: null,
-      spreadsheetUrl: null,
+      spreadsheetId: DEFAULT_SPREADSHEET_ID,
+      spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
       spreadsheetName: '愛愛幼兒園_角落學習歷程與家長聯絡簿_資料庫',
       webAppUrl: DEFAULT_STUDENT_WEB_APP_URL,
       studentWebAppUrl: DEFAULT_STUDENT_WEB_APP_URL,

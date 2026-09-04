@@ -1,7 +1,11 @@
-import { Student, LearningRecord, ContactBook } from '../types';
+import { Student, LearningRecord, ContactBook, CornerAreaId, getStudentGrade } from '../types';
+import { CORNER_AREAS } from '../data/initialData';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
+
+export const DEFAULT_SPREADSHEET_ID = '1jFe492XljTkDx3A4fLWBX1PEy4J7Q7TffNLQiVlJI6c';
+export const DEFAULT_SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/edit`;
 
 export const DEFAULT_STUDENT_LIBRARY_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/2';
 export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwj9uSMKO1_Me0A1H3G3AuMnAaEg3cehrGlgXnv4hDczdbf_wh16bp7jnYBCMp02eON/exec';
@@ -15,6 +19,164 @@ export interface SyncedData {
   students: Student[];
   learningRecords: LearningRecord[];
   contactBooks: ContactBook[];
+}
+
+/**
+ * Returns column headers for LearningRecords sheet with ALL 48 items across 8 corner areas
+ * expanded into dedicated columns, plus 8 area observation notes.
+ */
+export function getExpandedLearningHeaders(): string[] {
+  const headers: string[] = [
+    'ID',
+    'DateStart',
+    'DateEnd',
+    'WeekRange',
+    'StudentId',
+    'StudentName',
+    'Grade',
+    'ClassName',
+    'SeatNumber',
+  ];
+
+  CORNER_AREAS.forEach((area) => {
+    area.items.forEach((item) => {
+      headers.push(`[${area.name}] ${item}`);
+    });
+    headers.push(`[${area.name}] 觀察筆記`);
+  });
+
+  headers.push(
+    'TotalChecked',
+    'ActiveAreasCount',
+    'TeacherComment',
+    'Stamp',
+    'PhotoImagesJSON',
+    'VideoUrlsJSON',
+    'CheckedItemsJSON',
+    'CustomNotesJSON',
+    'CreatedAt'
+  );
+
+  return headers;
+}
+
+/**
+ * Maps a single LearningRecord into a complete row with all 48 item columns marked with 'V'
+ */
+export function formatLearningRecordRow(
+  r: LearningRecord,
+  grade: string = '',
+  markSymbol: string = 'V'
+): (string | number)[] {
+  const row: (string | number)[] = [
+    r.id,
+    r.dateStart,
+    r.dateEnd,
+    `${r.dateStart} ~ ${r.dateEnd}`,
+    r.studentId,
+    r.studentName,
+    grade,
+    r.className,
+    r.seatNumber,
+  ];
+
+  let totalChecked = 0;
+  let activeAreas = 0;
+
+  CORNER_AREAS.forEach((area) => {
+    const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
+    const note = (r.customNotes && r.customNotes[area.id]) || '';
+
+    if (checkedList.length > 0 || note.trim().length > 0) {
+      activeAreas++;
+    }
+
+    area.items.forEach((item) => {
+      if (checkedList.includes(item)) {
+        row.push(markSymbol);
+        totalChecked++;
+      } else {
+        row.push('');
+      }
+    });
+
+    row.push(note);
+  });
+
+  row.push(
+    totalChecked,
+    activeAreas,
+    r.teacherComment || '',
+    r.stamp || '',
+    JSON.stringify(r.photoImages || []),
+    JSON.stringify(r.videoUrls || []),
+    JSON.stringify(r.checkedItems || {}),
+    JSON.stringify(r.customNotes || {}),
+    r.createdAt || new Date().toISOString()
+  );
+
+  return row;
+}
+
+/**
+ * Returns column headers for vertical checklist tab
+ */
+export function formatLearningChecklistHeaders(): string[] {
+  return [
+    '紀錄ID',
+    '學生姓名',
+    '年級',
+    '班別',
+    '座號',
+    '觀察開始日期',
+    '觀察結束日期',
+    '學習角落區',
+    '能力指標項目',
+    '勾選狀態(填V或留空)',
+    '該區觀察筆記(可在Sheet編輯)',
+    '老師總結評語(可在Sheet編輯)',
+    '賞識印章'
+  ];
+}
+
+/**
+ * Formats vertical checklist rows for all 48 items
+ */
+export function formatLearningChecklistRows(
+  records: LearningRecord[],
+  studentMap: Map<string, Student>,
+  markSymbol: string = 'V'
+): (string | number)[][] {
+  const rows: (string | number)[][] = [];
+  records.forEach((r) => {
+    const s = studentMap.get(r.studentId);
+    const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : '小班');
+
+    CORNER_AREAS.forEach((area) => {
+      const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
+      const note = (r.customNotes && r.customNotes[area.id]) || '';
+
+      area.items.forEach((item) => {
+        const isChecked = checkedList.includes(item);
+        rows.push([
+          r.id,
+          r.studentName,
+          grade,
+          r.className,
+          r.seatNumber,
+          r.dateStart,
+          r.dateEnd,
+          area.name,
+          item,
+          isChecked ? markSymbol : '',
+          note,
+          r.teacherComment || '',
+          r.stamp || ''
+        ]);
+      });
+    });
+  });
+  return rows;
 }
 
 /**
@@ -51,6 +213,7 @@ export async function createKindergartenSpreadsheet(accessToken: string, title: 
     sheets: [
       { properties: { title: 'Students' } },
       { properties: { title: 'LearningRecords' } },
+      { properties: { title: 'LearningChecklist_48Items' } },
       { properties: { title: 'ContactBooks' } },
     ],
   };
@@ -80,17 +243,24 @@ export async function createKindergartenSpreadsheet(accessToken: string, title: 
 }
 
 /**
- * Write headers to the 3 tabs
+ * Write headers to the 4 tabs including expanded 8-area 48-item learning records
  */
 async function initializeSheetHeaders(accessToken: string, spreadsheetId: string) {
+  const learningHeaders = getExpandedLearningHeaders();
+  const checklistHeaders = formatLearningChecklistHeaders();
+
   const values = [
     {
-      range: 'Students!A1:I1',
-      values: [['ID', 'Name', 'SeatNumber', 'ClassName', 'Gender', 'AvatarUrl', 'ParentName', 'ParentContact', 'Notes']],
+      range: 'Students!A1:J1',
+      values: [['ID', 'Name', 'Grade', 'SeatNumber', 'ClassName', 'Gender', 'AvatarUrl', 'ParentName', 'ParentContact', 'Notes']],
     },
     {
-      range: 'LearningRecords!A1:N1',
-      values: [['ID', 'DateStart', 'DateEnd', 'StudentId', 'StudentName', 'ClassName', 'SeatNumber', 'CheckedItemsJSON', 'CustomNotesJSON', 'DrawingImage', 'PhotoImagesJSON', 'TeacherComment', 'Stamp', 'CreatedAt']],
+      range: 'LearningRecords!A1',
+      values: [learningHeaders],
+    },
+    {
+      range: 'LearningChecklist_48Items!A1',
+      values: [checklistHeaders],
     },
     {
       range: 'ContactBooks!A1:Q1',
@@ -112,10 +282,10 @@ async function initializeSheetHeaders(accessToken: string, spreadsheetId: string
 }
 
 /**
- * Fetch all data from Google Sheets
+ * Fetch all data from Google Sheets, including all 48 item columns across 8 corner areas
  */
 export async function loadAllFromSheet(accessToken: string, spreadsheetId: string): Promise<SyncedData> {
-  const ranges = ['Students!A2:I', 'LearningRecords!A2:N', 'ContactBooks!A2:Q'];
+  const ranges = ['Students!A2:J', 'LearningRecords!A1:ZZ', 'ContactBooks!A2:Q'];
   const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&')}`;
 
   const res = await fetch(url, {
@@ -133,7 +303,7 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
   const valueRanges = data.valueRanges || [];
 
   const studentsRowData = valueRanges[0]?.values || [];
-  const learningRowData = valueRanges[1]?.values || [];
+  const rawLearning = valueRanges[1]?.values || [];
   const contactRowData = valueRanges[2]?.values || [];
 
   const students: Student[] = studentsRowData.map((row: string[]) => {
@@ -186,22 +356,157 @@ export async function loadAllFromSheet(accessToken: string, spreadsheetId: strin
     };
   });
 
-  const learningRecords: LearningRecord[] = learningRowData.map((row: string[]) => ({
-    id: row[0] || '',
-    dateStart: row[1] || '',
-    dateEnd: row[2] || '',
-    studentId: row[3] || '',
-    studentName: row[4] || '',
-    className: (row[5] as any) || '大班 (櫻桃班)',
-    seatNumber: row[6] || '',
-    checkedItems: safeJsonParse(row[7], {}),
-    customNotes: safeJsonParse(row[8], {}),
-    drawingImage: row[9] || '',
-    photoImages: safeJsonParse(row[10], []),
-    teacherComment: row[11] || '',
-    stamp: row[12] || '特別優秀',
-    createdAt: row[13] || new Date().toISOString(),
-  }));
+  let learningRecords: LearningRecord[] = [];
+
+  if (rawLearning.length > 1) {
+    const headerRow: string[] = rawLearning[0] || [];
+    const hasExpandedHeaders = headerRow.some((h: string) => h && h.includes('[') && h.includes(']'));
+
+    if (hasExpandedHeaders) {
+      // Dynamic index mapping for all 48 items and 8 notes
+      const itemCols: { colIdx: number; areaId: CornerAreaId; itemName: string }[] = [];
+      const noteCols: { colIdx: number; areaId: CornerAreaId }[] = [];
+
+      headerRow.forEach((colHeader: string, idx: number) => {
+        if (!colHeader) return;
+        CORNER_AREAS.forEach((area) => {
+          if (colHeader.includes(`[${area.name}]`) && colHeader.includes('觀察筆記')) {
+            noteCols.push({ colIdx: idx, areaId: area.id });
+          } else {
+            area.items.forEach((item) => {
+              if (colHeader.includes(`[${area.name}]`) && colHeader.includes(item)) {
+                itemCols.push({ colIdx: idx, areaId: area.id, itemName: item });
+              }
+            });
+          }
+        });
+      });
+
+      const idIdx = headerRow.indexOf('ID');
+      const startIdx = headerRow.indexOf('DateStart');
+      const endIdx = headerRow.indexOf('DateEnd');
+      const studentIdIdx = headerRow.indexOf('StudentId');
+      const studentNameIdx = headerRow.indexOf('StudentName');
+      const classIdx = headerRow.indexOf('ClassName');
+      const seatIdx = headerRow.indexOf('SeatNumber');
+      const commentIdx = headerRow.indexOf('TeacherComment');
+      const stampIdx = headerRow.indexOf('Stamp');
+      const photoIdx = headerRow.indexOf('PhotoImagesJSON');
+      const videoIdx = headerRow.indexOf('VideoUrlsJSON');
+      const checkedJsonIdx = headerRow.indexOf('CheckedItemsJSON');
+      const notesJsonIdx = headerRow.indexOf('CustomNotesJSON');
+      const createdIdx = headerRow.indexOf('CreatedAt');
+
+      for (let r = 1; r < rawLearning.length; r++) {
+        const row = rawLearning[r];
+        if (!row || row.length === 0) continue;
+
+        const checkedItems: Record<CornerAreaId, string[]> = {
+          language: [],
+          watercolor: [],
+          art: [],
+          beads: [],
+          science: [],
+          brain: [],
+          puzzle: [],
+          blocks: [],
+        };
+
+        const customNotes: Record<CornerAreaId, string> = {
+          language: '',
+          watercolor: '',
+          art: '',
+          beads: '',
+          science: '',
+          brain: '',
+          puzzle: '',
+          blocks: '',
+        };
+
+        // Populate items checked by 'V', 'v', '1', '是', '✓' etc.
+        itemCols.forEach(({ colIdx, areaId, itemName }) => {
+          const val = row[colIdx];
+          if (val && (val === 'V' || val === 'v' || val === '1' || val === '是' || val === 'true' || val === 'TRUE' || val === '✓' || val === '✔' || String(val).trim().length > 0)) {
+            if (!checkedItems[areaId].includes(itemName)) {
+              checkedItems[areaId].push(itemName);
+            }
+          }
+        });
+
+        noteCols.forEach(({ colIdx, areaId }) => {
+          const val = row[colIdx];
+          if (val && typeof val === 'string' && val.trim()) {
+            customNotes[areaId] = val.trim();
+          }
+        });
+
+        // Merge from JSON if available and column list was empty
+        if (checkedJsonIdx !== -1 && row[checkedJsonIdx]) {
+          const parsedChecked = safeJsonParse(row[checkedJsonIdx], null);
+          if (parsedChecked) {
+            Object.keys(parsedChecked).forEach((k) => {
+              const aid = k as CornerAreaId;
+              if (checkedItems[aid] && checkedItems[aid].length === 0 && Array.isArray(parsedChecked[aid])) {
+                checkedItems[aid] = parsedChecked[aid];
+              }
+            });
+          }
+        }
+
+        if (notesJsonIdx !== -1 && row[notesJsonIdx]) {
+          const parsedNotes = safeJsonParse(row[notesJsonIdx], null);
+          if (parsedNotes) {
+            Object.keys(parsedNotes).forEach((k) => {
+              const aid = k as CornerAreaId;
+              if (!customNotes[aid] && parsedNotes[aid]) {
+                customNotes[aid] = parsedNotes[aid];
+              }
+            });
+          }
+        }
+
+        learningRecords.push({
+          id: row[idIdx !== -1 ? idIdx : 0] || `rec-${Date.now()}-${r}`,
+          dateStart: row[startIdx !== -1 ? startIdx : 1] || '',
+          dateEnd: row[endIdx !== -1 ? endIdx : 2] || '',
+          studentId: row[studentIdIdx !== -1 ? studentIdIdx : 4] || '',
+          studentName: row[studentNameIdx !== -1 ? studentNameIdx : 5] || '',
+          className: (row[classIdx !== -1 ? classIdx : 7] as any) || '大班 (櫻桃班)',
+          seatNumber: row[seatIdx !== -1 ? seatIdx : 8] || '',
+          checkedItems,
+          customNotes,
+          drawingImage: '',
+          photoImages: photoIdx !== -1 ? safeJsonParse(row[photoIdx], []) : [],
+          videoUrls: videoIdx !== -1 ? safeJsonParse(row[videoIdx], []) : [],
+          teacherComment: row[commentIdx !== -1 ? commentIdx : 11] || '',
+          stamp: row[stampIdx !== -1 ? stampIdx : 12] || '特別優秀',
+          createdAt: row[createdIdx !== -1 ? createdIdx : 13] || new Date().toISOString(),
+        });
+      }
+    } else {
+      // Legacy format
+      for (let r = 1; r < rawLearning.length; r++) {
+        const row = rawLearning[r];
+        if (!row || row.length === 0) continue;
+        learningRecords.push({
+          id: row[0] || '',
+          dateStart: row[1] || '',
+          dateEnd: row[2] || '',
+          studentId: row[3] || '',
+          studentName: row[4] || '',
+          className: (row[5] as any) || '大班 (櫻桃班)',
+          seatNumber: row[6] || '',
+          checkedItems: safeJsonParse(row[7], {}),
+          customNotes: safeJsonParse(row[8], {}),
+          drawingImage: row[9] || '',
+          photoImages: safeJsonParse(row[10], []),
+          teacherComment: row[11] || '',
+          stamp: row[12] || '特別優秀',
+          createdAt: row[13] || new Date().toISOString(),
+        });
+      }
+    }
+  }
 
   const contactBooks: ContactBook[] = contactRowData.map((row: string[]) => ({
     id: row[0] || '',
@@ -308,96 +613,150 @@ export async function uploadPhotoToGoogleDrive(
 }
 
 /**
- * Sync all current state back to Google Sheet (bulk overwrite or append)
+ * Sync all current state back to Google Sheet (bulk overwrite)
+ * Includes all 8 learning corner areas and 48 items expanded into columns with 'V' marks,
+ * plus a vertical LearningChecklist_48Items sheet.
  */
 export async function syncAllToSheet(
   accessToken: string,
   spreadsheetId: string,
   students: Student[],
   learningRecords: LearningRecord[],
-  contactBooks: ContactBook[]
+  contactBooks: ContactBook[],
+  markSymbol: string = 'V'
 ): Promise<void> {
-  const studentValues = students.map(s => [
-    s.id,
-    s.name,
-    s.grade || '',
-    s.seatNumber,
-    s.className,
-    s.gender,
-    s.avatarUrl,
-    s.parentName || '',
-    s.parentContact || '',
-    s.notes || '',
-  ]);
+  const studentMap = new Map<string, Student>();
+  students.forEach((s) => studentMap.set(s.id, s));
 
-  const learningValues = learningRecords.map(r => [
-    r.id,
-    r.dateStart,
-    r.dateEnd,
-    r.studentId,
-    r.studentName,
-    r.className,
-    r.seatNumber,
-    JSON.stringify(r.checkedItems || {}),
-    JSON.stringify(r.customNotes || {}),
-    r.drawingImage || '',
-    JSON.stringify(r.photoImages || []),
-    r.teacherComment || '',
-    r.stamp || '',
-    r.createdAt || new Date().toISOString(),
-  ]);
+  // 1. Students Roster Table
+  const studentHeaders = ['ID', 'Name', 'Grade', 'SeatNumber', 'ClassName', 'Gender', 'AvatarUrl', 'ParentName', 'ParentContact', 'Notes'];
+  const studentValues = [
+    studentHeaders,
+    ...students.map((s) => [
+      s.id,
+      s.name,
+      s.grade || getStudentGrade(s) || '',
+      s.seatNumber,
+      s.className,
+      s.gender,
+      s.avatarUrl,
+      s.parentName || '',
+      s.parentContact || '',
+      s.notes || '',
+    ]),
+  ];
 
-  const contactValues = contactBooks.map(c => [
-    c.id,
-    c.date,
-    c.studentId,
-    c.studentName,
-    c.className,
-    c.seatNumber,
-    c.breakfast,
-    c.lunch,
-    c.snack,
-    c.napMinutes.toString(),
-    c.mood,
-    c.temperature,
-    c.healthNotes,
-    c.teacherMessage,
-    c.parentReply || '',
-    c.isReadByParent ? 'TRUE' : 'FALSE',
-    c.createdAt || new Date().toISOString(),
-  ]);
-
-  // First clear old values A2:Z
-  await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values:batchClear`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      ranges: ['Students!A2:Z', 'LearningRecords!A2:Z', 'ContactBooks!A2:Z'],
+  // 2. Learning Records (8 Areas & ALL 48 Items Expanded)
+  const learningHeaders = getExpandedLearningHeaders();
+  const learningValues = [
+    learningHeaders,
+    ...learningRecords.map((r) => {
+      const s = studentMap.get(r.studentId);
+      const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : '小班');
+      return formatLearningRecordRow(r, grade, markSymbol);
     }),
-  });
+  ];
 
-  // Then write updated values
-  const data = [
-    { range: `Students!A2:I${1 + studentValues.length}`, values: studentValues },
-    { range: `LearningRecords!A2:N${1 + learningValues.length}`, values: learningValues },
-    { range: `ContactBooks!A2:Q${1 + contactValues.length}`, values: contactValues },
-  ].filter(d => d.values.length > 0);
+  // 3. Learning Checklist (Vertical format with 48 items as rows for Google Sheets sorting & filtering)
+  const checklistHeaders = formatLearningChecklistHeaders();
+  const checklistRows = formatLearningChecklistRows(learningRecords, studentMap, markSymbol);
+  const checklistValues = [checklistHeaders, ...checklistRows];
 
-  if (data.length > 0) {
-    await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`, {
+  // 4. Contact Books Table
+  const contactHeaders = ['ID', 'Date', 'StudentId', 'StudentName', 'ClassName', 'SeatNumber', 'Breakfast', 'Lunch', 'Snack', 'NapMinutes', 'Mood', 'Temperature', 'HealthNotes', 'TeacherMessage', 'ParentReply', 'IsReadByParent', 'CreatedAt'];
+  const contactValues = [
+    contactHeaders,
+    ...contactBooks.map((c) => [
+      c.id,
+      c.date,
+      c.studentId,
+      c.studentName,
+      c.className,
+      c.seatNumber,
+      c.breakfast,
+      c.lunch,
+      c.snack,
+      c.napMinutes.toString(),
+      c.mood,
+      c.temperature,
+      c.healthNotes,
+      c.teacherMessage,
+      c.parentReply || '',
+      c.isReadByParent ? 'TRUE' : 'FALSE',
+      c.createdAt || new Date().toISOString(),
+    ]),
+  ];
+
+  // First clear old values across sheets to prevent leftover rows
+  try {
+    await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values:batchClear`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        valueInputOption: 'USER_ENTERED',
-        data,
+        ranges: ['Students!A:Z', 'LearningRecords!A:ZZ', 'LearningChecklist_48Items!A:Z', 'ContactBooks!A:Z'],
       }),
     });
+  } catch (clearErr) {
+    console.warn('Batch clear warning:', clearErr);
+  }
+
+  // Write all updated data tables
+  const data = [
+    { range: 'Students!A1', values: studentValues },
+    { range: 'LearningRecords!A1', values: learningValues },
+    { range: 'LearningChecklist_48Items!A1', values: checklistValues },
+    { range: 'ContactBooks!A1', values: contactValues },
+  ];
+
+  const res = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      valueInputOption: 'USER_ENTERED',
+      data,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`同步寫入 Google Sheet 失敗: ${errText}`);
+  }
+}
+
+/**
+ * Synchronize a single child's observation record into Google Sheet (ID: 1jFe492XljTkDx3A4fLWBX1PEy4J7Q7TffNLQiVlJI6c)
+ * Appends the 48-item expanded row to LearningRecords sheet
+ */
+export async function syncSingleLearningRecordToSheet(
+  accessToken: string,
+  spreadsheetId: string,
+  record: LearningRecord,
+  student?: Student,
+  markSymbol: string = 'V'
+): Promise<void> {
+  const grade = student ? getStudentGrade(student) : (record.className.includes('大') ? '大班' : '中班');
+  const rowData = formatLearningRecordRow(record, grade, markSymbol);
+
+  const res = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values/LearningRecords!A1:append?valueInputOption=USER_ENTERED`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      values: [rowData],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`單筆同步至 Google Sheet 失敗: ${errText}`);
   }
 }
 

@@ -16,6 +16,34 @@ export const CORNER_NAME_MAP: Record<CornerAreaId, string> = {
 };
 
 /**
+ * Metadata for every single item across all 8 corner areas (48 items total)
+ */
+export interface CornerItemMeta {
+  areaId: CornerAreaId;
+  areaName: string;
+  itemName: string;
+  columnHeader: string;
+}
+
+/**
+ * Returns the flat list of all 48 items across the 8 corner areas
+ */
+export function getAllCornerItems(): CornerItemMeta[] {
+  const itemsList: CornerItemMeta[] = [];
+  CORNER_AREAS.forEach((area) => {
+    area.items.forEach((item) => {
+      itemsList.push({
+        areaId: area.id,
+        areaName: area.name,
+        itemName: item,
+        columnHeader: `[${area.name}] ${item}`,
+      });
+    });
+  });
+  return itemsList;
+}
+
+/**
  * Escapes a cell value for CSV format according to RFC 4180
  */
 export function escapeCsvCell(value: string | number | boolean | null | undefined): string {
@@ -25,7 +53,7 @@ export function escapeCsvCell(value: string | number | boolean | null | undefine
   if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
-  return str;
+  return `"${str}"`;
 }
 
 /**
@@ -47,7 +75,9 @@ export function downloadCsv(filename: string, csvContent: string): void {
 }
 
 /**
- * Generate a specialized CSV for the current observation form content
+ * Generate a specialized CSV for the current observation form content.
+ * Explicitly lists ALL 48 items across the 8 areas with check status and notes
+ * so the user can directly edit everything in Google Sheets.
  */
 export function generateCurrentFormObservationCsv(params: {
   student: Student;
@@ -59,6 +89,7 @@ export function generateCurrentFormObservationCsv(params: {
   stamp: string;
   photoImages: string[];
   videoUrls: string[];
+  markSymbol?: string;
 }): string {
   const {
     student,
@@ -70,13 +101,15 @@ export function generateCurrentFormObservationCsv(params: {
     stamp,
     photoImages,
     videoUrls,
+    markSymbol = 'V',
   } = params;
 
   const lines: string[] = [];
 
   // Title Header
-  lines.push('【桃園市私立 愛愛幼兒園 - 角落學習觀察紀錄填寫表單】');
+  lines.push('【桃園市私立 愛愛幼兒園 - 角落學習觀察紀錄填寫表單 (Google Sheet 編輯版)】');
   lines.push(`匯出時間,${escapeCsvCell(new Date().toLocaleString('zh-TW'))}`);
+  lines.push('說明,本表單已將 8 大角落所有 48 項能力指標全部列出，匯入 Google Sheet 後可直接修改打勾 (V)、備註與評語。');
   lines.push('');
 
   // Student Basic Info Table
@@ -107,33 +140,40 @@ export function generateCurrentFormObservationCsv(params: {
 
   lines.push('');
 
-  // Corner Areas Detailed Breakdown Table
-  lines.push('【8 大學習角落觀察能力指標與個別筆記】');
+  // Corner Areas Detailed Breakdown Table - ALL 48 ITEMS LISTED OUT
+  lines.push('【8 大學習角落 48 項能力指標全展開明細表 (可在 Google Sheet 直接修改 V 與筆記)】');
   lines.push([
+    '序號',
     '學習角落區',
-    '英文識別碼',
-    '勾選項目數',
-    '勾選能力指標項目',
-    '角落觀察紀錄與個別筆記'
+    '能力指標項目',
+    '勾選狀態(達成填V/留空未達)',
+    '該區自訂觀察筆記(可在Sheet編輯)'
   ].map(escapeCsvCell).join(','));
 
+  let itemCounter = 1;
   CORNER_AREAS.forEach((area) => {
-    const items = checkedItems[area.id] || [];
+    const areaChecked = checkedItems[area.id] || [];
     const note = customNotes[area.id] || '';
-    lines.push([
-      area.name,
-      area.id,
-      items.length,
-      items.join('； '),
-      note
-    ].map(escapeCsvCell).join(','));
+    area.items.forEach((item, idx) => {
+      const isChecked = areaChecked.includes(item);
+      const markValue = isChecked ? markSymbol : '';
+      // Only display note on the first item of each area, or repeat for clarity
+      const noteDisplay = idx === 0 ? note : (note ? `(同上) ${note}` : '');
+      lines.push([
+        itemCounter++,
+        area.name,
+        item,
+        markValue,
+        noteDisplay
+      ].map(escapeCsvCell).join(','));
+    });
   });
 
   lines.push('');
 
   // Overall Teacher Comment & Praise Stamp
   lines.push('【老師總結評語與賞識鼓勵】');
-  lines.push(['老師評語與學習建議', '賞識鼓勵印章'].map(escapeCsvCell).join(','));
+  lines.push(['老師評語與學習建議 (可在Sheet修改)', '賞識鼓勵印章 (可在Sheet修改)'].map(escapeCsvCell).join(','));
   lines.push([teacherComment, stamp].map(escapeCsvCell).join(','));
 
   lines.push('');
@@ -202,12 +242,14 @@ export function generateStudentsCsv(students: Student[]): string {
 }
 
 /**
- * Convert LearningRecord array to comprehensive CSV string
- * Includes dedicated columns for each of the 8 learning corners
+ * Generate a Vertical Checklist CSV where all 48 items of the 8 corner areas
+ * are each represented as a dedicated row.
+ * In Google Sheet, users can easily sort, filter, and edit marks/notes line by line.
  */
-export function generateLearningRecordsCsv(
+export function generateGoogleSheetsChecklistCsv(
   records: LearningRecord[],
-  students?: Student[]
+  students?: Student[],
+  markSymbol: string = 'V'
 ): string {
   const studentMap = new Map<string, Student>();
   if (students) {
@@ -215,6 +257,78 @@ export function generateLearningRecordsCsv(
   }
 
   const headers = [
+    '紀錄ID',
+    '學生姓名',
+    '年級',
+    '班別',
+    '座號',
+    '觀察開始日期',
+    '觀察結束日期',
+    '學習角落區',
+    '能力指標項目',
+    '勾選狀態(填V或留空)',
+    '該區觀察筆記(可在Sheet編輯)',
+    '老師總結評語(可在Sheet編輯)',
+    '賞識印章'
+  ];
+
+  const rows: (string | number)[][] = [];
+
+  records.forEach((r) => {
+    const s = studentMap.get(r.studentId);
+    const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : '小班');
+
+    CORNER_AREAS.forEach((area) => {
+      const checkedList = (r.checkedItems && r.checkedItems[area.id]) || [];
+      const note = (r.customNotes && r.customNotes[area.id]) || '';
+
+      area.items.forEach((item) => {
+        const isChecked = checkedList.includes(item);
+        rows.push([
+          r.id,
+          r.studentName,
+          grade,
+          r.className,
+          r.seatNumber,
+          r.dateStart,
+          r.dateEnd,
+          area.name,
+          item,
+          isChecked ? markSymbol : '',
+          note,
+          r.teacherComment || '',
+          r.stamp || ''
+        ]);
+      });
+    });
+  });
+
+  const csvLines = [
+    headers.map(escapeCsvCell).join(','),
+    ...rows.map((row) => row.map(escapeCsvCell).join(','))
+  ];
+
+  return csvLines.join('\r\n');
+}
+
+/**
+ * Convert LearningRecord array to Google Sheets Horizontal Wide CSV format.
+ * All 48 items across the 8 corner areas are explicitly expanded into separate columns,
+ * plus dedicated observation notes columns for each of the 8 areas.
+ * In Google Sheet, teachers can directly type "V" or modify notes.
+ */
+export function generateLearningRecordsCsv(
+  records: LearningRecord[],
+  students?: Student[],
+  markSymbol: string = 'V'
+): string {
+  const studentMap = new Map<string, Student>();
+  if (students) {
+    students.forEach((s) => studentMap.set(s.id, s));
+  }
+
+  // Build headers with all 48 items and 8 area notes explicitly expanded
+  const headers: string[] = [
     '紀錄ID',
     '開始日期',
     '結束日期',
@@ -224,22 +338,18 @@ export function generateLearningRecordsCsv(
     '年級',
     '班別',
     '座號',
-    '語文區_勾選能力',
-    '語文區_觀察筆記',
-    '水彩區_勾選能力',
-    '水彩區_觀察筆記',
-    '美勞區_勾選能力',
-    '美勞區_觀察筆記',
-    '拼豆區_勾選能力',
-    '拼豆區_觀察筆記',
-    '科學區_勾選能力',
-    '科學區_觀察筆記',
-    '益智區_勾選能力',
-    '益智區_觀察筆記',
-    '拼圖區_勾選能力',
-    '拼圖區_觀察筆記',
-    '積木區_勾選能力',
-    '積木區_觀察筆記',
+  ];
+
+  // 8 Areas with all 48 items explicitly listed as separate columns
+  CORNER_AREAS.forEach((area) => {
+    area.items.forEach((item) => {
+      headers.push(`[${area.name}] ${item}`);
+    });
+    headers.push(`[${area.name}] 觀察筆記`);
+  });
+
+  // Summary and media headers
+  headers.push(
     '勾選能力指標總數',
     '參與學習角落數',
     '老師總結評語',
@@ -249,44 +359,13 @@ export function generateLearningRecordsCsv(
     '影片總數',
     '活動影片網址',
     '建立時間'
-  ];
+  );
 
   const rows = records.map((r) => {
     const s = studentMap.get(r.studentId);
     const grade = s ? getStudentGrade(s) : (r.className.includes('大') ? '大班' : r.className.includes('中') ? '中班' : r.className.includes('小') ? '小班' : '幼幼班');
 
-    // Extract items & notes per corner
-    const getCornerData = (id: CornerAreaId) => {
-      const items = (r.checkedItems && r.checkedItems[id]) || [];
-      const note = (r.customNotes && r.customNotes[id]) || '';
-      return {
-        itemsStr: items.join('； '),
-        count: items.length,
-        noteStr: note.trim()
-      };
-    };
-
-    const lang = getCornerData('language');
-    const watercolor = getCornerData('watercolor');
-    const art = getCornerData('art');
-    const beads = getCornerData('beads');
-    const sci = getCornerData('science');
-    const brain = getCornerData('brain');
-    const puzzle = getCornerData('puzzle');
-    const blocks = getCornerData('blocks');
-
-    const totalChecked = 
-      lang.count + watercolor.count + art.count + beads.count + 
-      sci.count + brain.count + puzzle.count + blocks.count;
-
-    const activeCornersCount = [
-      lang, watercolor, art, beads, sci, brain, puzzle, blocks
-    ].filter((c) => c.count > 0 || c.noteStr.length > 0).length;
-
-    const photoUrls = r.photoImages || [];
-    const videoUrls = r.videoUrls || [];
-
-    return [
+    const rowData: (string | number)[] = [
       r.id,
       r.dateStart,
       r.dateEnd,
@@ -296,24 +375,40 @@ export function generateLearningRecordsCsv(
       grade,
       r.className,
       r.seatNumber,
-      lang.itemsStr,
-      lang.noteStr,
-      watercolor.itemsStr,
-      watercolor.noteStr,
-      art.itemsStr,
-      art.noteStr,
-      beads.itemsStr,
-      beads.noteStr,
-      sci.itemsStr,
-      sci.noteStr,
-      brain.itemsStr,
-      brain.noteStr,
-      puzzle.itemsStr,
-      puzzle.noteStr,
-      blocks.itemsStr,
-      blocks.noteStr,
-      totalChecked,
-      activeCornersCount,
+    ];
+
+    let totalCheckedCount = 0;
+    let activeCornerCount = 0;
+
+    // Fill all 48 item columns and 8 note columns
+    CORNER_AREAS.forEach((area) => {
+      const areaChecked = (r.checkedItems && r.checkedItems[area.id]) || [];
+      const note = (r.customNotes && r.customNotes[area.id]) || '';
+
+      if (areaChecked.length > 0 || note.trim().length > 0) {
+        activeCornerCount++;
+      }
+
+      area.items.forEach((item) => {
+        if (areaChecked.includes(item)) {
+          rowData.push(markSymbol);
+          totalCheckedCount++;
+        } else {
+          rowData.push('');
+        }
+      });
+
+      // Area custom note column
+      rowData.push(note);
+    });
+
+    const photoUrls = r.photoImages || [];
+    const videoUrls = r.videoUrls || [];
+
+    // Summary data
+    rowData.push(
+      totalCheckedCount,
+      activeCornerCount,
       r.teacherComment || '',
       r.stamp || '',
       photoUrls.length,
@@ -321,7 +416,9 @@ export function generateLearningRecordsCsv(
       videoUrls.length,
       videoUrls.join(' ; '),
       r.createdAt || ''
-    ];
+    );
+
+    return rowData;
   });
 
   const csvLines = [
@@ -330,6 +427,38 @@ export function generateLearningRecordsCsv(
   ];
 
   return csvLines.join('\r\n');
+}
+
+/**
+ * Helper to construct a temporary LearningRecord from current observation form state
+ */
+export function createRecordFromFormState(params: {
+  student: Student;
+  dateStart: string;
+  dateEnd: string;
+  checkedItems: Record<CornerAreaId, string[]>;
+  customNotes: Record<CornerAreaId, string>;
+  teacherComment: string;
+  stamp: string;
+  photoImages: string[];
+  videoUrls: string[];
+}): LearningRecord {
+  return {
+    id: `rec-current-${params.student.id}-${params.dateStart}`,
+    dateStart: params.dateStart,
+    dateEnd: params.dateEnd,
+    studentId: params.student.id,
+    studentName: params.student.name,
+    className: params.student.className,
+    seatNumber: params.student.seatNumber,
+    checkedItems: params.checkedItems,
+    customNotes: params.customNotes,
+    teacherComment: params.teacherComment,
+    stamp: params.stamp,
+    photoImages: params.photoImages,
+    videoUrls: params.videoUrls,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 /**

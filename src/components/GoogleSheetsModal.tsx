@@ -5,7 +5,9 @@ import {
   createKindergartenSpreadsheet, 
   loadAllFromSheet, 
   syncAllToSheet, 
-  findKindergartenSpreadsheet 
+  findKindergartenSpreadsheet,
+  DEFAULT_SPREADSHEET_ID,
+  DEFAULT_SPREADSHEET_URL
 } from '../lib/googleSheets';
 import { 
   X, 
@@ -57,7 +59,24 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     action: () => Promise<void>;
   }>({ show: false, title: '', message: '', action: async () => {} });
 
+  const [editingSheetId, setEditingSheetId] = useState(sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID);
+  const [isEditingId, setIsEditingId] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleApplySheetId = (newId: string) => {
+    const trimmed = newId.trim();
+    if (!trimmed) return;
+    const url = `https://docs.google.com/spreadsheets/d/${trimmed}/edit`;
+    setSheetConfig((prev) => ({
+      ...prev,
+      spreadsheetId: trimmed,
+      spreadsheetUrl: url,
+      isConnected: true,
+    }));
+    setIsEditingId(false);
+    setStatusMsg(`已套用試算表 ID: ${trimmed}`);
+  };
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -260,70 +279,135 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
         {/* Step 2: Spreadsheet Operations */}
         <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 mb-4">
-          <h4 className="text-sm font-bold text-gray-800 mb-2">步驟 2: Google 試算表資料庫管理</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-bold text-gray-800">步驟 2: Google 試算表資料庫管理</h4>
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+              8大區48項指標同步
+            </span>
+          </div>
 
-          {sheetConfig.spreadsheetId ? (
-            <div className="space-y-3">
-              <div className="p-3 bg-white border border-gray-300 rounded-xl text-xs">
-                <div className="font-bold text-gray-800 flex items-center justify-between mb-1">
-                  <span>連線中的試算表：</span>
-                  <a
-                    href={sheetConfig.spreadsheetUrl!}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-emerald-600 hover:underline flex items-center gap-1 font-semibold"
-                  >
-                    前往 Google Sheet 查看 <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-                <div className="text-gray-600 truncate font-mono bg-gray-100 p-1.5 rounded-lg border border-gray-200">
-                  ID: {sheetConfig.spreadsheetId}
-                </div>
-                {sheetConfig.lastSyncedAt && (
-                  <div className="text-[11px] text-gray-500 mt-1">
-                    上次同步時間: {sheetConfig.lastSyncedAt}
+          <div className="space-y-3">
+            <div className="p-3 bg-white border border-gray-300 rounded-xl text-xs space-y-2">
+              <div className="font-bold text-gray-800 flex items-center justify-between">
+                <span>連線中的試算表：</span>
+                <a
+                  href={sheetConfig.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID}/edit`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-600 hover:underline flex items-center gap-1 font-semibold"
+                >
+                  前往 Google Sheet 查看 <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              {isEditingId ? (
+                <div className="space-y-1.5 pt-1 border-t border-gray-100">
+                  <div className="text-[11px] font-bold text-gray-600">設定 Google 試算表 ID：</div>
+                  <input
+                    type="text"
+                    value={editingSheetId}
+                    onChange={(e) => setEditingSheetId(e.target.value)}
+                    placeholder="請輸入 Google Sheet ID"
+                    className="w-full font-mono text-xs p-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApplySheetId(editingSheetId)}
+                      className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                    >
+                      確認套用
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSheetId(DEFAULT_SPREADSHEET_ID);
+                        handleApplySheetId(DEFAULT_SPREADSHEET_ID);
+                      }}
+                      className="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600"
+                    >
+                      使用指定預設 ID
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingId(false)}
+                      className="px-2 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300"
+                    >
+                      取消
+                    </button>
                   </div>
-                )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-lg border border-gray-200">
+                  <div className="truncate font-mono text-[11px] text-gray-700">
+                    ID: {sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSheetId(sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID);
+                        setIsEditingId(true);
+                      }}
+                      className="text-[11px] text-blue-600 hover:underline font-bold px-1"
+                    >
+                      變更
+                    </button>
+                    {(sheetConfig.spreadsheetId !== DEFAULT_SPREADSHEET_ID) && (
+                      <button
+                        type="button"
+                        onClick={() => handleApplySheetId(DEFAULT_SPREADSHEET_ID)}
+                        className="text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-200 font-bold px-1.5 py-0.5 rounded border border-amber-300"
+                      >
+                        重設為預設 ID
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Synchronized Tabs Info */}
+              <div className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-200 text-[11px] text-emerald-900 space-y-1">
+                <div className="font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  已同步工作表結構（支援直接在 Google Sheet 修改內容）：
+                </div>
+                <ul className="list-disc list-inside text-[10.5px] text-emerald-800 pl-1 space-y-0.5">
+                  <li><strong>LearningRecords</strong>：8大角落區48項指標完整橫向展開（含各區專屬筆記與評語）</li>
+                  <li><strong>LearningChecklist_48Items</strong>：48項指標縱向檢核表（方便依角落區篩選與樞紐統計）</li>
+                  <li><strong>Students</strong>：幼生名冊資料表</li>
+                </ul>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={triggerSyncToSheet}
-                  disabled={loading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  同步寫入 Sheet
-                </button>
-
-                <button
-                  type="button"
-                  onClick={triggerLoadFromSheet}
-                  disabled={loading}
-                  className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  從 Sheet 讀取載入
-                </button>
-              </div>
+              {sheetConfig.lastSyncedAt && (
+                <div className="text-[11px] text-gray-500">
+                  上次同步時間: {sheetConfig.lastSyncedAt}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-2">
-              <p className="text-xs text-gray-600 mb-3">
-                您尚未在 Google Drive 中建立幼兒園試算表資料庫，點擊下方即可一鍵自動創建！
-              </p>
+
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={triggerCreateNewSheet}
+                onClick={triggerSyncToSheet}
                 disabled={loading}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 mx-auto shadow-md transition-all transform hover:scale-105"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4" />
-                建立全新 Google Sheet 資料庫
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                同步寫入 Sheet
+              </button>
+
+              <button
+                type="button"
+                onClick={triggerLoadFromSheet}
+                disabled={loading}
+                className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5" />
+                從 Sheet 讀取載入
               </button>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Step 3 / Alternative Option: Export CSV for Google Sheets */}
