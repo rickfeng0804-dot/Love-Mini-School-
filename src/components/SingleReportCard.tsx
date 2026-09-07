@@ -152,7 +152,7 @@ export const SingleReportCard: React.FC<SingleReportCardProps> = ({
       {/* Photo & Video Section */}
       <div className="border-2 border-[#5D4037] mb-3 bg-white rounded-xl overflow-hidden shadow-[3px_3px_0px_#5D4037] print:shadow-none p-2.5 min-h-[140px] flex flex-col">
         <h4 style={{ fontSize: `${infoBarSize}px` }} className="font-black mb-1.5 flex items-center justify-between border-b border-[#5D4037] pb-1 text-[#5D4037]">
-          <span>📷 影像與 🎥 影片紀錄</span>
+          <span>📷 活動與作品照片紀錄{record.videoUrls && record.videoUrls.length > 0 ? ' 與 🎥 影片' : ''}</span>
           {record.videoUrls && record.videoUrls.length > 0 && (
             <span style={{ fontSize: `${Math.max(11, Math.round(fontSize * 0.75))}px` }} className="bg-[#0288D1] text-white font-black px-2 py-0.5 rounded-full">
               {record.videoUrls.length} 支影片

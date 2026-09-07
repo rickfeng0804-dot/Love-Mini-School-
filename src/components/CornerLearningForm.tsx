@@ -43,7 +43,6 @@ import {
   UserCheck,
   User,
   Image as ImageIcon,
-  Video,
   CheckCircle2,
   AlertCircle,
   Filter,
@@ -143,17 +142,21 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [dateStart, setDateStart] = useState<string>('2026-07-27');
   const [dateEnd, setDateEnd] = useState<string>('2026-07-31');
 
-  // Selected Checkboxes per corner area
-  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({
-    language: ['聽覺專注與理解能力', '口語表達與溝通能力'],
-    watercolor: ['手眼協調', '美感與藝術創造'],
-    art: ['精細動作與手眼協調', '創造力與想像力'],
-    beads: ['精細動作與手眼協調', '持續性專注力'],
-    science: ['感官觀察與感知能力', '探究與實驗操作能力'],
-    brain: ['認知與邏輯思維能力'],
-    puzzle: ['手眼協調能力', '視覺辨識能力'],
-    blocks: ['團隊合作', '想像力與創造力'],
-  });
+  // Selected Checkboxes per corner area - 預設每個項目都不打勾
+  const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({});
+
+  // Helper to clear all checked items across all areas
+  const handleClearAllChecks = () => {
+    setCheckedItems({});
+  };
+
+  // Helper to clear checked items for a specific area
+  const handleClearAreaChecks = (areaId: string) => {
+    setCheckedItems((prev) => ({
+      ...prev,
+      [areaId]: [],
+    }));
+  };
 
   // Custom Notes per corner area
   const [customNotes, setCustomNotes] = useState<Record<string, string>>({
@@ -181,7 +184,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [photoImages, setPhotoImages] = useState<string[]>([
     '/kindergarten_campus.svg',
   ]);
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [teacherComment, setTeacherComment] = useState<string>(
     '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
   );
@@ -348,71 +350,6 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     e.target.value = '';
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    (Array.from(files) as File[]).forEach((file) => {
-      if (!file.type.startsWith('video/')) return;
-
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const result = event.target?.result as string;
-        if (!result) return;
-
-        const targetFolder = sheetConfig.mediaFolderUrl || DEFAULT_MEDIA_FOLDER_URL;
-        const targetWebApp = sheetConfig.webAppUrl || DEFAULT_WEB_APP_URL;
-
-        // Add local preview
-        setVideoUrls((prev) => [...prev, result]);
-
-        if (targetWebApp) {
-          setIsUploadingPhoto(true);
-          setSyncStatus({
-            type: 'info',
-            message: `☁️ 正在上傳影片「${file.name}」至 Google Drive 指定資料夾...`,
-          });
-
-          const studentTag = selectedStudent ? `${selectedStudent.className}_${selectedStudent.name}` : '校園紀錄';
-          const fileName = `${studentTag}_${Date.now()}_video.mp4`;
-          const uploadRes = await uploadPhotoToGoogleDrive(
-            targetWebApp,
-            result,
-            fileName,
-            targetFolder,
-            file.type || 'video/mp4'
-          );
-
-          setIsUploadingPhoto(false);
-          if (uploadRes.status === 'success') {
-            setSyncStatus({
-              type: 'success',
-              message: `✅ 影片已成功備份至指定 Google Drive 雲端資料夾！`,
-            });
-            if (uploadRes.downloadUrl) {
-              setVideoUrls((prev) => {
-                const copy = [...prev];
-                const idx = copy.indexOf(result);
-                if (idx !== -1) {
-                  copy[idx] = uploadRes.downloadUrl || result;
-                }
-                return copy;
-              });
-            }
-          } else {
-            setSyncStatus({
-              type: 'info',
-              message: `📹 影片已儲存於本機記錄。`,
-            });
-          }
-          setTimeout(() => setSyncStatus(null), 5000);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
-  };
-
   const handleSubmitRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent) return;
@@ -432,7 +369,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       customNotes,
       drawingImage: '',
       photoImages,
-      videoUrls,
+      videoUrls: [],
       teacherComment,
       stamp,
       createdAt: new Date().toISOString(),
@@ -769,24 +706,49 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       {/* Main Form */}
       <form onSubmit={handleSubmitRecord} className="space-y-6">
         {/* Section Header & Manage Areas Button */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FFF9C4] border-2 border-[#5D4037] rounded-2xl px-4 py-3 shadow-[2px_2px_0px_#5D4037]">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🏷️</span>
-            <span className="text-xs sm:text-sm font-black text-[#5D4037]">
-              學習區觀察指標清單（共 {areas.length} 大區 · {areas.reduce((acc, a) => acc + (a.items?.length || 0), 0)} 項評估指標）
-            </span>
-          </div>
-          {onOpenCornerManager && (
-            <button
-              type="button"
-              onClick={() => onOpenCornerManager()}
-              className="px-3 py-1.5 bg-[#FF8A65] hover:bg-[#FF7043] text-white rounded-xl border border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              <span>動態管理與自訂學習區 / 項目</span>
-            </button>
-          )}
-        </div>
+        {(() => {
+          const totalCheckedCount = (Object.values(checkedItems) as (string[] | undefined)[]).reduce((sum: number, list) => sum + (list?.length || 0), 0);
+          return (
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FFF9C4] border-2 border-[#5D4037] rounded-2xl px-4 py-3 shadow-[2px_2px_0px_#5D4037]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-base">🏷️</span>
+                <span className="text-xs sm:text-sm font-black text-[#5D4037]">
+                  學習區觀察指標清單（共 {areas.length} 大區 · {areas.reduce((acc, a) => acc + (a.items?.length || 0), 0)} 項評估指標）
+                </span>
+                <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
+                  totalCheckedCount > 0
+                    ? 'bg-[#81C784] text-white border-[#2E7D32]'
+                    : 'bg-white/80 text-[#5D4037]/70 border-[#5D4037]/30'
+                }`}>
+                  {totalCheckedCount > 0 ? `已勾選 ${totalCheckedCount} 項` : '預設皆未勾選'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
+                {totalCheckedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllChecks}
+                    className="px-3 py-1.5 bg-white hover:bg-rose-100 text-[#C62828] rounded-xl border border-[#C62828] font-black text-xs shadow-[1px_1px_0px_#C62828] active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                    title="清除所有學習區已勾選項目的勾選狀態"
+                  >
+                    <span>全部取消勾選</span>
+                  </button>
+                )}
+                {onOpenCornerManager && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenCornerManager()}
+                    className="px-3 py-1.5 bg-[#FF8A65] hover:bg-[#FF7043] text-white rounded-xl border border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    <span>動態管理與自訂學習區 / 項目</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Dynamic Corner Learning Areas Grid (2 Columns on Medium Screens, 4 on Large) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -811,7 +773,17 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
+                      {selectedList.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleClearAreaChecks(area.id)}
+                          className="text-[10px] font-bold text-[#C62828] hover:bg-rose-50 px-1.5 py-0.5 rounded border border-dashed border-[#C62828]/50 cursor-pointer"
+                          title="清除本區所有已勾選項目"
+                        >
+                          清除
+                        </button>
+                      )}
                       <span className="text-xs font-black px-2 py-0.5 rounded-full bg-[#FFF9C4] border border-[#5D4037] text-[#5D4037]">
                         {selectedList.length} 項
                       </span>
@@ -888,10 +860,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           })}
         </div>
 
-        {/* Activity Photos & Videos Section */}
+        {/* Activity Photos Section */}
         <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-5 shadow-[6px_6px_0px_#81D4FA] flex flex-col justify-between">
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">📷</span>
                 <div>
@@ -902,131 +874,39 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                  <Camera className="w-3.5 h-3.5" /> 上傳照片
+                <label className="cursor-pointer bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs px-3.5 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1.5 transition-all">
+                  <Camera className="w-4 h-4" /> 上傳照片
                   <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                </label>
-                <label className="cursor-pointer bg-[#7E57C2] hover:bg-[#673AB7] text-white font-black text-xs px-3 py-1.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1 transition-all">
-                  <Video className="w-3.5 h-3.5" /> 上傳影片
-                  <input type="file" accept="video/*" multiple onChange={handleVideoUpload} className="hidden" />
                 </label>
               </div>
             </div>
 
             {isUploadingPhoto && (
-              <div className="bg-[#B3E5FC] text-[#01579B] p-2 rounded-xl border border-[#0288D1] text-xs font-black flex items-center gap-2 mb-3 animate-pulse">
+              <div className="bg-[#B3E5FC] text-[#01579B] p-2.5 rounded-xl border border-[#0288D1] text-xs font-black flex items-center gap-2 mb-3 animate-pulse">
                 <Sparkles className="w-4 h-4 text-[#0288D1]" />
                 <span>☁️ 正在連線同步上傳照片至指定 Google Drive 雲端資料夾...</span>
               </div>
             )}
 
             {/* Photo Gallery Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {photoImages.map((imgUrl, idx) => (
                 <div key={idx} className="relative group aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] bg-white">
                   <img src={imgUrl} alt="活動照片" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setPhotoImages(photoImages.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 bg-[#FF5252] border border-[#5D4037] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black cursor-pointer"
+                    className="absolute top-1.5 right-1.5 bg-[#FF5252] hover:bg-[#D32F2F] border border-[#5D4037] text-white rounded-full p-1 opacity-80 group-hover:opacity-100 transition-opacity text-[10px] font-black cursor-pointer shadow-sm"
+                    title="刪除照片"
                   >
                     ✕
                   </button>
                 </div>
               ))}
             </div>
-
-            {/* Video Section */}
-            <div className="bg-white p-3 rounded-2xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] mt-2.5">
-              <label className="block text-[11px] font-black text-[#5D4037] mb-1 flex items-center gap-1">
-                <Video className="w-3.5 h-3.5 text-[#0288D1]" /> 🎥 活動影片連結 (範例影片試用與線上連結):
-              </label>
-
-              {/* Sample Videos Quick Picker */}
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#5D4037] mb-2 flex-wrap">
-                <span>或快速試用範例影片：</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const demo = 'https://www.w3schools.com/html/mov_bbb.mp4';
-                    if (!videoUrls.includes(demo)) setVideoUrls([...videoUrls, demo]);
-                  }}
-                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
-                >
-                  + 範例影片 1 (建構創作)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const demo2 = 'https://assets.mixkit.co/videos/preview/mixkit-children-drawing-with-colored-pencils-41221-large.mp4';
-                    if (!videoUrls.includes(demo2)) setVideoUrls([...videoUrls, demo2]);
-                  }}
-                  className="bg-[#FFFBF0] hover:bg-[#FFE082] px-2 py-0.5 rounded-lg border border-[#5D4037] cursor-pointer"
-                >
-                  + 範例影片 2 (美勞繪畫)
-                </button>
-              </div>
-
-              {/* Video Preview List */}
-              {videoUrls.length > 0 && (
-                <div className="space-y-2 mt-2 border-t border-dashed border-[#5D4037]/30 pt-2">
-                  <p className="text-[11px] font-black text-[#01579B]">已新增的影片 ({videoUrls.length} 部):</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {videoUrls.map((vUrl, vIdx) => {
-                      const isLocalFileOrDirectMp4 =
-                        vUrl.startsWith('data:video') ||
-                        vUrl.includes('.mp4') ||
-                        vUrl.includes('.mov') ||
-                        vUrl.includes('.webm') ||
-                        vUrl.includes('blob:');
-
-                      return (
-                        <div key={vIdx} className="bg-[#E1F5FE] p-2 rounded-xl border border-[#5D4037] flex flex-col justify-between relative group">
-                          <button
-                            type="button"
-                            onClick={() => setVideoUrls(videoUrls.filter((_, i) => i !== vIdx))}
-                            className="absolute top-1 right-1 bg-[#FF5252] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#5D4037] text-[10px] font-black z-10 cursor-pointer"
-                            title="刪除影片"
-                          >
-                            ✕
-                          </button>
-
-                          {isLocalFileOrDirectMp4 ? (
-                            <div>
-                              <video
-                                src={vUrl}
-                                controls
-                                className="w-full h-28 object-cover rounded-lg border border-[#5D4037] bg-black mb-1"
-                              />
-                              <span className="text-[10px] font-bold text-[#01579B] truncate block">
-                                🎬 影片檔紀錄 #{vIdx + 1}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="p-1">
-                              <span className="text-[11px] font-bold text-[#01579B] break-all block mb-1">
-                                🔗 影片連結:
-                              </span>
-                              <a
-                                href={vUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[10px] text-[#0288D1] font-black underline truncate block max-w-[180px]"
-                              >
-                                {vUrl}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
-          <p className="text-[11px] text-[#5D4037] font-bold mt-2">
-            💡 影片紀錄可直接上傳檔案，未來可一鍵匯出 CSV 至 Google Sheet！
+          <p className="text-[11px] text-[#5D4037] font-bold mt-3">
+            💡 活動照片可直接上傳或拖曳選取，送出時會自動同步備份至指定 Google Drive 雲端資料夾！
           </p>
         </div>
 
