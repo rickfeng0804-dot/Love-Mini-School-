@@ -184,9 +184,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [photoImages, setPhotoImages] = useState<string[]>([
     '/kindergarten_campus.svg',
   ]);
-  const [teacherComment, setTeacherComment] = useState<string>(
-    '孩子在本週角落學習時間表現積極主動，在美勞創作與積木建造中展示出色的專注力與合作精神！'
-  );
+  // 老師總結評語與學習建議 - 預設為空白
+  const [teacherComment, setTeacherComment] = useState<string>('');
   const [stamp, setStamp] = useState<string>('特別優秀');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
