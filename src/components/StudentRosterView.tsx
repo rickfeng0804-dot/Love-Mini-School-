@@ -27,7 +27,6 @@ import {
   Check, 
   X, 
   BookOpen,
-  Download,
   Printer,
   RefreshCw,
   FileSpreadsheet,
@@ -43,7 +42,6 @@ import {
   Filter,
   Layers
 } from 'lucide-react';
-import { generateStudentsCsv, downloadCsv } from '../lib/csvExport';
 
 interface StudentRosterViewProps {
   students: Student[];
@@ -521,15 +519,6 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
             className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
           >
             <Printer className="w-4 h-4" /> 存pdf / 分享
-          </button>
-          <button
-            onClick={() => {
-              const csv = generateStudentsCsv(students);
-              downloadCsv(`愛愛幼兒園_學生名冊_${new Date().toISOString().slice(0, 10)}.csv`, csv);
-            }}
-            className="flex-1 sm:flex-none justify-center bg-[#FFB74D] hover:bg-[#FFA726] text-[#5D4037] font-black text-xs sm:text-sm py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer min-h-[40px]"
-          >
-            <Download className="w-4 h-4" /> 匯出 CSV
           </button>
           <button
             onClick={openAddModal}

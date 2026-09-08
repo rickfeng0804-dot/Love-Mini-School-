@@ -679,8 +679,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {onOpenCornerManager && (
+        {onOpenCornerManager && (
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => onOpenCornerManager()}
@@ -690,18 +690,8 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
               <Settings className="w-4 h-4 text-[#E65100]" />
               <span>自訂評估指標</span>
             </button>
-          )}
-          <button
-            onClick={handlePrintSingle}
-            className="flex-1 sm:flex-none justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-xs py-2.5 px-3.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2 cursor-pointer min-h-[40px]"
-            title={`另存為 A4 PDF 格式檔案或列印（預設檔名：${reportFileName}.pdf）`}
-          >
-            <Printer className="w-4 h-4" /> 存PDF檔案或列印報告
-          </button>
-          <span className="text-[11px] text-[#5D4037]/75 font-mono font-bold hidden md:inline-block bg-[#FFF8E1] px-2.5 py-1 rounded-lg border border-[#5D4037]/20">
-            預設檔名：{reportFileName}.pdf
-          </span>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Learning Corner Distribution Analytics Card (Hidden on Print) */}
@@ -1186,6 +1176,36 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
         <>
           <div id="printable-area">
             <SingleReportCard record={activeRecord} students={students} fontSize={reportFontSize} cornerAreas={areas} />
+          </div>
+
+          {/* 存PDF檔案或列印報告位置移到最下方 (列印時隱藏) */}
+          <div className="print:hidden mt-8 bg-[#FFFDE7] border-4 border-[#5D4037] rounded-[2rem] p-5 sm:p-6 shadow-[6px_6px_0px_#FFD54F] flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5 text-left w-full md:w-auto">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xl">📄</span>
+                <span className="font-black text-[#5D4037] text-base sm:text-lg">
+                  角落學習紀錄報告書（{activeRecord.className} · {activeRecord.studentName}）
+                </span>
+                <span className="text-xs font-mono font-bold bg-[#FFF3E0] text-[#E65100] px-2.5 py-0.5 rounded-lg border border-[#5D4037]/30">
+                  預設檔名：{reportFileName}.pdf
+                </span>
+              </div>
+              <p className="text-xs text-[#5D4037]/80 font-bold">
+                💡 點擊右側按鍵即可啟動列印對話框，目的地請選擇<strong>「另存為 PDF」</strong>，即可將完整 A4 彩色角落學習報告匯出存檔！
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
+              <button
+                type="button"
+                onClick={handlePrintSingle}
+                className="w-full md:w-auto justify-center bg-[#FF8A65] hover:bg-[#FF7043] text-white font-black text-sm sm:text-base py-3 px-6 rounded-full border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
+                title={`另存為 A4 PDF 格式檔案或列印（預設檔名：${reportFileName}.pdf）`}
+              >
+                <Printer className="w-5 h-5" />
+                <span>存PDF檔案或列印報告</span>
+              </button>
+            </div>
           </div>
 
           {/* Hidden Container for Batch Printing All Students with A4 Page Breaks */}

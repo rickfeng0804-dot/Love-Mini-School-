@@ -19,14 +19,12 @@ import {
   AlertTriangle, 
   Lock, 
   Sparkles,
-  Search,
-  Download
+  Search
 } from 'lucide-react';
 
 interface GoogleSheetsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenCsvModal?: () => void;
   sheetConfig: SheetConfig;
   setSheetConfig: React.Dispatch<React.SetStateAction<SheetConfig>>;
   students: Student[];
@@ -40,7 +38,6 @@ interface GoogleSheetsModalProps {
 export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   isOpen,
   onClose,
-  onOpenCsvModal,
   sheetConfig,
   setSheetConfig,
   students,
@@ -408,27 +405,6 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Step 3 / Alternative Option: Export CSV for Google Sheets */}
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h5 className="text-xs font-black text-amber-900 flex items-center gap-1">
-              <Download className="w-3.5 h-3.5 text-amber-600" /> 匯出 CSV 檔 (可在 Google Sheets 匯入)
-            </h5>
-            <p className="text-[11px] text-amber-800 font-medium">支援一鍵將學生名冊與角落學習紀錄匯出成標準 UTF-8 CSV 檔案。</p>
-          </div>
-          {onOpenCsvModal && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenCsvModal();
-              }}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-1.5 px-3 rounded-xl shrink-0 shadow-xs transition-colors"
-            >
-              開啟 CSV 匯出中心
-            </button>
-          )}
         </div>
 
         {/* Footer */}

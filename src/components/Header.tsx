@@ -15,7 +15,6 @@ import {
   AlertCircle, 
   Baby, 
   GraduationCap,
-  Download,
   Layers,
   RefreshCw,
   Type,
@@ -28,7 +27,6 @@ interface HeaderProps {
   setActiveTab: (tab: 'corner-form' | 'learning-report' | 'roster' | 'system-design') => void;
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
-  onOpenCsvModal: () => void;
   onOpenCornerManager?: () => void;
   onInstantSync?: () => void;
   isSyncing?: boolean;
@@ -46,7 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   sheetConfig,
   onOpenSheetModal,
-  onOpenCsvModal,
   onOpenCornerManager,
   onInstantSync,
   isSyncing,
@@ -113,15 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>自訂指標</span>
               </button>
             )}
-
-            {/* CSV Export Button */}
-            <button
-              onClick={onOpenCsvModal}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#FF8A65] hover:bg-[#FF7043] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>匯出 CSV</span>
-            </button>
 
             {/* Google Sheets Status Badge */}
             <button

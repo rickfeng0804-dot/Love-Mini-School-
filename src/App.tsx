@@ -17,7 +17,6 @@ import { LearningReportView } from './components/LearningReportView';
 import { StudentRosterView } from './components/StudentRosterView';
 import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
-import { CsvExportModal } from './components/CsvExportModal';
 import { CornerAreasManagerModal } from './components/CornerAreasManagerModal';
 import { CornerAreaDef } from './types';
 import { getStoredCornerAreas, saveStoredCornerAreas } from './lib/cornerStorage';
@@ -48,7 +47,6 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'roster' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
-  const [showCsvModal, setShowCsvModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
@@ -382,7 +380,6 @@ export default function App() {
           setActiveTab={setActiveTab}
           sheetConfig={sheetConfig}
           onOpenSheetModal={() => setShowSheetModal(true)}
-          onOpenCsvModal={() => setShowCsvModal(true)}
           onOpenCornerManager={() => handleOpenCornerManager()}
           onInstantSync={handleInstantSync}
           isSyncing={isSyncing}
@@ -519,7 +516,6 @@ export default function App() {
       <GoogleSheetsModal
         isOpen={showSheetModal}
         onClose={() => setShowSheetModal(false)}
-        onOpenCsvModal={() => setShowCsvModal(true)}
         sheetConfig={sheetConfig}
         setSheetConfig={setSheetConfig}
         students={students}
@@ -528,15 +524,6 @@ export default function App() {
         setLearningRecords={setLearningRecords}
         contactBooks={contactBooks}
         setContactBooks={setContactBooks}
-      />
-
-      {/* CSV Export Center Modal */}
-      <CsvExportModal
-        isOpen={showCsvModal}
-        onClose={() => setShowCsvModal(false)}
-        students={students}
-        learningRecords={learningRecords}
-        contactBooks={contactBooks}
       />
 
       {/* Dynamic 8 Learning Corner Areas & Indicators Manager Modal */}
