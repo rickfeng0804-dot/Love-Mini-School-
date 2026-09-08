@@ -405,6 +405,7 @@ export default function App() {
               selectedStudentId={selectedStudentId}
               setSelectedStudentId={setSelectedStudentId}
               cornerAreas={cornerAreas}
+              setCornerAreas={setCornerAreas}
               onOpenCornerManager={handleOpenCornerManager}
             />
           )}

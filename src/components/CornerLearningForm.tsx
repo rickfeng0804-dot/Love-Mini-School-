@@ -52,8 +52,10 @@ import {
   RefreshCw,
   Settings,
   Plus,
-  Edit2
+  Edit2,
+  X
 } from 'lucide-react';
+import { saveStoredCornerAreas } from '../lib/cornerStorage';
 
 interface CornerLearningFormProps {
   students: Student[];
@@ -65,6 +67,7 @@ interface CornerLearningFormProps {
   selectedStudentId?: string;
   setSelectedStudentId?: (id: string) => void;
   cornerAreas?: CornerAreaDef[];
+  setCornerAreas?: React.Dispatch<React.SetStateAction<CornerAreaDef[]>>;
   onOpenCornerManager?: (areaId?: string) => void;
 }
 
@@ -90,6 +93,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   selectedStudentId: externalStudentId,
   setSelectedStudentId: setExternalStudentId,
   cornerAreas,
+  setCornerAreas,
   onOpenCornerManager,
 }) => {
   const areas = cornerAreas && cornerAreas.length > 0 ? cornerAreas : CORNER_AREAS;
@@ -192,6 +196,39 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [sheetSyncing, setSheetSyncing] = useState<boolean>(false);
   const [sheetSyncStatus, setSheetSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  // 8 大區名稱讓老師直接修改 state 與處理函數
+  const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
+  const [tempAreaName, setTempAreaName] = useState<string>('');
+
+  const handleStartRenameArea = (areaId: string, currentName: string) => {
+    setEditingAreaId(areaId);
+    setTempAreaName(currentName);
+  };
+
+  const handleSaveRenameArea = (areaId: string) => {
+    const trimmed = tempAreaName.trim();
+    if (!trimmed) {
+      alert('角落區域名稱不能為空！');
+      return;
+    }
+    const updated = areas.map((a) => (a.id === areaId ? { ...a, name: trimmed } : a));
+    if (setCornerAreas) {
+      setCornerAreas(updated);
+    }
+    saveStoredCornerAreas(updated);
+    setEditingAreaId(null);
+    setSyncStatus({
+      type: 'success',
+      message: `✅ 已成功修改角落區域名稱為「${trimmed}」！`,
+    });
+    setTimeout(() => setSyncStatus(null), 3500);
+  };
+
+  const handleCancelRenameArea = () => {
+    setEditingAreaId(null);
+    setTempAreaName('');
+  };
 
   const handleManualSheetSync = async () => {
     setSheetSyncing(true);
@@ -741,7 +778,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     className="px-3 py-1.5 bg-[#FF8A65] hover:bg-[#FF7043] text-white rounded-xl border border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Settings className="w-3.5 h-3.5" />
-                    <span>動態管理與自訂學習區 / 項目</span>
+                    <span>✏️ 修改 8 大區名稱與指標</span>
                   </button>
                 )}
               </div>
@@ -759,20 +796,75 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 className="border-2 border-[#5D4037] rounded-3xl p-4 transition-all bg-white shadow-[4px_4px_0px_#5D4037] hover:shadow-[6px_6px_0px_#5D4037] flex flex-col justify-between"
               >
                 <div>
-                  {/* Card Title */}
+                  {/* Card Title with Direct Inline Renaming */}
                   <div className="flex items-center justify-between pb-2 mb-3 border-b-2 border-dashed border-[#5D4037]/30">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-2xl bg-[#FFE082] border border-[#5D4037] text-[#5D4037]">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 pr-1">
+                      <div className="p-2 rounded-2xl bg-[#FFE082] border border-[#5D4037] text-[#5D4037] shrink-0">
                         {ICON_MAP[area.iconName] || <Sparkles className="w-5 h-5" />}
                       </div>
-                      <div>
-                        <h3 className="font-black text-base text-[#5D4037]">{area.name}</h3>
-                        {area.jpName && (
-                          <span className="text-[10px] font-bold text-[#5D4037]/70 block -mt-0.5">{area.jpName}</span>
-                        )}
-                      </div>
+
+                      {editingAreaId === area.id ? (
+                        <div className="flex items-center gap-1 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={tempAreaName}
+                            onChange={(e) => setTempAreaName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveRenameArea(area.id);
+                              } else if (e.key === 'Escape') {
+                                handleCancelRenameArea();
+                              }
+                            }}
+                            autoFocus
+                            placeholder="區域名稱"
+                            className="w-full min-w-0 bg-[#FFFDE7] border-2 border-[#5D4037] rounded-xl px-2 py-1 text-xs sm:text-sm font-black text-[#5D4037] focus:outline-none shadow-[1px_1px_0px_#5D4037]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveRenameArea(area.id)}
+                            className="p-1 bg-[#4CAF50] hover:bg-[#43A047] text-white rounded-lg border border-[#5D4037] shadow-[1px_1px_0px_#5D4037] cursor-pointer shrink-0"
+                            title="儲存區域名稱"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelRenameArea}
+                            className="p-1 bg-gray-200 hover:bg-gray-300 text-[#5D4037] rounded-lg border border-[#5D4037] shadow-[1px_1px_0px_#5D4037] cursor-pointer shrink-0"
+                            title="取消"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 group/title">
+                            <h3
+                              className="font-black text-sm sm:text-base text-[#5D4037] truncate cursor-pointer hover:text-[#E65100] transition-colors"
+                              onClick={() => handleStartRenameArea(area.id, area.name)}
+                              title="點擊即可直接修改區域名稱"
+                            >
+                              {area.name}
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => handleStartRenameArea(area.id, area.name)}
+                              className="p-1 rounded-md text-[#5D4037]/50 hover:text-[#E65100] hover:bg-[#FFF9C4] transition-all cursor-pointer shrink-0"
+                              title="點擊修改區域名稱"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {area.jpName && (
+                            <span className="text-[10px] font-bold text-[#5D4037]/70 block -mt-0.5 truncate">{area.jpName}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5">
+
+                    <div className="flex items-center gap-1 shrink-0">
                       {selectedList.length > 0 && (
                         <button
                           type="button"
@@ -791,9 +883,9 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                           type="button"
                           onClick={() => onOpenCornerManager(area.id)}
                           className="p-1 rounded-lg hover:bg-[#FFE082] text-[#5D4037] border border-transparent hover:border-[#5D4037] transition-all cursor-pointer"
-                          title={`修改「${area.name}」的評估指標`}
+                          title={`進入管理彈窗修改「${area.name}」的評估指標與名稱`}
                         >
-                          <Edit2 className="w-3.5 h-3.5 text-[#5D4037]" />
+                          <Settings className="w-3.5 h-3.5 text-[#5D4037]" />
                         </button>
                       )}
                     </div>

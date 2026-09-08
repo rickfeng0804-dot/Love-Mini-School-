@@ -402,7 +402,7 @@ export const CornerAreasManagerModal: React.FC<CornerAreasManagerModalProps> = (
                             type="text"
                             value={editingAreaName}
                             onChange={(e) => setEditingAreaName(e.target.value)}
-                            className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-sm font-black text-[#5D4037] focus:outline-none"
+                            className="bg-white border-2 border-[#5D4037] rounded-xl px-2.5 py-1 text-sm font-black text-[#5D4037] focus:outline-none shadow-[2px_2px_0px_#5D4037]"
                             placeholder="角落區域名稱"
                             autoFocus
                             onKeyDown={(e) => {
@@ -411,32 +411,45 @@ export const CornerAreasManagerModal: React.FC<CornerAreasManagerModalProps> = (
                             }}
                           />
                           <button
+                            type="button"
                             onClick={handleSaveAreaName}
-                            className="p-1.5 bg-[#4CAF50] text-white rounded-xl border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037] hover:bg-[#43A047]"
+                            className="px-2.5 py-1 bg-[#4CAF50] text-white text-xs font-black rounded-xl border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037] hover:bg-[#43A047] flex items-center gap-1 cursor-pointer"
                           >
-                            <Check className="w-4 h-4" />
+                            <Check className="w-3.5 h-3.5" />
+                            <span>儲存</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => setIsEditingAreaName(false)}
-                            className="p-1.5 bg-gray-200 text-[#5D4037] rounded-xl border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037] hover:bg-gray-300"
+                            className="px-2 py-1 bg-gray-200 text-[#5D4037] text-xs font-black rounded-xl border-2 border-[#5D4037] shadow-[1px_1px_0px_#5D4037] hover:bg-gray-300 flex items-center gap-1 cursor-pointer"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
+                            <span>取消</span>
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <h3 className="text-base sm:text-lg font-black text-[#5D4037]">
+                          <h3
+                            className="text-base sm:text-lg font-black text-[#5D4037] cursor-pointer hover:text-[#E65100] transition-colors"
+                            onClick={() => {
+                              setEditingAreaName(currentArea.name);
+                              setIsEditingAreaName(true);
+                            }}
+                            title="點擊直接修改此區域名稱"
+                          >
                             {currentArea.name}
                           </h3>
                           <button
+                            type="button"
                             onClick={() => {
                               setEditingAreaName(currentArea.name);
                               setIsEditingAreaName(true);
                             }}
                             title="修改區域名稱"
-                            className="p-1 rounded-lg border border-[#5D4037]/30 hover:border-[#5D4037] hover:bg-white text-[#5D4037]/70 hover:text-[#5D4037] transition-all cursor-pointer"
+                            className="px-2 py-0.5 rounded-lg bg-white border border-[#5D4037] shadow-[1px_1px_0px_#5D4037] hover:bg-[#FFE082] text-[#5D4037] font-black text-xs flex items-center gap-1 transition-all cursor-pointer"
                           >
-                            <Edit2 className="w-3 h-3" />
+                            <Edit2 className="w-3 h-3 text-[#E65100]" />
+                            <span>修改區名</span>
                           </button>
                         </div>
                       )}
