@@ -621,7 +621,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
           </div>
 
           {studentRecords.length > 0 && (
-            <div className="flex-1 sm:flex-none min-w-[200px]">
+            <div className="w-full sm:w-auto sm:flex-1 min-w-0 sm:min-w-[200px]">
               <label className="block text-xs font-black text-[#5D4037] mb-1">紀錄週次區間:</label>
               <select
                 value={activeRecord?.id || ''}

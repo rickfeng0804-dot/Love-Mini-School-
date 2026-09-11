@@ -56,6 +56,7 @@ import {
   X
 } from 'lucide-react';
 import { saveStoredCornerAreas } from '../lib/cornerStorage';
+import { getCurrentWeekRange, getShiftedWeekRange } from '../lib/dateUtils';
 
 interface CornerLearningFormProps {
   students: Student[];
@@ -143,8 +144,8 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
       }
     }
   }, [formGradeFilter, formClassFilter, students]);
-  const [dateStart, setDateStart] = useState<string>('2026-07-27');
-  const [dateEnd, setDateEnd] = useState<string>('2026-07-31');
+  const [dateStart, setDateStart] = useState<string>(() => getCurrentWeekRange().dateStart);
+  const [dateEnd, setDateEnd] = useState<string>(() => getCurrentWeekRange().dateEnd);
 
   // Selected Checkboxes per corner area - 預設每個項目都不打勾
   const [checkedItems, setCheckedItems] = useState<Record<string, string[]>>({});
@@ -608,7 +609,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
           </div>
 
           {/* Student & Date Picker Selector Card */}
-          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto space-y-3">
+          <div className="bg-white p-4 rounded-2xl border-2 border-[#5D4037] shadow-[4px_4px_0px_#5D4037] w-full md:w-auto lg:min-w-[520px] space-y-3">
             {/* Grade & Class Filter Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b border-[#5D4037]/20">
               <div className="flex items-center gap-1.5">
@@ -693,24 +694,73 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[#5D4037] mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-[#FF8A65]" /> 紀錄週次區間:
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="date"
-                    value={dateStart}
-                    onChange={(e) => setDateStart(e.target.value)}
-                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1.5 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
-                  />
-                  <span>-</span>
-                  <input
-                    type="date"
-                    value={dateEnd}
-                    onChange={(e) => setDateEnd(e.target.value)}
-                    className="bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 py-1.5 text-xs w-full shadow-[2px_2px_0px_#5D4037]"
-                  />
+              <div className="w-full min-w-0">
+                <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+                  <label className="text-[#5D4037] font-black flex items-center gap-1 text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-[#FF8A65]" />
+                    <span>紀錄週次區間</span>
+                    <span className="text-[10px] text-[#5D4037]/70 font-normal hidden sm:inline">(週一至週五)</span>
+                  </label>
+                  <div className="flex items-center bg-[#FFF8E1] border-2 border-[#5D4037] rounded-xl overflow-hidden shadow-[1px_1px_0px_#5D4037] shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prev = getShiftedWeekRange(dateStart, -1);
+                        setDateStart(prev.dateStart);
+                        setDateEnd(prev.dateEnd);
+                      }}
+                      className="px-2 py-1 hover:bg-[#FFE082] text-[#5D4037] font-black text-[10px] sm:text-[11px] active:scale-95 transition-all cursor-pointer"
+                      title="切換至上一週（週一至週五）"
+                    >
+                      ◀ 上週
+                    </button>
+                    <span className="w-px h-3 bg-[#5D4037]/30" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = getCurrentWeekRange();
+                        setDateStart(cur.dateStart);
+                        setDateEnd(cur.dateEnd);
+                      }}
+                      className="px-2 py-1 hover:bg-[#FFE082] text-[#E65100] font-black text-[10px] sm:text-[11px] active:scale-95 transition-all cursor-pointer"
+                      title="重設回當週日期（週一至週五）"
+                    >
+                      本週
+                    </button>
+                    <span className="w-px h-3 bg-[#5D4037]/30" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = getShiftedWeekRange(dateStart, 1);
+                        setDateStart(next.dateStart);
+                        setDateEnd(next.dateEnd);
+                      }}
+                      className="px-2 py-1 hover:bg-[#FFE082] text-[#5D4037] font-black text-[10px] sm:text-[11px] active:scale-95 transition-all cursor-pointer"
+                      title="切換至下一週（週一至週五）"
+                    >
+                      下週 ▶
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <input
+                      type="date"
+                      value={dateStart}
+                      onChange={(e) => setDateStart(e.target.value)}
+                      className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 sm:px-3 py-1.5 min-h-[36px] text-xs font-mono font-bold text-[#5D4037] shadow-[2px_2px_0px_#5D4037] focus:outline-none min-w-0"
+                    />
+                  </div>
+                  <span className="font-black text-[#5D4037] text-xs shrink-0 px-0.5">至</span>
+                  <div className="relative flex-1 min-w-0">
+                    <input
+                      type="date"
+                      value={dateEnd}
+                      onChange={(e) => setDateEnd(e.target.value)}
+                      className="w-full bg-[#FFFBF0] border-2 border-[#5D4037] rounded-xl px-2 sm:px-3 py-1.5 min-h-[36px] text-xs font-mono font-bold text-[#5D4037] shadow-[2px_2px_0px_#5D4037] focus:outline-none min-w-0"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
