@@ -20,10 +20,8 @@ import {
   Type,
   Filter,
   Settings,
-  Download,
   Target
 } from 'lucide-react';
-import { exportCornerAreasIndicatorsCsv } from '../lib/csvExport';
 
 interface HeaderProps {
   activeTab: 'corner-form' | 'learning-report' | 'roster' | 'corner-indicators' | 'system-design';
@@ -113,17 +111,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>自訂指標</span>
               </button>
             )}
-
-            {/* Export 8 Areas Indicators CSV Button */}
-            <button
-              onClick={() => exportCornerAreasIndicatorsCsv()}
-              title="匯出八大區 48 項能力評估指標 CSV 試算表檔案"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5 text-[#2E7D32]" />
-              <span className="hidden sm:inline">匯出 48 項指標 (CSV)</span>
-              <span className="sm:hidden">匯出指標</span>
-            </button>
 
             {/* Google Sheets Status Badge */}
             <button

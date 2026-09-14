@@ -11,7 +11,6 @@ import {
   X,
   ArrowUp,
   ArrowDown,
-  Download,
   ExternalLink,
   Code2,
   Copy,
@@ -34,7 +33,6 @@ import {
 import confetti from 'canvas-confetti';
 import { CornerAreaDef, SheetConfig } from '../types';
 import { getStoredCornerAreas, saveStoredCornerAreas, resetStoredCornerAreas } from '../lib/cornerStorage';
-import { exportCornerAreasIndicatorsCsv } from '../lib/csvExport';
 import {
   DEFAULT_SPREADSHEET_ID,
   DEFAULT_SPREADSHEET_URL,
@@ -431,21 +429,6 @@ export const CornerIndicatorsView: React.FC<CornerIndicatorsViewProps> = ({
             >
               <Cloud className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? '同步中...' : '☁️ 同步至 Google Sheet'}</span>
-            </button>
-
-            <button
-              id="export-indicators-csv-page-btn"
-              type="button"
-              onClick={() => {
-                exportCornerAreasIndicatorsCsv(localAreas);
-                showStatus('success', `已成功匯出 8 大區 ${currentTotalItems} 項指標 CSV！`);
-              }}
-              className="px-3.5 py-2 bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] rounded-2xl border-2 border-[#5D4037] font-black text-xs sm:text-sm shadow-[3px_3px_0px_#5D4037] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
-              title="匯出 8 大區 48 項指標 CSV 試算表"
-            >
-              <Download className="w-4 h-4 text-[#2E7D32]" />
-              <span className="hidden sm:inline">匯出 CSV</span>
-              <span className="sm:hidden">CSV</span>
             </button>
 
             <button
@@ -1031,18 +1014,6 @@ export const CornerIndicatorsView: React.FC<CornerIndicatorsViewProps> = ({
                 一覽全園八大角落學習區能力規劃，支援點擊任一區快速切換至編輯器調整
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                exportCornerAreasIndicatorsCsv(localAreas);
-                showStatus('success', `已成功匯出 8 大區 ${currentTotalItems} 項指標 CSV！`);
-              }}
-              className="px-3.5 py-2 bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] rounded-2xl border-2 border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] flex items-center gap-1.5 cursor-pointer shrink-0"
-            >
-              <Download className="w-4 h-4 text-[#2E7D32]" />
-              <span>匯出 48 項指標 (CSV)</span>
-            </button>
           </div>
 
           {/* 8 Areas Bento Grid */}

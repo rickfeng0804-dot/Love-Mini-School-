@@ -19,11 +19,9 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  Download,
 } from 'lucide-react';
 import { CornerAreaDef } from '../types';
 import { getStoredCornerAreas, saveStoredCornerAreas, resetStoredCornerAreas } from '../lib/cornerStorage';
-import { exportCornerAreasIndicatorsCsv } from '../lib/csvExport';
 
 interface CornerAreasManagerModalProps {
   isOpen: boolean;
@@ -301,19 +299,6 @@ export const CornerAreasManagerModal: React.FC<CornerAreasManagerModalProps> = (
 
           <div className="flex items-center gap-2">
             <button
-              id="export-corner-areas-csv-btn"
-              onClick={() => {
-                exportCornerAreasIndicatorsCsv(activeAreas);
-                showToast(`已成功匯出 8 大區 ${totalItemsCount} 項評估指標 CSV！`);
-              }}
-              title="將 8 大區所有評估指標匯出為 CSV 試算表檔案"
-              className="px-3 py-1.5 rounded-xl border-2 border-[#5D4037] bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] text-xs font-black shadow-[2px_2px_0px_#5D4037] active:translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-[#2E7D32]" />
-              <span className="hidden sm:inline">匯出 48 項指標 (CSV)</span>
-              <span className="sm:hidden">匯出 CSV</span>
-            </button>
-            <button
               id="reset-corner-areas-btn"
               onClick={handleResetToDefault}
               title="一鍵恢復為預設 8 大區指標"
@@ -398,21 +383,6 @@ export const CornerAreasManagerModal: React.FC<CornerAreasManagerModalProps> = (
                 </button>
               );
             })}
-
-            <div className="pt-2 border-t border-[#5D4037]/20">
-              <button
-                type="button"
-                onClick={() => {
-                  exportCornerAreasIndicatorsCsv(activeAreas);
-                  showToast(`已成功匯出 8 大區 ${totalItemsCount} 項評估指標 CSV！`);
-                }}
-                className="w-full py-2 px-2.5 rounded-xl border-2 border-[#5D4037] bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] text-xs font-black shadow-[2px_2px_0px_#5D4037] active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                title="將 8 大區所有評估指標匯出為 CSV 試算表"
-              >
-                <Download className="w-3.5 h-3.5 text-[#2E7D32]" />
-                <span>匯出 8 大區指標 CSV</span>
-              </button>
-            </div>
           </div>
 
           {/* Right Column: Items of Selected Corner Area */}
