@@ -10,7 +10,8 @@ export const DEFAULT_SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/$
 
 export const DEFAULT_STUDENT_LIBRARY_URL = 'https://script.google.com/macros/library/d/1zxsAWe1a9DBr8oIZtY4vXXq-VVsnmA2fxvUq4XJc6CgmIPyRshanJVxh/2';
 export const DEFAULT_STUDENT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwj9uSMKO1_Me0A1H3G3AuMnAaEg3cehrGlgXnv4hDczdbf_wh16bp7jnYBCMp02eON/exec';
-export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5/exec';
+export const DEFAULT_LEARNING_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuNxA5W3i59Cgdad84UJgwqPN4HImKnjr3X-tLI3i2SvmJngxc5Ot2AE7bJ2E9O9Hlkw/exec';
+export const DEFAULT_INDICATORS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuNxA5W3i59Cgdad84UJgwqPN4HImKnjr3X-tLI3i2SvmJngxc5Ot2AE7bJ2E9O9Hlkw/exec';
 export const DEFAULT_CONTACT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwviyCk9O501BzbbTZH1JzSLLiuT7CFCIrK8Y5stg546T-z0I7BGtPjo8OS0w9gN2Nw8g/exec';
 export const DEFAULT_MEDIA_FOLDER_URL = 'https://drive.google.com/drive/folders/1HmKXkl-xbLMaaCq663RMRINAsdavttJp?usp=drive_link';
 export const DEFAULT_NAS_STORAGE_URL = 'https://llk-nas.quickconnect.to/d/s/19gzQx1DuMJbQbtNaWeRVaxUAqcUrtCX/ct9etCC8-qwn8ehO52880kb6gRugFamQ-RbTA_sIIeA0';
@@ -765,6 +766,99 @@ export async function syncSingleLearningRecordToSheet(
   }
 }
 
+/**
+ * Synchronize 8 Corner Areas and 48 Assessment Indicators to a dedicated CornerIndicators sheet
+ * and update the header row of LearningRecords to align with custom indicator names.
+ */
+export async function syncCornerAreasToSheet(
+  accessToken: string,
+  spreadsheetId: string,
+  areas: CornerAreaDef[]
+): Promise<void> {
+  const headers = [
+    '總項次',
+    '學習區序號',
+    '學習區名稱',
+    '英文代碼',
+    '區內指標序號',
+    '評估能力指標項目',
+    '完整指標識別標籤',
+    '最後更新時間',
+  ];
+
+  const nowStr = new Date().toLocaleString('zh-TW');
+  const rows: (string | number)[][] = [headers];
+  let globalIndex = 1;
+
+  areas.forEach((area, areaIdx) => {
+    area.items.forEach((item, itemIdx) => {
+      rows.push([
+        globalIndex++,
+        `第 ${areaIdx + 1} 區`,
+        area.name,
+        area.id,
+        `指標 ${itemIdx + 1}`,
+        item,
+        `[${area.name}] ${itemIdx + 1}. ${item}`,
+        nowStr,
+      ]);
+    });
+  });
+
+  // 1. Clear existing CornerIndicators sheet
+  try {
+    await fetch(`${SHEETS_API_BASE}/${spreadsheetId}/values/CornerIndicators!A:Z:clear`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (clearErr) {
+    console.warn('CornerIndicators clear warning:', clearErr);
+  }
+
+  // 2. Write rows to CornerIndicators!A1
+  const res = await fetch(
+    `${SHEETS_API_BASE}/${spreadsheetId}/values/CornerIndicators!A1?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        values: rows,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`同步至 CornerIndicators 工作表失敗: ${errText}`);
+  }
+
+  // 3. Update LearningRecords headers so they align with current area and item names
+  try {
+    const learningHeaders = getExpandedLearningHeaders();
+    await fetch(
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/LearningRecords!A1:ZZ1?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: [learningHeaders],
+        }),
+      }
+    );
+  } catch (hdrErr) {
+    console.warn('Update LearningRecords headers warning:', hdrErr);
+  }
+}
+
 export const LEARNING_CORNER_APPS_SCRIPT_CODE = `/**
  * 愛愛幼兒園 - 角落學習區紀錄專用 Google Sheets Apps Script 程式碼
  * 
@@ -860,6 +954,92 @@ function doPost(e) {
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // 八大角落學習區與 48 項指標寫入及表頭同步功能
+    if (contents.action === "syncCornerIndicators" || contents.cornerAreas || contents.areas) {
+      var areas = contents.cornerAreas || contents.areas;
+      var cSheet = ss.getSheetByName("CornerIndicators") || ss.getSheetByName("八大區評估指標");
+      if (!cSheet) {
+        cSheet = ss.insertSheet("CornerIndicators");
+      }
+      cSheet.clear();
+
+      var indHeaders = contents.headers || ["總項次", "學習區序號", "學習區名稱", "英文代碼", "區內指標序號", "評估能力指標項目", "完整指標識別標籤", "最後更新時間"];
+      var indRows = contents.indicatorRows || [];
+      var nowStr = Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd HH:mm:ss");
+
+      if (!indRows || indRows.length === 0) {
+        var gIdx = 1;
+        indRows = [];
+        for (var a = 0; a < areas.length; a++) {
+          var area = areas[a];
+          for (var it = 0; it < area.items.length; it++) {
+            indRows.push([
+              gIdx++,
+              "第 " + (a + 1) + " 區",
+              area.name,
+              area.id,
+              "指標 " + (it + 1),
+              area.items[it],
+              "[" + area.name + "] " + (it + 1) + ". " + area.items[it],
+              nowStr
+            ]);
+          }
+        }
+      }
+
+      cSheet.appendRow(indHeaders);
+      if (indRows.length > 0) {
+        cSheet.getRange(2, 1, indRows.length, indHeaders.length).setValues(indRows);
+      }
+
+      cSheet.getRange(1, 1, 1, indHeaders.length)
+        .setBackground("#5D4037")
+        .setFontColor("#FFFFFF")
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center");
+      cSheet.setFrozenRows(1);
+      cSheet.autoResizeColumns(1, indHeaders.length);
+
+      // 同步更新 LearningRecords 表頭
+      var recSheet = ss.getSheetByName("LearningRecords") || ss.getSheetByName("角落學習紀錄");
+      if (!recSheet) {
+        recSheet = ss.insertSheet("LearningRecords");
+      }
+      var fullHeaders = contents.learningHeaders;
+      if (!fullHeaders || !Array.isArray(fullHeaders) || fullHeaders.length === 0) {
+        var baseHeaders = ["ID", "DateStart", "DateEnd", "WeekRange", "StudentId", "StudentName", "Grade", "ClassName", "SeatNumber"];
+        var areaHeaders = [];
+        for (var i = 0; i < areas.length; i++) {
+          var areaObj = areas[i];
+          for (var j = 0; j < areaObj.items.length; j++) {
+            areaHeaders.push("[" + areaObj.name + "] " + areaObj.items[j]);
+          }
+          areaHeaders.push("[" + areaObj.name + "] 觀察筆記");
+        }
+        var tailHeaders = ["TotalChecked", "ActiveAreasCount", "TeacherComment", "Stamp", "PhotoImagesJSON", "VideoUrlsJSON", "CheckedItemsJSON", "CustomNotesJSON", "CreatedAt"];
+        fullHeaders = baseHeaders.concat(areaHeaders).concat(tailHeaders);
+      }
+
+      var lastCol = recSheet.getLastColumn();
+      if (lastCol > fullHeaders.length) {
+        recSheet.getRange(1, fullHeaders.length + 1, 1, lastCol - fullHeaders.length).clearContent();
+      }
+      recSheet.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+      recSheet.getRange(1, 1, 1, fullHeaders.length)
+        .setBackground("#3E2723")
+        .setFontColor("#FFFFFF")
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center");
+      recSheet.setFrozenRows(1);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "八大區共 " + indRows.length + " 項指標已寫入 Google Sheet「CornerIndicators」，且「LearningRecords」表頭完全同步！",
+        updatedAt: nowStr
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var sheet = ss.getSheetByName("LearningRecords") || ss.getSheetByName("角落學習紀錄");
     
     if (!sheet) {
@@ -1066,6 +1246,197 @@ function doPost(e) {
 }
 `;
 
+export const CORNER_INDICATORS_APPS_SCRIPT_CODE = `/**
+ * 桃園市私立 愛愛幼兒園 - 八大角落學習區與 48 項能力評估指標專用 Google Apps Script
+ * 
+ * 功能亮點：
+ * 1. 自動建立並同步「CornerIndicators」(八大區評估指標總表) 工作表
+ * 2. 支援 doGet 讀取試算表中的最新 8 大區指標設定為 JSON
+ * 3. 支援 doPost 接收系統前端修改後的 8 大區名稱與 48 項指標，自動寫入並排版 Google Sheet
+ * 4. 自動同步更新「LearningRecords」(角落學習紀錄) 的表頭指標欄位，確保資料紀錄無縫對齊！
+ * 
+ * 部署設定指南：
+ * 1. 開啟您的 Google 試算表 ➔ 點選選單「擴充功能」 ➔ 「Apps Script」
+ * 2. 清空現有程式碼，將本檔案內容完整貼上至「程式碼.gs」
+ * 3. 點選右上角「部署」 ➔ 「新增部署」
+ * 4. 種類選擇「網頁應用程式 (Web App)」
+ * 5. 說明填寫：「八大區指標雙向同步服務」
+ * 6. 執行身分選擇：「我 (Me)」
+ * 7. 存取權限設定為：「所有人 (Anyone)」(重要！確保前端免登入即可背景寫入與讀取)
+ * 8. 點選「部署」，依瀏覽器指示授予試算表存取權限
+ * 9. 複製產生的「網頁應用程式網址 (Web App URL)」，貼回幼兒園系統「8大區評估指標」頁面即可完成雙向連線！
+ */
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("CornerIndicators") || ss.getSheetByName("八大區評估指標");
+  
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "尚未建立 CornerIndicators 工作表，可由幼兒園管理頁面一鍵同步建立！",
+      cornerAreas: []
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", cornerAreas: [] }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Headers: [總項次, 學習區序號, 學習區名稱, 英文代碼, 區內指標序號, 評估能力指標項目, 完整指標識別標籤, 最後更新時間]
+  var areasMap = {};
+  var areasList = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var areaName = String(data[i][2] || "").trim();
+    var areaId = String(data[i][3] || "").trim();
+    var itemName = String(data[i][5] || "").trim();
+    if (!areaName || !itemName) continue;
+    
+    if (!areasMap[areaId]) {
+      areasMap[areaId] = {
+        id: areaId,
+        name: areaName,
+        iconName: "Sparkles",
+        color: "#FFF9C4",
+        badgeColor: "#F57F17",
+        items: []
+      };
+      areasList.push(areasMap[areaId]);
+    }
+    areasMap[areaId].items.push(itemName);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    totalAreas: areasList.length,
+    cornerAreas: areasList,
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var contents;
+    if (e && e.parameter && e.parameter.payload) {
+      contents = JSON.parse(e.parameter.payload);
+    } else if (e && e.postData && e.postData.contents) {
+      contents = JSON.parse(e.postData.contents);
+    } else {
+      contents = {};
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var areas = contents.cornerAreas || contents.areas;
+
+    if (areas && Array.isArray(areas) && areas.length > 0) {
+      // 1. 建立或更新 CornerIndicators 工作表
+      var sheet = ss.getSheetByName("CornerIndicators") || ss.getSheetByName("八大區評估指標");
+      if (!sheet) {
+        sheet = ss.insertSheet("CornerIndicators");
+      }
+      sheet.clear();
+      
+      // 設定標題列與行資料
+      var headers = contents.headers || ["總項次", "學習區序號", "學習區名稱", "英文代碼", "區內指標序號", "評估能力指標項目", "完整指標識別標籤", "最後更新時間"];
+      var rows = contents.indicatorRows || [];
+      var nowStr = Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd HH:mm:ss");
+      
+      if (!rows || rows.length === 0) {
+        var globalIdx = 1;
+        rows = [];
+        for (var a = 0; a < areas.length; a++) {
+          var area = areas[a];
+          for (var it = 0; it < area.items.length; it++) {
+            rows.push([
+              globalIdx++,
+              "第 " + (a + 1) + " 區",
+              area.name,
+              area.id,
+              "指標 " + (it + 1),
+              area.items[it],
+              "[" + area.name + "] " + (it + 1) + ". " + area.items[it],
+              nowStr
+            ]);
+          }
+        }
+      }
+      
+      sheet.appendRow(headers);
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+      }
+      
+      // 試算表樣式美化
+      sheet.getRange(1, 1, 1, headers.length)
+        .setBackground("#5D4037")
+        .setFontColor("#FFFFFF")
+        .setFontWeight("bold")
+        .setHorizontalAlignment("center");
+      sheet.setFrozenRows(1);
+      sheet.autoResizeColumns(1, headers.length);
+      
+      // 2. 同步建立或更新 LearningRecords (角落學習紀錄) 工作表之 48 項欄位名稱，保持 100% 完全同步
+      updateLearningRecordsHeaders(ss, areas, contents.learningHeaders);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "八大區共 " + rows.length + " 項評估指標已成功寫入 Google Sheet「CornerIndicators」工作表，且「LearningRecords」表頭名稱已完全同步！",
+        updatedAt: nowStr
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: "未收到有效的 cornerAreas 資料。"
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function updateLearningRecordsHeaders(ss, areas, customHeaders) {
+  var recSheet = ss.getSheetByName("LearningRecords") || ss.getSheetByName("角落學習紀錄");
+  if (!recSheet) {
+    recSheet = ss.insertSheet("LearningRecords");
+  }
+  
+  var fullHeaders = customHeaders;
+  if (!fullHeaders || !Array.isArray(fullHeaders) || fullHeaders.length === 0) {
+    var baseHeaders = ["ID", "DateStart", "DateEnd", "WeekRange", "StudentId", "StudentName", "Grade", "ClassName", "SeatNumber"];
+    var areaHeaders = [];
+    for (var i = 0; i < areas.length; i++) {
+      var area = areas[i];
+      for (var j = 0; j < area.items.length; j++) {
+        areaHeaders.push("[" + area.name + "] " + area.items[j]);
+      }
+      areaHeaders.push("[" + area.name + "] 觀察筆記");
+    }
+    var tailHeaders = ["TotalChecked", "ActiveAreasCount", "TeacherComment", "Stamp", "PhotoImagesJSON", "VideoUrlsJSON", "CheckedItemsJSON", "CustomNotesJSON", "CreatedAt"];
+    fullHeaders = baseHeaders.concat(areaHeaders).concat(tailHeaders);
+  }
+  
+  var lastCol = recSheet.getLastColumn();
+  if (lastCol > fullHeaders.length) {
+    recSheet.getRange(1, fullHeaders.length + 1, 1, lastCol - fullHeaders.length).clearContent();
+  }
+  
+  recSheet.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+  recSheet.getRange(1, 1, 1, fullHeaders.length)
+    .setBackground("#3E2723")
+    .setFontColor("#FFFFFF")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center");
+  recSheet.setFrozenRows(1);
+}
+`;
+
 export const APPS_SCRIPT_CODE = `/**
  * 愛愛幼兒園 - Google Sheets 雙向資料同步腳本 (Google Apps Script)
  * 步驟：
@@ -1161,6 +1532,60 @@ function doPost(e) {
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // 八大區 48 項評估指標同步與 LearningRecords 表頭同步
+    if (contents.action === "syncCornerIndicators" || contents.cornerAreas) {
+      var areas = contents.cornerAreas || contents.areas;
+      if (areas && Array.isArray(areas)) {
+        var cSheet = ss.getSheetByName("CornerIndicators") || ss.getSheetByName("八大區評估指標");
+        if (!cSheet) cSheet = ss.insertSheet("CornerIndicators");
+        cSheet.clear();
+        var indHeaders = contents.headers || ["總項次", "學習區序號", "學習區名稱", "英文代碼", "區內指標序號", "評估能力指標項目", "完整指標識別標籤", "最後更新時間"];
+        var indRows = contents.indicatorRows || [];
+        var nowStr = Utilities.formatDate(new Date(), "GMT+8", "yyyy-MM-dd HH:mm:ss");
+        if (!indRows || indRows.length === 0) {
+          var gIdx = 1; indRows = [];
+          for (var a = 0; a < areas.length; a++) {
+            var area = areas[a];
+            for (var it = 0; it < area.items.length; it++) {
+              indRows.push([gIdx++, "第 " + (a + 1) + " 區", area.name, area.id, "指標 " + (it + 1), area.items[it], "[" + area.name + "] " + (it + 1) + ". " + area.items[it], nowStr]);
+            }
+          }
+        }
+        cSheet.appendRow(indHeaders);
+        if (indRows.length > 0) cSheet.getRange(2, 1, indRows.length, indHeaders.length).setValues(indRows);
+        cSheet.getRange(1, 1, 1, indHeaders.length).setBackground("#5D4037").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
+        cSheet.setFrozenRows(1);
+        cSheet.autoResizeColumns(1, indHeaders.length);
+
+        // 同步更新 LearningRecords 表頭
+        var recSheet = ss.getSheetByName("LearningRecords") || ss.getSheetByName("角落學習紀錄");
+        if (!recSheet) recSheet = ss.insertSheet("LearningRecords");
+        var fullHeaders = contents.learningHeaders;
+        if (!fullHeaders || !Array.isArray(fullHeaders) || fullHeaders.length === 0) {
+          var baseHeaders = ["ID", "DateStart", "DateEnd", "WeekRange", "StudentId", "StudentName", "Grade", "ClassName", "SeatNumber"];
+          var areaHeaders = [];
+          for (var i = 0; i < areas.length; i++) {
+            var aObj = areas[i];
+            for (var j = 0; j < aObj.items.length; j++) areaHeaders.push("[" + aObj.name + "] " + aObj.items[j]);
+            areaHeaders.push("[" + aObj.name + "] 觀察筆記");
+          }
+          var tailHeaders = ["TotalChecked", "ActiveAreasCount", "TeacherComment", "Stamp", "PhotoImagesJSON", "VideoUrlsJSON", "CheckedItemsJSON", "CustomNotesJSON", "CreatedAt"];
+          fullHeaders = baseHeaders.concat(areaHeaders).concat(tailHeaders);
+        }
+        var lastCol = recSheet.getLastColumn();
+        if (lastCol > fullHeaders.length) recSheet.getRange(1, fullHeaders.length + 1, 1, lastCol - fullHeaders.length).clearContent();
+        recSheet.getRange(1, 1, 1, fullHeaders.length).setValues([fullHeaders]);
+        recSheet.getRange(1, 1, 1, fullHeaders.length).setBackground("#3E2723").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
+        recSheet.setFrozenRows(1);
+
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          message: "八大區共 " + indRows.length + " 項指標已寫入 Google Sheet，且 LearningRecords 表頭完全同步！",
+          updatedAt: nowStr
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
     
     if (contents.students && Array.isArray(contents.students)) {
       updateStudentsSheet(ss, contents.students);
@@ -1583,6 +2008,139 @@ export async function syncToWebApp(
       console.warn('Web App Sync Warning:', err.message || fallbackErr.message);
     }
   }
+}
+
+/**
+ * Push 8 corner areas and indicators definition using Web App URL
+ */
+export async function syncCornerAreasToWebApp(
+  webAppUrl: string,
+  areas: CornerAreaDef[]
+): Promise<void> {
+  const normalizedUrl = normalizeWebAppUrl(webAppUrl);
+  if (!normalizedUrl) {
+    throw new Error('未設定有效的 Google Sheet Web App URL');
+  }
+
+  const indicatorHeaders = [
+    '總項次',
+    '學習區序號',
+    '學習區名稱',
+    '英文代碼',
+    '區內指標序號',
+    '評估能力指標項目',
+    '完整指標識別標籤',
+    '最後更新時間',
+  ];
+
+  let globalIdx = 1;
+  const nowStr = new Date().toLocaleString('zh-TW');
+  const indicatorRows: (string | number)[][] = [];
+
+  areas.forEach((area, aIdx) => {
+    area.items.forEach((item, itemIdx) => {
+      indicatorRows.push([
+        globalIdx++,
+        `第 ${aIdx + 1} 區`,
+        area.name,
+        area.id,
+        `指標 ${itemIdx + 1}`,
+        item,
+        `[${area.name}] ${itemIdx + 1}. ${item}`,
+        nowStr,
+      ]);
+    });
+  });
+
+  const expandedLearningHeaders = getExpandedLearningHeaders();
+
+  const payload = {
+    action: 'syncCornerIndicators',
+    cornerAreas: areas,
+    areas: areas,
+    headers: indicatorHeaders,
+    indicatorRows: indicatorRows,
+    learningHeaders: expandedLearningHeaders,
+    totalIndicators: globalIdx - 1,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const jsonString = JSON.stringify(payload);
+
+  if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+    try {
+      const formData = new FormData();
+      formData.append('payload', jsonString);
+      navigator.sendBeacon(normalizedUrl, formData);
+    } catch (bErr) {}
+  }
+
+  sendViaHiddenForm(normalizedUrl, payload);
+
+  try {
+    const params = new URLSearchParams();
+    params.append('payload', jsonString);
+
+    const res = await fetch(normalizedUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params,
+      redirect: 'follow',
+    });
+
+    if (res.type !== 'opaque' && !res.ok) {
+      throw new Error(`Web App 寫入失敗 (HTTP ${res.status}): ${res.statusText}`);
+    }
+
+    if (res.type !== 'opaque') {
+      try {
+        const text = await res.text();
+        if (text) {
+          const json = JSON.parse(text);
+          if (json.status === 'error') {
+            throw new Error(`Apps Script 寫入錯誤: ${json.message}`);
+          }
+        }
+      } catch (e: any) {
+        if (e.message && e.message.includes('Apps Script 寫入錯誤')) throw e;
+      }
+    }
+  } catch (err: any) {
+    try {
+      const params = new URLSearchParams();
+      params.append('payload', jsonString);
+      await fetch(normalizedUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: params,
+      });
+    } catch (fallbackErr: any) {
+      console.warn('Corner areas web app sync warning:', err.message || fallbackErr.message);
+    }
+  }
+}
+
+/**
+ * Fetch 8 corner areas and indicators from Web App if stored on Google Sheet
+ */
+export async function fetchCornerAreasFromWebApp(webAppUrl: string): Promise<CornerAreaDef[] | null> {
+  const normalizedUrl = normalizeWebAppUrl(webAppUrl);
+  if (!normalizedUrl) return null;
+
+  const fetchUrl = normalizedUrl + (normalizedUrl.includes('?') ? '&' : '?') + `action=getAreas&t=${Date.now()}`;
+  try {
+    const res = await fetch(fetchUrl, { redirect: 'follow', cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.cornerAreas && Array.isArray(data.cornerAreas) && data.cornerAreas.length > 0) {
+      return data.cornerAreas;
+    }
+  } catch (e) {
+    console.warn('fetchCornerAreasFromWebApp warning:', e);
+  }
+  return null;
 }
 
 function safeJsonParse(str: string, fallback: any) {

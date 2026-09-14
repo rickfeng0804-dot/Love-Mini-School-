@@ -5,6 +5,7 @@ import {
   CONTACT_BOOK_APPS_SCRIPT_CODE, 
   LEARNING_CORNER_APPS_SCRIPT_CODE, 
   STUDENT_ROSTER_APPS_SCRIPT_CODE,
+  CORNER_INDICATORS_APPS_SCRIPT_CODE,
   DEFAULT_WEB_APP_URL,
   DEFAULT_STUDENT_WEB_APP_URL,
   DEFAULT_STUDENT_LIBRARY_URL,
@@ -64,7 +65,7 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
   setContactBooks,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'contactBook' | 'fullSystem'>('studentRoster');
+  const [activeCodeTab, setActiveCodeTab] = useState<'studentRoster' | 'learningCorner' | 'cornerIndicators' | 'contactBook' | 'fullSystem'>('studentRoster');
   const [studentUrlInput, setStudentUrlInput] = useState(
     sheetConfig.studentWebAppUrl || sheetConfig.webAppUrl || DEFAULT_STUDENT_WEB_APP_URL
   );
@@ -789,6 +790,17 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => setActiveCodeTab('cornerIndicators')}
+                className={`px-3 py-1 rounded-lg font-black text-xs transition-all cursor-pointer ${
+                  activeCodeTab === 'cornerIndicators'
+                    ? 'bg-[#81C784] text-[#1B5E20] shadow-[1px_1px_0px_#5D4037]'
+                    : 'text-[#5D4037] hover:bg-gray-200'
+                }`}
+              >
+                八大區指標專用
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveCodeTab('fullSystem')}
                 className={`px-3 py-1 rounded-lg font-black text-xs transition-all cursor-pointer ${
                   activeCodeTab === 'fullSystem'
@@ -808,6 +820,8 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                   ? STUDENT_ROSTER_APPS_SCRIPT_CODE
                   : activeCodeTab === 'learningCorner'
                   ? LEARNING_CORNER_APPS_SCRIPT_CODE
+                  : activeCodeTab === 'cornerIndicators'
+                  ? CORNER_INDICATORS_APPS_SCRIPT_CODE
                   : APPS_SCRIPT_CODE
               )
             }
@@ -824,6 +838,8 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
                     ? '學生名冊'
                     : activeCodeTab === 'learningCorner'
                     ? '角落學習區'
+                    : activeCodeTab === 'cornerIndicators'
+                    ? '八大區指標'
                     : '全系統'
                 } Apps Script
               </>
@@ -837,6 +853,8 @@ export const SystemDesignView: React.FC<SystemDesignViewProps> = ({
               ? STUDENT_ROSTER_APPS_SCRIPT_CODE
               : activeCodeTab === 'learningCorner'
               ? LEARNING_CORNER_APPS_SCRIPT_CODE
+              : activeCodeTab === 'cornerIndicators'
+              ? CORNER_INDICATORS_APPS_SCRIPT_CODE
               : APPS_SCRIPT_CODE
           }</pre>
         </div>

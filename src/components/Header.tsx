@@ -19,12 +19,15 @@ import {
   RefreshCw,
   Type,
   Filter,
-  Settings
+  Settings,
+  Download,
+  Target
 } from 'lucide-react';
+import { exportCornerAreasIndicatorsCsv } from '../lib/csvExport';
 
 interface HeaderProps {
-  activeTab: 'corner-form' | 'learning-report' | 'roster' | 'system-design';
-  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'roster' | 'system-design') => void;
+  activeTab: 'corner-form' | 'learning-report' | 'roster' | 'corner-indicators' | 'system-design';
+  setActiveTab: (tab: 'corner-form' | 'learning-report' | 'roster' | 'corner-indicators' | 'system-design') => void;
   sheetConfig: SheetConfig;
   onOpenSheetModal: () => void;
   onOpenCornerManager?: () => void;
@@ -111,6 +114,17 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
+            {/* Export 8 Areas Indicators CSV Button */}
+            <button
+              onClick={() => exportCornerAreasIndicatorsCsv()}
+              title="匯出八大區 48 項能力評估指標 CSV 試算表檔案"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 min-h-[38px] px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] cursor-pointer active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5 text-[#2E7D32]" />
+              <span className="hidden sm:inline">匯出 48 項指標 (CSV)</span>
+              <span className="sm:hidden">匯出指標</span>
+            </button>
+
             {/* Google Sheets Status Badge */}
             <button
               onClick={onOpenSheetModal}
@@ -179,6 +193,17 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Users className="w-4 h-4" /> 學生名冊管理
+          </button>
+
+          <button
+            onClick={() => setActiveTab('corner-indicators')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-black text-xs md:text-sm whitespace-nowrap transition-all border-2 border-[#5D4037] ${
+              activeTab === 'corner-indicators'
+                ? 'bg-[#81C784] text-[#1B5E20] shadow-[3px_3px_0px_#5D4037] transform -translate-y-0.5'
+                : 'bg-white text-[#5D4037] hover:bg-[#E8F5E9] shadow-[2px_2px_0px_#5D4037]'
+            }`}
+          >
+            <Target className="w-4 h-4 text-[#2E7D32]" /> 8大區48項指標管理
           </button>
 
           <button

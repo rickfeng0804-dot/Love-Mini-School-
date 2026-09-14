@@ -53,10 +53,12 @@ import {
   Settings,
   Plus,
   Edit2,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { saveStoredCornerAreas } from '../lib/cornerStorage';
 import { getCurrentWeekRange, getShiftedWeekRange } from '../lib/dateUtils';
+import { exportCornerAreasIndicatorsCsv } from '../lib/csvExport';
 
 interface CornerLearningFormProps {
   students: Student[];
@@ -587,6 +589,22 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 <ExternalLink className="w-3.5 h-3.5" />
                 開啟 Google 試算表
               </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  exportCornerAreasIndicatorsCsv(areas);
+                  setSheetSyncStatus({
+                    type: 'success',
+                    message: '已成功匯出八大區 48 項評估指標 CSV 檔案！'
+                  });
+                }}
+                className="bg-[#FFF9C4] hover:bg-[#FFF59D] text-[#5D4037] text-xs font-black py-1.5 px-3 rounded-xl border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                title="將 8 大區所有 48 項評估指標匯出為 CSV 試算表"
+              >
+                <Download className="w-3.5 h-3.5 text-[#E65100]" />
+                匯出 48 項指標 (CSV)
+              </button>
             </div>
 
             {/* Sync Feedback Alert */}
@@ -810,7 +828,7 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
                 {totalCheckedCount > 0 && (
                   <button
                     type="button"
@@ -821,6 +839,22 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     <span>全部取消勾選</span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  id="export-indicators-toolbar-btn"
+                  onClick={() => {
+                    exportCornerAreasIndicatorsCsv(areas);
+                    setSheetSyncStatus({
+                      type: 'success',
+                      message: '已成功匯出八大區 48 項評估指標 CSV 檔案！'
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] text-[#1B5E20] rounded-xl border-2 border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="將目前 8 大區評估指標完整匯出為 CSV 試算表"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#2E7D32]" />
+                  <span>📥 匯出 48 項指標 (CSV)</span>
+                </button>
                 {onOpenCornerManager && (
                   <button
                     type="button"

@@ -15,6 +15,7 @@ import { Header } from './components/Header';
 import { CornerLearningForm } from './components/CornerLearningForm';
 import { LearningReportView } from './components/LearningReportView';
 import { StudentRosterView } from './components/StudentRosterView';
+import { CornerIndicatorsView } from './components/CornerIndicatorsView';
 import { SystemDesignView } from './components/SystemDesignView';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { CornerAreasManagerModal } from './components/CornerAreasManagerModal';
@@ -41,11 +42,12 @@ import {
   BookOpenCheck, 
   Heart, 
   Users, 
-  Layers 
+  Layers,
+  Target
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'roster' | 'system-design'>('corner-form');
+  const [activeTab, setActiveTab] = useState<'corner-form' | 'learning-report' | 'roster' | 'corner-indicators' | 'system-design'>('corner-form');
   const [showSheetModal, setShowSheetModal] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export default function App() {
       if (!parsed.studentWebAppUrl) {
         parsed.studentWebAppUrl = DEFAULT_STUDENT_WEB_APP_URL;
       }
-      if (!parsed.learningWebAppUrl) {
+      if (!parsed.learningWebAppUrl || parsed.learningWebAppUrl.includes('AKfycbz_tGPQoBjfRl_s75spbBoeT1xOp1dgp6d0E4Apn-YHdCyNtQmI8g7kW28ZWfJP1rZ5')) {
         parsed.learningWebAppUrl = DEFAULT_LEARNING_WEB_APP_URL;
       }
       if (!parsed.contactWebAppUrl) {
@@ -438,6 +440,17 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'corner-indicators' && (
+            <CornerIndicatorsView
+              cornerAreas={cornerAreas}
+              setCornerAreas={setCornerAreas}
+              onSaveCornerAreas={handleSaveCornerAreas}
+              sheetConfig={sheetConfig}
+              setSheetConfig={setSheetConfig}
+              onOpenSheetModal={() => setShowSheetModal(true)}
+            />
+          )}
+
           {activeTab === 'system-design' && (
             <SystemDesignView
               sheetConfig={sheetConfig}
@@ -463,52 +476,64 @@ export default function App() {
       </footer>
 
       {/* Mobile Fixed Bottom Navigation Bar (App style) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1.5 py-1 flex items-center justify-around">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFD54F] border-t-4 border-[#5D4037] shadow-[0px_-4px_12px_rgba(0,0,0,0.15)] px-1 py-1 flex items-center justify-around">
         <button
           onClick={() => setActiveTab('corner-form')}
-          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+          className={`flex flex-col items-center justify-center px-1.5 py-1 rounded-xl text-[9px] font-black transition-all ${
             activeTab === 'corner-form'
               ? 'bg-[#FF8A65] text-white border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
-          <ClipboardList className="w-5 h-5 mb-0.5" />
-          <span>角落紀錄表</span>
+          <ClipboardList className="w-4 h-4 mb-0.5" />
+          <span>角落表</span>
         </button>
 
         <button
           onClick={() => setActiveTab('learning-report')}
-          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+          className={`flex flex-col items-center justify-center px-1.5 py-1 rounded-xl text-[9px] font-black transition-all ${
             activeTab === 'learning-report'
               ? 'bg-[#FFB74D] text-[#5D4037] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
-          <BookOpenCheck className="w-5 h-5 mb-0.5" />
-          <span>角落學習紀錄</span>
+          <BookOpenCheck className="w-4 h-4 mb-0.5" />
+          <span>學習報告</span>
         </button>
 
         <button
           onClick={() => setActiveTab('roster')}
-          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+          className={`flex flex-col items-center justify-center px-1.5 py-1 rounded-xl text-[9px] font-black transition-all ${
             activeTab === 'roster'
               ? 'bg-[#CE93D8] text-[#4A148C] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
-          <Users className="w-5 h-5 mb-0.5" />
+          <Users className="w-4 h-4 mb-0.5" />
           <span>學生名冊</span>
         </button>
 
         <button
+          onClick={() => setActiveTab('corner-indicators')}
+          className={`flex flex-col items-center justify-center px-1.5 py-1 rounded-xl text-[9px] font-black transition-all ${
+            activeTab === 'corner-indicators'
+              ? 'bg-[#81C784] text-[#1B5E20] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
+              : 'text-[#5D4037] hover:bg-white/40'
+          }`}
+        >
+          <Target className="w-4 h-4 mb-0.5" />
+          <span>8大區指標</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('system-design')}
-          className={`flex flex-col items-center justify-center px-2 py-1 rounded-xl text-[10px] font-black transition-all ${
+          className={`flex flex-col items-center justify-center px-1.5 py-1 rounded-xl text-[9px] font-black transition-all ${
             activeTab === 'system-design'
               ? 'bg-[#FFF3E0] text-[#E65100] border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
               : 'text-[#5D4037] hover:bg-white/40'
           }`}
         >
-          <Layers className="w-5 h-5 mb-0.5" />
+          <Layers className="w-4 h-4 mb-0.5" />
           <span>設定/Sheet</span>
         </button>
       </div>

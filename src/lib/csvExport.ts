@@ -77,6 +77,95 @@ export function downloadCsv(filename: string, csvContent: string): void {
 }
 
 /**
+ * 產生「八大角落學習區 48 項評估指標總表」CSV 格式字串
+ * 包含：
+ * 1. 幼兒園基本表頭與匯出統計資訊
+ * 2. 清單式資料表 (垂直列表)：包含總項次、學習區序號、學習區名稱、英文代碼、區內項次、評估能力指標、完整識別標籤、自訂教學備註欄
+ * 3. 矩陣式對照表 (橫向矩陣)：依序將八大學習區並列，方便橫向對照、列印與課表規劃
+ */
+export function generateCornerAreasIndicatorsCsv(customAreas?: CornerAreaDef[]): string {
+  const areas = customAreas && customAreas.length > 0 ? customAreas : getStoredCornerAreas();
+  const totalItemsCount = areas.reduce((sum, a) => sum + a.items.length, 0);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const timeStr = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  const lines: string[] = [];
+
+  // 表頭資訊
+  lines.push('【桃園市私立 愛愛幼兒園 - 八大角落學習區評估指標總表】');
+  lines.push(`匯出時間,${escapeCsvCell(`${dateStr} ${timeStr}`)}`);
+  lines.push(`學習區域總數,${escapeCsvCell(`${areas.length} 大學習區`)}`);
+  lines.push(`評估指標總數,${escapeCsvCell(`${totalItemsCount} 項評估指標`)}`);
+  lines.push('說明,本試算表完整列出幼兒園八大角落學習區之能力評估指標。支援直接於 Microsoft Excel、Numbers 或 Google 試算表檢視、編輯與自訂教學評量備註。');
+  lines.push('');
+
+  // 第一部分：評估指標詳細資料清單（垂直資料庫標準格式）
+  lines.push('【一、各區評估指標詳細清單 (資料庫標準格式)】');
+  const headers = [
+    '總項次',
+    '學習區序號',
+    '學習區名稱',
+    '英文代碼',
+    '區內項次',
+    '評估能力指標項目',
+    '完整指標識別標籤',
+    '自訂教學指引或評量備註'
+  ];
+  lines.push(headers.map(escapeCsvCell).join(','));
+
+  let globalIndex = 1;
+  areas.forEach((area, areaIdx) => {
+    area.items.forEach((item, itemIdx) => {
+      lines.push([
+        String(globalIndex++),
+        `第 ${areaIdx + 1} 區`,
+        area.name,
+        area.id,
+        `指標 ${itemIdx + 1}`,
+        item,
+        `[${area.name}] ${itemIdx + 1}. ${item}`,
+        '' // 留空供老師填寫教學指引或補充備註
+      ].map(escapeCsvCell).join(','));
+    });
+  });
+
+  lines.push('');
+
+  // 第二部分：八大學習區 橫向評估指標矩陣對照表
+  lines.push('【二、八大學習區 橫向評估指標矩陣對照表】');
+  const matrixHeaders = [
+    '指標序號',
+    ...areas.map((a, idx) => `第${idx + 1}區：${a.name}`)
+  ];
+  lines.push(matrixHeaders.map(escapeCsvCell).join(','));
+
+  const maxItemsPerArea = Math.max(...areas.map(a => a.items.length), 1);
+  for (let i = 0; i < maxItemsPerArea; i++) {
+    const row = [
+      `第 ${i + 1} 項指標`,
+      ...areas.map(area => area.items[i] || '-')
+    ];
+    lines.push(row.map(escapeCsvCell).join(','));
+  }
+
+  return lines.join('\r\n');
+}
+
+/**
+ * 執行下載八大區評估指標 CSV 檔案 (自動加入 UTF-8 BOM，防止 Excel 亂碼)
+ */
+export function exportCornerAreasIndicatorsCsv(customAreas?: CornerAreaDef[]): void {
+  const areas = customAreas && customAreas.length > 0 ? customAreas : getStoredCornerAreas();
+  const csvContent = generateCornerAreasIndicatorsCsv(areas);
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const totalCount = areas.reduce((sum, a) => sum + a.items.length, 0);
+  const filename = `愛愛幼兒園_八大學習區_${totalCount}項評估指標總表_${dateStr}.csv`;
+  downloadCsv(filename, csvContent);
+}
+
+/**
  * Generate a specialized CSV for the current observation form content.
  * Explicitly lists ALL 48 items across the 8 areas with check status and notes
  * so the user can directly edit everything in Google Sheets.
