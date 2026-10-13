@@ -413,6 +413,11 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
                 </div>
                 <div style="max-width: 1100px; margin: 0 auto; background: white;">
                   ${gridArea.outerHTML}
+                  <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #5D4037; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #5D4037; font-family: monospace;">
+                    <span>班級導師簽章：__________________</span>
+                    <span>園長：黃雅琦 Rachel (簽章：__________________)</span>
+                    <span>核定印鑑：愛愛幼兒園</span>
+                  </div>
                 </div>
                 <script>
                   setTimeout(() => {
@@ -482,9 +487,12 @@ export const StudentRosterView: React.FC<StudentRosterViewProps> = ({
       {/* Top Banner */}
       <div className="bg-[#E1F5FE] border-4 border-[#5D4037] rounded-[2rem] p-6 shadow-[6px_6px_0px_#81D4FA] mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="bg-[#5D4037] text-white font-black text-xs px-3 py-1 rounded-full shadow-xs">
               📁 班級學生名冊
+            </span>
+            <span className="bg-[#FFE082] text-[#5D4037] font-black text-xs px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1">
+              👑 園長 黃雅琦 Rachel
             </span>
             <span className="bg-white text-[#5D4037] border-2 border-[#5D4037] font-black text-xs px-3 py-1 rounded-full shadow-[2px_2px_0px_#5D4037]">
               共有 {students.length} 位幼童

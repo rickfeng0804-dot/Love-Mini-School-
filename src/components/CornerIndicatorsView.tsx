@@ -384,6 +384,9 @@ export const CornerIndicatorsView: React.FC<CornerIndicatorsViewProps> = ({
 
             {/* Badges / Stats */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FFE082] text-[#5D4037] border-2 border-[#5D4037] text-xs font-black shadow-[2px_2px_0px_#5D4037]">
+                👑 園長 黃雅琦 Rachel
+              </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] border-2 border-[#5D4037] text-xs font-black shadow-[2px_2px_0px_#5D4037]">
                 <Sparkles className="w-3.5 h-3.5 text-[#2E7D32]" />
                 {localAreas.length} 大角落學習區

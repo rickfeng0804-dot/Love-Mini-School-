@@ -548,9 +548,12 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
         </div>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="bg-[#5D4037] text-white font-black text-xs px-3 py-1 rounded-full shadow-xs">
                 桃園市私立 愛愛幼兒園
+              </span>
+              <span className="bg-[#FFE082] text-[#5D4037] font-black text-xs px-2.5 py-0.5 rounded-full border-2 border-[#5D4037] shadow-[2px_2px_0px_#5D4037] flex items-center gap-1">
+                👑 園長 黃雅琦 Rachel
               </span>
               <span className="bg-[#FF8A65] text-white border-2 border-[#5D4037] font-black text-xs px-3 py-1 rounded-full shadow-[2px_2px_0px_#5D4037]">
                 角落學習紀錄表

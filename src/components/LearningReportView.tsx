@@ -702,12 +702,12 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="bg-[#FF8A65] text-white text-xs font-black px-2.5 py-0.5 rounded-full border border-[#5D4037]">
-                  {analyticsScope === 'overview' ? '🏫 園長視角' : '🧒 幼兒個別視角'}
+                  {analyticsScope === 'overview' ? '🏫 園長視角 (黃雅琦 Rachel)' : '🧒 幼兒個別視角'}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-[#5D4037] flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-[#FF8A65]" />
                   {analyticsScope === 'overview'
-                    ? `園長總覽：各學習角落使用率與活動人次分析 (${reportGradeFilter !== '全部年級' ? reportGradeFilter : '全園'}${reportClassFilter !== '全部班級' ? ` · ${reportClassFilter}` : ''})`
+                    ? `園長總覽 (黃雅琦 Rachel)：各學習角落使用率與活動人次分析 (${reportGradeFilter !== '全部年級' ? reportGradeFilter : '全園'}${reportClassFilter !== '全部班級' ? ` · ${reportClassFilter}` : ''})`
                     : `${selectedStudent.name} 的學習分布圖（8 大角落參與次數與偏好）`}
                 </h3>
               </div>
@@ -1151,7 +1151,7 @@ export const LearningReportView: React.FC<LearningReportViewProps> = ({
             <div className="p-3.5 bg-white rounded-2xl border-2 border-[#5D4037] shadow-[3px_3px_0px_#5D4037]">
               <span className="font-black text-[#0288D1] flex items-center gap-1.5 mb-1.5 text-xs">
                 <Compass className="w-4 h-4 text-[#0288D1]" />
-                {analyticsScope === 'overview' ? '園長教務指導與備料建議：' : '老師個別輔導回饋：'}
+                {analyticsScope === 'overview' ? '園長教務指導與備料建議 (黃雅琦 Rachel)：' : '老師個別輔導回饋：'}
               </span>
               <p className="text-[#5D4037] font-bold leading-relaxed">
                 {analyticsScope === 'overview' ? (
