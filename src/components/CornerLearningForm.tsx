@@ -17,6 +17,9 @@ import {
   syncAllToSheet, 
   syncToWebApp, 
   uploadPhotoToGoogleDrive, 
+  syncCornerAreasToSheet,
+  syncCornerAreasToWebApp,
+  DEFAULT_LEARNING_WEB_APP_URL,
   DEFAULT_WEB_APP_URL, 
   DEFAULT_MEDIA_FOLDER_URL,
   DEFAULT_SPREADSHEET_ID,
@@ -53,7 +56,9 @@ import {
   Settings,
   Plus,
   Edit2,
-  X
+  X,
+  Cloud,
+  Trash2
 } from 'lucide-react';
 import { saveStoredCornerAreas } from '../lib/cornerStorage';
 import { getCurrentWeekRange, getShiftedWeekRange } from '../lib/dateUtils';
@@ -198,16 +203,74 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
   const [sheetSyncing, setSheetSyncing] = useState<boolean>(false);
   const [sheetSyncStatus, setSheetSyncStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
-  // 8 大區名稱讓老師直接修改 state 與處理函數
+  // 8 大區名稱與評估指標清單直接於主畫面修改 state 與處理函數
   const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
   const [tempAreaName, setTempAreaName] = useState<string>('');
+
+  // 評估指標直接修改與新增 state
+  const [editingIndicator, setEditingIndicator] = useState<{ areaId: string; index: number } | null>(null);
+  const [tempIndicatorText, setTempIndicatorText] = useState<string>('');
+  const [addingIndicatorAreaId, setAddingIndicatorAreaId] = useState<string | null>(null);
+  const [newIndicatorText, setNewIndicatorText] = useState<string>('');
+  const [isSyncingIndicators, setIsSyncingIndicators] = useState<boolean>(false);
+
+  // 同步 8 大區與最新評估指標至 Google Sheet
+  const syncIndicatorsToGoogleSheet = async (areasToSync?: CornerAreaDef[]) => {
+    const listToSync = areasToSync || areas;
+    const spreadsheetId = sheetConfig.spreadsheetId || DEFAULT_SPREADSHEET_ID;
+    const targetUrl = sheetConfig.learningWebAppUrl || sheetConfig.webAppUrl || DEFAULT_LEARNING_WEB_APP_URL;
+
+    setIsSyncingIndicators(true);
+    setSyncStatus({
+      type: 'info',
+      message: '☁️ 正在將 8 大區與最新評估指標同步至 Google Sheet...',
+    });
+
+    try {
+      // 1. Web App 背景同步
+      await syncCornerAreasToWebApp(targetUrl, listToSync);
+
+      // 2. REST API 雙向寫入 (若使用者已登入 Google)
+      const token = getAccessToken();
+      if (token) {
+        try {
+          await syncCornerAreasToSheet(token, spreadsheetId, listToSync);
+        } catch (apiErr) {
+          console.warn('REST API sync notice:', apiErr);
+        }
+      }
+
+      setSyncStatus({
+        type: 'success',
+        message: '✅ 8 大區與最新評估指標已成功同步寫入 Google Sheet (CornerIndicators 工作表)！',
+      });
+
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 70,
+          origin: { y: 0.4 },
+          colors: ['#2E7D32', '#66BB6A', '#FFB74D', '#FF8A65', '#0288D1'],
+        });
+      } catch {}
+    } catch (err: any) {
+      console.error('Sync indicators error:', err);
+      setSyncStatus({
+        type: 'error',
+        message: `❌ 同步至 Google Sheet 失敗: ${err.message || '請確認試算表連線設定'}`,
+      });
+    } finally {
+      setIsSyncingIndicators(false);
+      setTimeout(() => setSyncStatus(null), 5000);
+    }
+  };
 
   const handleStartRenameArea = (areaId: string, currentName: string) => {
     setEditingAreaId(areaId);
     setTempAreaName(currentName);
   };
 
-  const handleSaveRenameArea = (areaId: string) => {
+  const handleSaveRenameArea = async (areaId: string) => {
     const trimmed = tempAreaName.trim();
     if (!trimmed) {
       alert('角落區域名稱不能為空！');
@@ -219,16 +282,156 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
     }
     saveStoredCornerAreas(updated);
     setEditingAreaId(null);
+    setTempAreaName('');
     setSyncStatus({
       type: 'success',
-      message: `✅ 已成功修改角落區域名稱為「${trimmed}」！`,
+      message: `✅ 已成功修改角落區域名稱為「${trimmed}」，正在同步至 Google Sheet...`,
     });
-    setTimeout(() => setSyncStatus(null), 3500);
+    await syncIndicatorsToGoogleSheet(updated);
   };
 
   const handleCancelRenameArea = () => {
     setEditingAreaId(null);
     setTempAreaName('');
+  };
+
+  // 直接在主畫面修改評估指標
+  const handleStartEditIndicator = (areaId: string, index: number, currentText: string) => {
+    setEditingIndicator({ areaId, index });
+    setTempIndicatorText(currentText);
+  };
+
+  const handleCancelEditIndicator = () => {
+    setEditingIndicator(null);
+    setTempIndicatorText('');
+  };
+
+  const handleSaveEditIndicator = async (areaId: string, index: number) => {
+    const trimmed = tempIndicatorText.trim();
+    if (!trimmed) {
+      alert('評估指標內容不能為空！');
+      return;
+    }
+
+    const targetArea = areas.find((a) => a.id === areaId);
+    if (!targetArea) return;
+
+    if (targetArea.items.some((item, i) => i !== index && item === trimmed)) {
+      alert(`此學習區已存在相同名稱的指標項目：「${trimmed}」！`);
+      return;
+    }
+
+    const oldItem = targetArea.items[index];
+
+    // 更新 areas 陣列中的指標
+    const updated = areas.map((a) => {
+      if (a.id !== areaId) return a;
+      const newItems = [...a.items];
+      newItems[index] = trimmed;
+      return { ...a, items: newItems };
+    });
+
+    // 若原指標已被勾選，同步更新當前選單中的標籤避免勾選遺失
+    if (checkedItems[areaId]?.includes(oldItem)) {
+      setCheckedItems((prev) => ({
+        ...prev,
+        [areaId]: (prev[areaId] || []).map((it) => (it === oldItem ? trimmed : it)),
+      }));
+    }
+
+    if (setCornerAreas) {
+      setCornerAreas(updated);
+    }
+    saveStoredCornerAreas(updated);
+    setEditingIndicator(null);
+    setTempIndicatorText('');
+
+    setSyncStatus({
+      type: 'success',
+      message: `✅ 已更新評估指標為「${trimmed}」，正在同步至 Google Sheet...`,
+    });
+
+    await syncIndicatorsToGoogleSheet(updated);
+  };
+
+  // 直接在主畫面刪除評估指標
+  const handleDeleteIndicator = async (areaId: string, index: number) => {
+    const targetArea = areas.find((a) => a.id === areaId);
+    if (!targetArea) return;
+    const itemToDelete = targetArea.items[index];
+    if (!confirm(`確定要刪除「${targetArea.name}」中的「${itemToDelete}」指標嗎？`)) {
+      return;
+    }
+
+    const updated = areas.map((a) => {
+      if (a.id !== areaId) return a;
+      return { ...a, items: a.items.filter((_, i) => i !== index) };
+    });
+
+    if (checkedItems[areaId]?.includes(itemToDelete)) {
+      setCheckedItems((prev) => ({
+        ...prev,
+        [areaId]: (prev[areaId] || []).filter((it) => it !== itemToDelete),
+      }));
+    }
+
+    if (setCornerAreas) {
+      setCornerAreas(updated);
+    }
+    saveStoredCornerAreas(updated);
+
+    setSyncStatus({
+      type: 'success',
+      message: `🗑️ 已刪除評估指標「${itemToDelete}」，正在同步至 Google Sheet...`,
+    });
+
+    await syncIndicatorsToGoogleSheet(updated);
+  };
+
+  // 直接在主畫面卡片新增評估指標
+  const handleStartAddIndicator = (areaId: string) => {
+    setAddingIndicatorAreaId(areaId);
+    setNewIndicatorText('');
+  };
+
+  const handleCancelAddIndicator = () => {
+    setAddingIndicatorAreaId(null);
+    setNewIndicatorText('');
+  };
+
+  const handleSaveAddIndicator = async (areaId: string) => {
+    const trimmed = newIndicatorText.trim();
+    if (!trimmed) {
+      alert('請輸入評估指標名稱！');
+      return;
+    }
+
+    const targetArea = areas.find((a) => a.id === areaId);
+    if (!targetArea) return;
+
+    if (targetArea.items.includes(trimmed)) {
+      alert(`此學習區已存在相同名稱的指標項目：「${trimmed}」！`);
+      return;
+    }
+
+    const updated = areas.map((a) => {
+      if (a.id !== areaId) return a;
+      return { ...a, items: [...a.items, trimmed] };
+    });
+
+    if (setCornerAreas) {
+      setCornerAreas(updated);
+    }
+    saveStoredCornerAreas(updated);
+    setAddingIndicatorAreaId(null);
+    setNewIndicatorText('');
+
+    setSyncStatus({
+      type: 'success',
+      message: `✨ 已成功新增評估指標「${trimmed}」，正在同步至 Google Sheet...`,
+    });
+
+    await syncIndicatorsToGoogleSheet(updated);
   };
 
   const handleManualSheetSync = async () => {
@@ -814,6 +1017,18 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2 ml-auto">
+                {/* 儲存並同步至 Google Sheet 按鈕 */}
+                <button
+                  type="button"
+                  onClick={() => syncIndicatorsToGoogleSheet()}
+                  disabled={isSyncingIndicators}
+                  className="px-3.5 py-1.5 bg-[#0288D1] hover:bg-[#0277BD] disabled:opacity-50 text-white rounded-xl border-2 border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="將修改後的 8 大區與所有評估指標立即儲存並同步至 Google Sheet (CornerIndicators 工作表)"
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${isSyncingIndicators ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingIndicators ? '正在同步至 Sheet...' : '💾 儲存並同步指標至 Google Sheet'}</span>
+                </button>
+
                 {totalCheckedCount > 0 && (
                   <button
                     type="button"
@@ -829,9 +1044,10 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     type="button"
                     onClick={() => onOpenCornerManager()}
                     className="px-3 py-1.5 bg-[#FF8A65] hover:bg-[#FF7043] text-white rounded-xl border border-[#5D4037] font-black text-xs shadow-[2px_2px_0px_#5D4037] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="開啟 8 大區指標管理彈窗"
                   >
                     <Settings className="w-3.5 h-3.5" />
-                    <span>✏️ 修改 8 大區名稱與指標</span>
+                    <span>⚙️ 指標管理彈窗</span>
                   </button>
                 )}
               </div>
@@ -944,44 +1160,169 @@ export const CornerLearningForm: React.FC<CornerLearningFormProps> = ({
                     </div>
                   </div>
 
-                  {/* Checklist Options */}
-                  <div className="space-y-2 mb-2">
-                    {area.items.map((item) => {
+                  {/* Checklist Options with Direct Inline Editing */}
+                  <div className="space-y-1.5 mb-2">
+                    {area.items.map((item, idx) => {
                       const isChecked = selectedList.includes(item);
+                      const isEditingThisItem = editingIndicator?.areaId === area.id && editingIndicator?.index === idx;
+
+                      if (isEditingThisItem) {
+                        return (
+                          <div
+                            key={`${area.id}-edit-${idx}`}
+                            className="flex items-center gap-1.5 p-1.5 rounded-xl bg-[#FFF9C4] border-2 border-[#5D4037] shadow-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="w-5 h-5 rounded-full bg-[#FFE082] border border-[#5D4037] text-[10px] font-black flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={tempIndicatorText}
+                              onChange={(e) => setTempIndicatorText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveEditIndicator(area.id, idx);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditIndicator();
+                                }
+                              }}
+                              autoFocus
+                              placeholder="指標內容"
+                              className="w-full min-w-0 bg-white border-2 border-[#5D4037] rounded-lg px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditIndicator(area.id, idx)}
+                              className="p-1 bg-[#4CAF50] hover:bg-[#43A047] text-white rounded-lg border border-[#5D4037] shadow-xs cursor-pointer shrink-0"
+                              title="儲存並同步至 Google Sheet"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditIndicator}
+                              className="p-1 bg-gray-200 hover:bg-gray-300 text-[#5D4037] rounded-lg border border-[#5D4037] shadow-xs cursor-pointer shrink-0"
+                              title="取消"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <label
-                          key={item}
-                          className={`flex items-start gap-2 text-xs font-bold p-2 rounded-xl cursor-pointer transition-all border border-transparent ${
+                        <div
+                          key={`${area.id}-${idx}-${item}`}
+                          className={`group/item flex items-center justify-between gap-1 text-xs font-bold p-1.5 sm:p-2 rounded-xl transition-all border ${
                             isChecked
                               ? 'bg-[#E1F5FE] border-[#5D4037] text-[#5D4037] shadow-[2px_2px_0px_#5D4037]'
-                              : 'text-[#5D4037]/80 hover:bg-[#FFFBF0]'
+                              : 'border-transparent text-[#5D4037]/85 hover:bg-[#FFFBF0] hover:border-[#5D4037]/30'
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleCheck(area.id, item)}
-                            className="mt-0.5 w-4 h-4 rounded-md text-[#FF8A65] focus:ring-[#FF8A65] border-2 border-[#5D4037]"
-                          />
-                          <span className="leading-tight">{item}</span>
-                        </label>
+                          <label className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleCheck(area.id, item)}
+                              className="mt-0.5 w-4 h-4 rounded-md text-[#FF8A65] focus:ring-[#FF8A65] border-2 border-[#5D4037] shrink-0"
+                            />
+                            <span className="leading-tight break-words">{item}</span>
+                          </label>
+
+                          {/* Direct edit & delete buttons, exactly like 8 大區 */}
+                          <div className="flex items-center gap-0.5 opacity-60 group-hover/item:opacity-100 transition-opacity shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartEditIndicator(area.id, idx, item);
+                              }}
+                              className="p-1 rounded-md text-[#5D4037]/60 hover:text-[#E65100] hover:bg-[#FFF9C4] transition-all cursor-pointer"
+                              title={`在主畫面直接修改「${item}」指標內容`}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteIndicator(area.id, idx);
+                              }}
+                              className="p-1 rounded-md text-[#5D4037]/40 hover:text-[#C62828] hover:bg-rose-50 transition-all cursor-pointer"
+                              title={`刪除「${item}」指標`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
 
                     {area.items.length === 0 && (
                       <p className="text-xs text-[#5D4037]/60 italic py-2 text-center">
-                        此區目前無預設項目
+                        此區目前無評估指標
                       </p>
                     )}
 
-                    {onOpenCornerManager && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenCornerManager(area.id)}
-                        className="w-full mt-1 py-1 px-2 text-[11px] font-bold text-[#E65100] hover:text-[#BF360C] hover:bg-[#FFE082]/40 rounded-lg flex items-center justify-center gap-1 border border-dashed border-[#E65100]/40 transition-all cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> 新增 / 編輯本區項目
-                      </button>
+                    {/* Inline Add Indicator Box directly on main screen card */}
+                    {addingIndicatorAreaId === area.id ? (
+                      <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-[#FFFDE7] border-2 border-dashed border-[#5D4037] shadow-xs">
+                        <input
+                          type="text"
+                          value={newIndicatorText}
+                          onChange={(e) => setNewIndicatorText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveAddIndicator(area.id);
+                            } else if (e.key === 'Escape') {
+                              handleCancelAddIndicator();
+                            }
+                          }}
+                          autoFocus
+                          placeholder={`輸入「${area.name}」新指標`}
+                          className="w-full min-w-0 bg-white border-2 border-[#5D4037] rounded-lg px-2 py-1 text-xs font-bold text-[#5D4037] focus:outline-none shadow-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveAddIndicator(area.id)}
+                          className="p-1 bg-[#4CAF50] hover:bg-[#43A047] text-white rounded-lg border border-[#5D4037] shadow-xs cursor-pointer shrink-0"
+                          title="確認新增並同步至 Google Sheet"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelAddIndicator}
+                          className="p-1 bg-gray-200 hover:bg-gray-300 text-[#5D4037] rounded-lg border border-[#5D4037] shadow-xs cursor-pointer shrink-0"
+                          title="取消"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-1 pt-1 border-t border-dashed border-[#5D4037]/20">
+                        <button
+                          type="button"
+                          onClick={() => handleStartAddIndicator(area.id)}
+                          className="flex-1 py-1 px-2 text-[11px] font-bold text-[#E65100] hover:text-[#BF360C] hover:bg-[#FFE082]/40 rounded-lg flex items-center justify-center gap-1 border border-dashed border-[#E65100]/40 transition-all cursor-pointer"
+                          title={`直接在「${area.name}」卡片新增評估指標`}
+                        >
+                          <Plus className="w-3 h-3" /> 新增本區指標
+                        </button>
+                        {onOpenCornerManager && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenCornerManager(area.id)}
+                            className="py-1 px-2 text-[11px] font-bold text-[#5D4037] hover:bg-[#FFE082]/40 rounded-lg flex items-center justify-center gap-1 border border-dashed border-[#5D4037]/30 transition-all cursor-pointer"
+                            title="開啟管理彈窗完整設定"
+                          >
+                            <Settings className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
